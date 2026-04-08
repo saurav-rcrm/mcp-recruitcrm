@@ -384,6 +384,232 @@ describe("Recruit CRM MCP tools", () => {
     await server.close();
   });
 
+  it("normalizes upper-bound-only task date filters into full ranges before calling the API", async () => {
+    const transportMock = vi.fn(async (request: HttpRequestOptions): Promise<HttpResponse> => {
+      if (request.url.pathname.endsWith("/tasks/search")) {
+        const createdFrom = request.url.searchParams.get("created_from");
+        const createdTo = request.url.searchParams.get("created_to");
+        const startingFrom = request.url.searchParams.get("starting_from");
+        const startingTo = request.url.searchParams.get("starting_to");
+        const updatedFrom = request.url.searchParams.get("updated_from");
+        const updatedTo = request.url.searchParams.get("updated_to");
+
+        if (createdTo) {
+          expect(createdFrom).toBe("1970-01-01");
+          expect(createdTo).toBe("2026-04-08");
+        }
+
+        if (startingTo) {
+          expect(startingFrom).toBe("1970-01-01");
+          expect(startingTo).toBe("2026-04-08");
+        }
+
+        if (updatedTo) {
+          expect(updatedFrom).toBe("1970-01-01");
+          expect(updatedTo).toBe("2026-04-08");
+        }
+
+        return {
+          statusCode: 200,
+          bodyText: JSON.stringify([]),
+        };
+      }
+
+      throw new Error(`Unexpected request: ${request.url.toString()}`);
+    });
+
+    const server = createRecruitCrmServer({
+      config: {
+        apiToken: "test-token",
+        baseUrl: "https://api.recruitcrm.io/v1",
+        timeoutMs: 10_000,
+        debugSchemaErrors: false,
+      },
+      transport: transportMock,
+    });
+
+    const client = new Client({
+      name: "test-client",
+      version: "1.0.0",
+    });
+
+    const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
+    await server.connect(serverTransport);
+    await client.connect(clientTransport);
+
+    await expect(
+      client.callTool({
+        name: "search_tasks",
+        arguments: {
+          created_to: "2026-04-08",
+        },
+      }),
+    ).resolves.toMatchObject({
+      structuredContent: {
+        page: 1,
+        returned_count: 0,
+        has_more: false,
+        tasks: [],
+      },
+    });
+
+    await expect(
+      client.callTool({
+        name: "search_tasks",
+        arguments: {
+          starting_to: "2026-04-08",
+        },
+      }),
+    ).resolves.toMatchObject({
+      structuredContent: {
+        page: 1,
+        returned_count: 0,
+        has_more: false,
+        tasks: [],
+      },
+    });
+
+    await expect(
+      client.callTool({
+        name: "search_tasks",
+        arguments: {
+          updated_to: "2026-04-08",
+        },
+      }),
+    ).resolves.toMatchObject({
+      structuredContent: {
+        page: 1,
+        returned_count: 0,
+        has_more: false,
+        tasks: [],
+      },
+    });
+
+    expect(transportMock).toHaveBeenCalledTimes(3);
+
+    await client.close();
+    await server.close();
+  });
+
+  it("returns a clearer error when Recruit CRM fails updated date task searches", async () => {
+    const transportMock = vi.fn(async (request: HttpRequestOptions): Promise<HttpResponse> => {
+      if (request.url.pathname.endsWith("/tasks/search")) {
+        return {
+          statusCode: 500,
+          bodyText: "Internal Server Error!",
+        };
+      }
+
+      throw new Error(`Unexpected request: ${request.url.toString()}`);
+    });
+
+    const server = createRecruitCrmServer({
+      config: {
+        apiToken: "test-token",
+        baseUrl: "https://api.recruitcrm.io/v1",
+        timeoutMs: 10_000,
+        debugSchemaErrors: false,
+      },
+      transport: transportMock,
+    });
+
+    const client = new Client({
+      name: "test-client",
+      version: "1.0.0",
+    });
+
+    const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
+    await server.connect(serverTransport);
+    await client.connect(clientTransport);
+
+    await expect(
+      client.callTool({
+        name: "search_tasks",
+        arguments: {
+          updated_from: "2026-03-01",
+          updated_to: "2026-04-08",
+        },
+      }),
+    ).resolves.toMatchObject({
+      isError: true,
+      content: [
+        {
+          text: "Recruit CRM task search failed for this updated-on date range. Try a narrower updated_from/updated_to range.",
+        },
+      ],
+    });
+
+    await client.close();
+    await server.close();
+  });
+
+  it("returns clearer errors when Recruit CRM fails created-on and due-date task ranges", async () => {
+    const transportMock = vi.fn(async (request: HttpRequestOptions): Promise<HttpResponse> => {
+      if (request.url.pathname.endsWith("/tasks/search")) {
+        return {
+          statusCode: 500,
+          bodyText: "Internal Server Error!",
+        };
+      }
+
+      throw new Error(`Unexpected request: ${request.url.toString()}`);
+    });
+
+    const server = createRecruitCrmServer({
+      config: {
+        apiToken: "test-token",
+        baseUrl: "https://api.recruitcrm.io/v1",
+        timeoutMs: 10_000,
+        debugSchemaErrors: false,
+      },
+      transport: transportMock,
+    });
+
+    const client = new Client({
+      name: "test-client",
+      version: "1.0.0",
+    });
+
+    const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
+    await server.connect(serverTransport);
+    await client.connect(clientTransport);
+
+    await expect(
+      client.callTool({
+        name: "search_tasks",
+        arguments: {
+          created_to: "2026-04-08",
+        },
+      }),
+    ).resolves.toMatchObject({
+      isError: true,
+      content: [
+        {
+          text: "Recruit CRM task search failed for this created-on date range. Try adding created_from or narrowing the created_from/created_to window.",
+        },
+      ],
+    });
+
+    await expect(
+      client.callTool({
+        name: "search_tasks",
+        arguments: {
+          starting_to: "2026-04-08",
+        },
+      }),
+    ).resolves.toMatchObject({
+      isError: true,
+      content: [
+        {
+          text: "Recruit CRM task search failed for this due-date range. Try adding starting_from or narrowing the starting_from/starting_to window.",
+        },
+      ],
+    });
+
+    await client.close();
+    await server.close();
+  });
+
   it("forwards custom-field filters that were previously blocked by the hardcoded matrix", async () => {
     const transportMock = vi.fn(async (request: HttpRequestOptions): Promise<HttpResponse> => {
       if (request.url.pathname.endsWith("/custom-fields/candidates")) {

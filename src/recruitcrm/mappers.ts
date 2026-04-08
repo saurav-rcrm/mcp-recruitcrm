@@ -111,12 +111,16 @@ function normalizeBoolean(value: number | boolean | null | undefined): boolean |
   return null;
 }
 
-function normalizeTaskTypes(taskTypes: RecruitCrmTaskType[] | null | undefined): TaskTypeSummary[] | null {
+function normalizeTaskTypes(
+  taskTypes: RecruitCrmTaskType | RecruitCrmTaskType[] | null | undefined,
+): TaskTypeSummary[] | null {
   if (taskTypes === undefined || taskTypes === null) {
     return null;
   }
 
-  return taskTypes.map((taskType) => ({
+  const normalizedTaskTypes = Array.isArray(taskTypes) ? taskTypes : [taskTypes];
+
+  return normalizedTaskTypes.map((taskType) => ({
     id: normalizeIdentifier(taskType.id),
     label: normalizeString(taskType.label),
   }));

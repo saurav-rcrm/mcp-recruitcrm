@@ -60,6 +60,7 @@ npm test
 - No live deployment required
 - Search results exclude email and phone by default
 - `search_tasks` excludes the nested `related` payload plus associated entity and collaborator arrays by default
+- `search_tasks` treats `created_*` as task created-on range filters, `starting_*` as task due-date range filters, and `updated_*` as task updated-on range filters
 - API tokens are read from environment variables only
 
 ## Custom Field Flow

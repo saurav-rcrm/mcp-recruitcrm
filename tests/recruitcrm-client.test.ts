@@ -91,6 +91,39 @@ describe("RecruitCrmClient", () => {
     });
   });
 
+  it("accepts task_type as a single object in task search payloads", async () => {
+    const transport = vi.fn(async (_request: HttpRequestOptions): Promise<HttpResponse> => ({
+      statusCode: 200,
+      bodyText: JSON.stringify({
+        current_page: 1,
+        next_page_url: null,
+        data: [
+          {
+            ...sampleTaskSearchResponse.data[0],
+            task_type: {
+              id: 209961,
+              label: "Call Candidate",
+            },
+          },
+        ],
+      }),
+    }));
+    const client = new RecruitCrmClient(baseConfig, transport);
+
+    const result = await client.searchTasks({
+      created_from: "2026-03-01",
+      created_to: "2026-04-08",
+    });
+
+    expect(result.data[0]).toMatchObject({
+      id: 2572223,
+      task_type: {
+        id: 209961,
+        label: "Call Candidate",
+      },
+    });
+  });
+
   it("keeps invalid payload errors generic when debug logging is disabled", async () => {
     const consoleErrorSpy = vi.spyOn(console, "error").mockImplementation(() => undefined);
     const transport = vi.fn(async (_request: HttpRequestOptions): Promise<HttpResponse> => ({

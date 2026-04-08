@@ -48,7 +48,7 @@ const taskSchema = z
   .object({
     id: nullableNumberOrStringSchema,
     related_to: nullableStringLikeSchema,
-    task_type: z.union([z.array(taskTypeSchema), z.null()]).optional(),
+    task_type: z.union([taskTypeSchema, z.array(taskTypeSchema), z.null()]).optional(),
     related_to_type: nullableStringLikeSchema,
     related_to_name: nullableStringLikeSchema,
     description: nullableStringLikeSchema,

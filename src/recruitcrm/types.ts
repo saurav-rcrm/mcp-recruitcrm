@@ -109,7 +109,7 @@ export type RecruitCrmTaskType = {
 export type RecruitCrmTask = {
   id?: number | string | null;
   related_to?: string | number | null;
-  task_type?: RecruitCrmTaskType[] | null;
+  task_type?: RecruitCrmTaskType | RecruitCrmTaskType[] | null;
   related_to_type?: string | number | null;
   related_to_name?: string | number | null;
   description?: string | number | null;

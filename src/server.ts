@@ -66,18 +66,18 @@ const searchCandidatesInputSchema = {
 
 const searchTasksInputSchema = {
   page: z.coerce.number().int().min(1).optional().describe("Page number."),
-  created_from: textFilterSchema.optional().describe("Created from date."),
-  created_to: textFilterSchema.optional().describe("Created to date."),
+  created_from: textFilterSchema.optional().describe("Task created-on date range start."),
+  created_to: textFilterSchema.optional().describe("Task created-on date range end."),
   owner_email: textFilterSchema.optional().describe("Task owner email."),
   owner_id: textFilterSchema.optional().describe("Task owner id."),
   owner_name: textFilterSchema.optional().describe("Task owner name."),
   related_to: textFilterSchema.optional().describe("Related entity slug or id. Must be used with related_to_type."),
   related_to_type: textFilterSchema.optional().describe("Related entity type. Must be used with related_to."),
-  starting_from: textFilterSchema.optional().describe("Task start date from."),
-  starting_to: textFilterSchema.optional().describe("Task start date to."),
+  starting_from: textFilterSchema.optional().describe("Task due-date range start."),
+  starting_to: textFilterSchema.optional().describe("Task due-date range end."),
   title: textFilterSchema.optional().describe("Task title."),
-  updated_from: textFilterSchema.optional().describe("Updated from date."),
-  updated_to: textFilterSchema.optional().describe("Updated to date."),
+  updated_from: textFilterSchema.optional().describe("Task updated-on date range start."),
+  updated_to: textFilterSchema.optional().describe("Task updated-on date range end."),
 };
 
 const nullableStringSchema = z.union([z.string(), z.null()]);
@@ -289,22 +289,29 @@ export async function executeSearchCandidates(
 
 export async function executeSearchTasks(client: RecruitCrmClient, args: SearchTasksInput): Promise<SearchTasksResult> {
   validateRelatedFilters(args);
+  const normalizedArgs = normalizeTaskDateRanges(args);
 
-  const result = await client.searchTasks({
-    page: args.page ?? 1,
-    created_from: args.created_from,
-    created_to: args.created_to,
-    owner_email: args.owner_email,
-    owner_id: args.owner_id,
-    owner_name: args.owner_name,
-    related_to: args.related_to,
-    related_to_type: args.related_to_type,
-    starting_from: args.starting_from,
-    starting_to: args.starting_to,
-    title: args.title,
-    updated_from: args.updated_from,
-    updated_to: args.updated_to,
-  });
+  let result;
+
+  try {
+    result = await client.searchTasks({
+      page: normalizedArgs.page ?? 1,
+      created_from: normalizedArgs.created_from,
+      created_to: normalizedArgs.created_to,
+      owner_email: normalizedArgs.owner_email,
+      owner_id: normalizedArgs.owner_id,
+      owner_name: normalizedArgs.owner_name,
+      related_to: normalizedArgs.related_to,
+      related_to_type: normalizedArgs.related_to_type,
+      starting_from: normalizedArgs.starting_from,
+      starting_to: normalizedArgs.starting_to,
+      title: normalizedArgs.title,
+      updated_from: normalizedArgs.updated_from,
+      updated_to: normalizedArgs.updated_to,
+    });
+  } catch (error) {
+    throw mapTaskSearchError(error, args);
+  }
 
   return mapSearchTasksResult(result);
 }
@@ -350,6 +357,56 @@ function validateRelatedFilters(args: SearchTasksInput): void {
   if (hasRelatedTo !== hasRelatedToType) {
     throw new RecruitCrmApiError("related_to and related_to_type must be provided together.");
   }
+}
+
+function normalizeTaskDateRanges(args: SearchTasksInput): SearchTasksInput {
+  return {
+    ...args,
+    page: args.page ?? 1,
+    created_from: args.created_from ?? getImplicitRangeStart(args.created_to),
+    starting_from: args.starting_from ?? getImplicitRangeStart(args.starting_to),
+    updated_from: args.updated_from ?? getImplicitRangeStart(args.updated_to),
+  };
+}
+
+function getImplicitRangeStart(upperBound: string | undefined): string | undefined {
+  if (upperBound === undefined) {
+    return undefined;
+  }
+
+  return "1970-01-01";
+}
+
+function mapTaskSearchError(error: unknown, args: SearchTasksInput): RecruitCrmApiError {
+  if (!(error instanceof RecruitCrmApiError)) {
+    return new RecruitCrmApiError("Recruit CRM task search failed.", undefined, error);
+  }
+
+  if (error.statusCode === 500 && (args.updated_from !== undefined || args.updated_to !== undefined)) {
+    return new RecruitCrmApiError(
+      "Recruit CRM task search failed for this updated-on date range. Try a narrower updated_from/updated_to range.",
+      error.statusCode,
+      error,
+    );
+  }
+
+  if (error.statusCode === 500 && (args.created_from !== undefined || args.created_to !== undefined)) {
+    return new RecruitCrmApiError(
+      "Recruit CRM task search failed for this created-on date range. Try adding created_from or narrowing the created_from/created_to window.",
+      error.statusCode,
+      error,
+    );
+  }
+
+  if (error.statusCode === 500 && (args.starting_from !== undefined || args.starting_to !== undefined)) {
+    return new RecruitCrmApiError(
+      "Recruit CRM task search failed for this due-date range. Try adding starting_from or narrowing the starting_from/starting_to window.",
+      error.statusCode,
+      error,
+    );
+  }
+
+  return error;
 }
 
 function formatResult(

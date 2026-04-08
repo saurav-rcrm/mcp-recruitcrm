@@ -84,4 +84,22 @@ describe("task mappers", () => {
       },
     ]);
   });
+
+  it("normalizes single-object task_type payloads into the compact array shape", () => {
+    const summary = mapTaskSummary({
+      ...sampleTaskSearchResponse.data[0],
+      task_type: {
+        id: 209961,
+        label: "Call Candidate",
+        ignored: true,
+      },
+    });
+
+    expect(summary.task_type).toEqual([
+      {
+        id: 209961,
+        label: "Call Candidate",
+      },
+    ]);
+  });
 });
