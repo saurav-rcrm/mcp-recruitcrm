@@ -2,6 +2,8 @@
 
 Local `stdio` MCP server for Recruit CRM's Public API.
 
+Repository: `https://github.com/saurav-rcrm/mcp-recruitcrm`
+
 ## What It Does
 
 - `search_candidates`: search candidates and return compact summaries without email or phone
@@ -18,6 +20,14 @@ Optional:
 - `RECRUITCRM_BASE_URL` default: `https://api.recruitcrm.io/v1`
 - `RECRUITCRM_TIMEOUT_MS` default: `10000`
 
+## Install And Run
+
+Run directly from GitHub with `npx`:
+
+```bash
+npx -y github:saurav-rcrm/mcp-recruitcrm
+```
+
 ## MCP Config Example
 
 ```json
@@ -25,13 +35,21 @@ Optional:
   "mcpServers": {
     "recruitcrm": {
       "command": "npx",
-      "args": ["-y", "github:<your-github-org>/recruitcrm-mcp-server"],
+      "args": ["-y", "github:saurav-rcrm/mcp-recruitcrm"],
       "env": {
         "RECRUITCRM_API_TOKEN": "<your-api-token>"
       }
     }
   }
 }
+```
+
+## Local Development
+
+```bash
+npm install
+npm run build
+npm test
 ```
 
 ## Privacy And Security
