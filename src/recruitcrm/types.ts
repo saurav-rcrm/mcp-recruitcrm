@@ -75,6 +75,16 @@ export type SearchMeetingsInput = {
   updated_to?: string;
 };
 
+export type SearchNotesInput = {
+  page?: number;
+  added_from?: string;
+  added_to?: string;
+  related_to?: string;
+  related_to_type?: string;
+  updated_from?: string;
+  updated_to?: string;
+};
+
 export type RecruitCrmCandidate = {
   slug: string;
   first_name?: string | number | null;
@@ -181,6 +191,31 @@ export type RecruitCrmMeetingSearchResponse = {
   current_page?: number;
   next_page_url?: string | null;
   data: RecruitCrmMeeting[];
+};
+
+export type RecruitCrmNoteType = {
+  id?: number | string | null;
+  label?: string | number | null;
+  [key: string]: unknown;
+};
+
+export type RecruitCrmNote = {
+  id?: number | string | null;
+  note_type?: RecruitCrmNoteType | RecruitCrmNoteType[] | null;
+  description?: string | number | null;
+  related_to?: string | number | null;
+  related_to_type?: string | number | null;
+  created_on?: string | number | null;
+  updated_on?: string | number | null;
+  created_by?: number | string | null;
+  updated_by?: number | string | null;
+  [key: string]: unknown;
+};
+
+export type RecruitCrmNoteSearchResponse = {
+  current_page?: number;
+  next_page_url?: string | null;
+  data: RecruitCrmNote[];
 };
 
 export type RecruitCrmCandidateDetailCustomField = {
@@ -308,6 +343,30 @@ export type SearchMeetingsResult = {
   returned_count: number;
   has_more: boolean;
   meetings: MeetingSummary[];
+};
+
+export type NoteTypeSummary = {
+  id: string | number | null;
+  label: string | null;
+};
+
+export type NoteSummary = {
+  id: number | null;
+  note_type: NoteTypeSummary[] | null;
+  description: string | null;
+  related_to: string | null;
+  related_to_type: string | null;
+  created_on: string | null;
+  updated_on: string | null;
+  created_by: number | null;
+  updated_by: number | null;
+};
+
+export type SearchNotesResult = {
+  page: number;
+  returned_count: number;
+  has_more: boolean;
+  notes: NoteSummary[];
 };
 
 export type CandidateCustomFieldSummary = {

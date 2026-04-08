@@ -4,11 +4,13 @@ import {
   mapCandidateSummary,
   mapMeetingSummary,
   mapSearchMeetingsResult,
+  mapSearchNotesResult,
   mapSearchCandidatesResult,
   mapSearchTasksResult,
+  mapNoteSummary,
   mapTaskSummary,
 } from "../src/recruitcrm/mappers.js";
-import { sampleMeetingSearchResponse, sampleSearchResponse, sampleTaskSearchResponse } from "./fixtures.js";
+import { sampleMeetingSearchResponse, sampleNoteSearchResponse, sampleSearchResponse, sampleTaskSearchResponse } from "./fixtures.js";
 
 describe("candidate mappers", () => {
   it("omits contact fields from search summaries", () => {
@@ -164,5 +166,41 @@ describe("meeting mappers", () => {
     ]);
     expect(summary.do_not_send_calendar_invites).toBe(false);
     expect(summary.all_day).toBe(true);
+  });
+});
+
+describe("note mappers", () => {
+  it("maps note search results into compact structured output", () => {
+    const result = mapSearchNotesResult(sampleNoteSearchResponse);
+
+    expect(result.page).toBe(1);
+    expect(result.returned_count).toBe(1);
+    expect(result.has_more).toBe(true);
+    expect(result.notes).toHaveLength(1);
+    expect(result.notes[0]).toEqual({
+      id: 24667666,
+      note_type: [
+        {
+          id: 205989,
+          label: "Candidate Interaction",
+        },
+      ],
+      description: "GOOD CANDIDATE",
+      related_to: "16367183842920002890gLG",
+      related_to_type: "candidate",
+      created_on: "2024-07-30T11:10:30.000000Z",
+      updated_on: "2024-07-30T11:10:30.000000Z",
+      created_by: 66960,
+      updated_by: 66960,
+    });
+  });
+
+  it("accepts null note_type payloads", () => {
+    const summary = mapNoteSummary({
+      ...sampleNoteSearchResponse.data[0],
+      note_type: null,
+    });
+
+    expect(summary.note_type).toBeNull();
   });
 });

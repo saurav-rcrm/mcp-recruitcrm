@@ -5,6 +5,7 @@ import type { HttpRequestOptions, HttpResponse } from "../src/recruitcrm/http.js
 import {
   sampleCandidateDetailResponse,
   sampleMeetingSearchResponse,
+  sampleNoteSearchResponse,
   sampleSearchResponse,
   sampleTaskSearchResponse,
 } from "./fixtures.js";
@@ -162,6 +163,46 @@ describe("RecruitCrmClient", () => {
     const client = new RecruitCrmClient(baseConfig, transport);
 
     const result = await client.searchMeetings({});
+
+    expect(result).toEqual({
+      current_page: 1,
+      next_page_url: null,
+      data: [],
+    });
+  });
+
+  it("parses note search payloads and tolerates large related objects", async () => {
+    const transport = vi.fn(async (_request: HttpRequestOptions): Promise<HttpResponse> => ({
+      statusCode: 200,
+      bodyText: JSON.stringify(sampleNoteSearchResponse),
+    }));
+    const client = new RecruitCrmClient(baseConfig, transport);
+
+    const result = await client.searchNotes({
+      related_to: "16367183842920002890gLG",
+      related_to_type: "candidate",
+    });
+
+    expect(result.current_page).toBe(1);
+    expect(result.next_page_url).toBe("https://api.recruitcrm.io/v1/notes/search?page=2");
+    expect(result.data[0]).toMatchObject({
+      id: 24667666,
+      note_type: {
+        id: 205989,
+        label: "Candidate Interaction",
+      },
+      related_to: "16367183842920002890gLG",
+    });
+  });
+
+  it("normalizes empty note search arrays into an empty paginated response", async () => {
+    const transport = vi.fn(async (_request: HttpRequestOptions): Promise<HttpResponse> => ({
+      statusCode: 200,
+      bodyText: JSON.stringify([]),
+    }));
+    const client = new RecruitCrmClient(baseConfig, transport);
+
+    const result = await client.searchNotes({});
 
     expect(result).toEqual({
       current_page: 1,

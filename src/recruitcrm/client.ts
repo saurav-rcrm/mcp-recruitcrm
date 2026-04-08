@@ -7,10 +7,12 @@ import type {
   RecruitCrmCandidateCustomField,
   CandidateDetail,
   RecruitCrmMeetingSearchResponse,
+  RecruitCrmNoteSearchResponse,
   RecruitCrmSearchResponse,
   RecruitCrmTaskSearchResponse,
   SearchCandidatesInput,
   SearchMeetingsInput,
+  SearchNotesInput,
   SearchTasksInput,
   SearchCandidateCustomFieldFilter,
 } from "./types.js";
@@ -134,6 +136,45 @@ const meetingSearchResponseSchema = z
     ),
   ]);
 
+const noteTypeSchema = z
+  .object({
+    id: nullableNumberOrStringSchema,
+    label: nullableStringLikeSchema,
+  })
+  .passthrough();
+
+const noteSchema = z
+  .object({
+    id: nullableNumberOrStringSchema,
+    note_type: z.union([noteTypeSchema, z.array(noteTypeSchema), z.null()]).optional(),
+    description: nullableStringLikeSchema,
+    related_to: nullableStringLikeSchema,
+    related_to_type: nullableStringLikeSchema,
+    created_on: nullableStringLikeSchema,
+    updated_on: nullableStringLikeSchema,
+    created_by: nullableNumberOrStringSchema,
+    updated_by: nullableNumberOrStringSchema,
+  })
+  .passthrough();
+
+const noteSearchResponseSchema = z
+  .union([
+    z
+      .object({
+        current_page: z.coerce.number().int().positive().optional(),
+        next_page_url: z.union([z.string(), z.null()]).optional(),
+        data: z.array(noteSchema),
+      })
+      .passthrough(),
+    z.array(z.unknown()).length(0).transform(
+      (): RecruitCrmNoteSearchResponse => ({
+        current_page: 1,
+        next_page_url: null,
+        data: [],
+      }),
+    ),
+  ]);
+
 const candidateCustomFieldSchema = z
   .object({
     field_id: z.coerce.number().int().positive(),
@@ -177,6 +218,12 @@ export class RecruitCrmClient {
     const request = buildSearchMeetingsRequest(filters);
 
     return this.#requestJson("/meetings/search", meetingSearchResponseSchema, request);
+  }
+
+  async searchNotes(filters: SearchNotesInput): Promise<RecruitCrmNoteSearchResponse> {
+    const request = buildSearchNotesRequest(filters);
+
+    return this.#requestJson("/notes/search", noteSearchResponseSchema, request);
   }
 
   async getCandidateDetails(candidateSlug: string): Promise<CandidateDetail> {
@@ -345,6 +392,21 @@ export function buildSearchMeetingsRequest(filters: SearchMeetingsInput): GetReq
   setStringParam(query, "starting_from", filters.starting_from);
   setStringParam(query, "starting_to", filters.starting_to);
   setStringParam(query, "title", filters.title);
+  setStringParam(query, "updated_from", filters.updated_from);
+  setStringParam(query, "updated_to", filters.updated_to);
+
+  return { query };
+}
+
+export function buildSearchNotesRequest(filters: SearchNotesInput): GetRequestOptions {
+  const query = new URLSearchParams();
+  const page = normalizePage(filters.page);
+
+  query.set("page", String(page));
+  setStringParam(query, "added_from", filters.added_from);
+  setStringParam(query, "added_to", filters.added_to);
+  setStringParam(query, "related_to", filters.related_to);
+  setStringParam(query, "related_to_type", filters.related_to_type);
   setStringParam(query, "updated_from", filters.updated_from);
   setStringParam(query, "updated_to", filters.updated_to);
 

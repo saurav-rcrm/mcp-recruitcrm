@@ -34,6 +34,7 @@ describe("stdio smoke test", () => {
       "search_candidates",
       "search_tasks",
       "search_meetings",
+      "search_notes",
       "get_candidate_details",
       "list_candidate_custom_fields",
       "get_candidate_custom_field_details",

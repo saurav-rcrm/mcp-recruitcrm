@@ -11,7 +11,7 @@ import {
   validateCustomFieldFilters,
 } from "./recruitcrm/custom-fields.js";
 import type { HttpTransport } from "./recruitcrm/http.js";
-import { mapSearchCandidatesResult, mapSearchMeetingsResult, mapSearchTasksResult } from "./recruitcrm/mappers.js";
+import { mapSearchCandidatesResult, mapSearchMeetingsResult, mapSearchNotesResult, mapSearchTasksResult } from "./recruitcrm/mappers.js";
 import {
   CUSTOM_FIELD_FILTER_TYPES,
   type CandidateCustomFieldDetail,
@@ -20,6 +20,8 @@ import {
   type SearchCandidatesInput,
   type SearchMeetingsInput,
   type SearchMeetingsResult,
+  type SearchNotesInput,
+  type SearchNotesResult,
   type SearchCandidatesResult,
   type SearchTasksInput,
   type SearchTasksResult,
@@ -96,6 +98,16 @@ const searchMeetingsInputSchema = {
   title: textFilterSchema.optional().describe("Meeting title."),
   updated_from: textFilterSchema.optional().describe("Meeting updated-on date range start."),
   updated_to: textFilterSchema.optional().describe("Meeting updated-on date range end."),
+};
+
+const searchNotesInputSchema = {
+  page: z.coerce.number().int().min(1).optional().describe("Page number."),
+  added_from: textFilterSchema.optional().describe("Note added-on date range start."),
+  added_to: textFilterSchema.optional().describe("Note added-on date range end."),
+  related_to: textFilterSchema.optional().describe("Related entity slug. Must be used with related_to_type."),
+  related_to_type: textFilterSchema.optional().describe("Related entity type. Must be used with related_to."),
+  updated_from: textFilterSchema.optional().describe("Note updated-on date range start."),
+  updated_to: textFilterSchema.optional().describe("Note updated-on date range end."),
 };
 
 const nullableStringSchema = z.union([z.string(), z.null()]);
@@ -186,6 +198,30 @@ const searchMeetingsOutputSchema = {
   meetings: z.array(meetingSummarySchema),
 };
 
+const noteTypeSummarySchema = z.object({
+  id: nullableStringOrNumberSchema,
+  label: nullableStringSchema,
+});
+
+const noteSummarySchema = z.object({
+  id: nullableNumberSchema,
+  note_type: z.union([z.array(noteTypeSummarySchema), z.null()]),
+  description: nullableStringSchema,
+  related_to: nullableStringSchema,
+  related_to_type: nullableStringSchema,
+  created_on: nullableStringSchema,
+  updated_on: nullableStringSchema,
+  created_by: nullableNumberSchema,
+  updated_by: nullableNumberSchema,
+});
+
+const searchNotesOutputSchema = {
+  page: z.number().int().min(1),
+  returned_count: z.number().int().min(0),
+  has_more: z.boolean(),
+  notes: z.array(noteSummarySchema),
+};
+
 const candidateDetailOutputSchema = z.object({}).passthrough();
 
 const candidateCustomFieldSummarySchema = z.object({
@@ -264,6 +300,19 @@ export function createRecruitCrmServer(dependencies: ServerDependencies = {}): M
       },
     },
     async (args) => formatResult(await executeSearchMeetings(client, args)),
+  );
+
+  server.registerTool(
+    "search_notes",
+    {
+      description: "Search Recruit CRM notes and return compact summaries designed for large result sets.",
+      inputSchema: searchNotesInputSchema,
+      outputSchema: searchNotesOutputSchema,
+      annotations: {
+        readOnlyHint: true,
+      },
+    },
+    async (args) => formatResult(await executeSearchNotes(client, args)),
   );
 
   server.registerTool(
@@ -407,6 +456,22 @@ export async function executeSearchMeetings(
   return mapSearchMeetingsResult(result);
 }
 
+export async function executeSearchNotes(client: RecruitCrmClient, args: SearchNotesInput): Promise<SearchNotesResult> {
+  validateRelatedFilters(args);
+
+  const result = await client.searchNotes({
+    page: args.page ?? 1,
+    added_from: args.added_from,
+    added_to: args.added_to,
+    related_to: args.related_to,
+    related_to_type: args.related_to_type,
+    updated_from: args.updated_from,
+    updated_to: args.updated_to,
+  });
+
+  return mapSearchNotesResult(result);
+}
+
 export async function executeGetCandidateDetails(
   client: RecruitCrmClient,
   candidateSlug: string,
@@ -504,6 +569,7 @@ function formatResult(
   result:
     | SearchCandidatesResult
     | SearchMeetingsResult
+    | SearchNotesResult
     | SearchTasksResult
     | CandidateDetail
     | CandidateCustomFieldListResult

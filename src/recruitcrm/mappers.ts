@@ -6,13 +6,19 @@ import type {
   RecruitCrmMeeting,
   RecruitCrmMeetingSearchResponse,
   RecruitCrmMeetingType,
+  RecruitCrmNote,
+  RecruitCrmNoteSearchResponse,
+  RecruitCrmNoteType,
   RecruitCrmTask,
   RecruitCrmTaskSearchResponse,
   RecruitCrmTaskType,
   RecruitCrmSearchResponse,
   SearchMeetingsResult,
+  SearchNotesResult,
   SearchCandidatesResult,
   SearchTasksResult,
+  NoteSummary,
+  NoteTypeSummary,
   TaskSummary,
   TaskTypeSummary,
 } from "./types.js";
@@ -59,6 +65,15 @@ export function mapSearchMeetingsResult(response: RecruitCrmMeetingSearchRespons
   };
 }
 
+export function mapSearchNotesResult(response: RecruitCrmNoteSearchResponse): SearchNotesResult {
+  return {
+    page: response.current_page ?? 1,
+    returned_count: response.data.length,
+    has_more: hasNextPage(response.next_page_url),
+    notes: response.data.map(mapNoteSummary),
+  };
+}
+
 export function mapTaskSummary(task: RecruitCrmTask): TaskSummary {
   return {
     id: normalizeNumber(task.id),
@@ -101,6 +116,20 @@ export function mapMeetingSummary(meeting: RecruitCrmMeeting): MeetingSummary {
     updated_on: normalizeString(meeting.updated_on),
     created_by: normalizeNumber(meeting.created_by),
     updated_by: normalizeNumber(meeting.updated_by),
+  };
+}
+
+export function mapNoteSummary(note: RecruitCrmNote): NoteSummary {
+  return {
+    id: normalizeNumber(note.id),
+    note_type: normalizeNoteTypes(note.note_type),
+    description: normalizeString(note.description),
+    related_to: normalizeString(note.related_to),
+    related_to_type: normalizeString(note.related_to_type),
+    created_on: normalizeString(note.created_on),
+    updated_on: normalizeString(note.updated_on),
+    created_by: normalizeNumber(note.created_by),
+    updated_by: normalizeNumber(note.updated_by),
   };
 }
 
@@ -204,6 +233,21 @@ function normalizeMeetingTypes(
   return normalizedMeetingTypes.map((meetingType) => ({
     id: normalizeIdentifier(meetingType.id),
     label: normalizeString(meetingType.label),
+  }));
+}
+
+function normalizeNoteTypes(
+  noteTypes: RecruitCrmNoteType | RecruitCrmNoteType[] | null | undefined,
+): NoteTypeSummary[] | null {
+  if (noteTypes === undefined || noteTypes === null) {
+    return null;
+  }
+
+  const normalizedNoteTypes = Array.isArray(noteTypes) ? noteTypes : [noteTypes];
+
+  return normalizedNoteTypes.map((noteType) => ({
+    id: normalizeIdentifier(noteType.id),
+    label: normalizeString(noteType.label),
   }));
 }
 

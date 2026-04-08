@@ -8,6 +8,7 @@ import {
   sampleCandidateCustomFieldsResponse,
   sampleCandidateDetailResponse,
   sampleMeetingSearchResponse,
+  sampleNoteSearchResponse,
   sampleSearchResponse,
   sampleTaskSearchResponse,
 } from "./fixtures.js";
@@ -72,6 +73,16 @@ describe("Recruit CRM MCP tools", () => {
         };
       }
 
+      if (request.url.pathname.endsWith("/notes/search")) {
+        expect(request.url.searchParams.get("related_to")).toBe("16367183842920002890gLG");
+        expect(request.url.searchParams.get("related_to_type")).toBe("candidate");
+
+        return {
+          statusCode: 200,
+          bodyText: JSON.stringify(sampleNoteSearchResponse),
+        };
+      }
+
       throw new Error(`Unexpected request: ${request.url.toString()}`);
     });
 
@@ -99,6 +110,7 @@ describe("Recruit CRM MCP tools", () => {
       "search_candidates",
       "search_tasks",
       "search_meetings",
+      "search_notes",
       "get_candidate_details",
       "list_candidate_custom_fields",
       "get_candidate_custom_field_details",
@@ -178,6 +190,14 @@ describe("Recruit CRM MCP tools", () => {
 
     const meetingResult = await client.callTool({
       name: "search_meetings",
+      arguments: {
+        related_to: "16367183842920002890gLG",
+        related_to_type: "candidate",
+      },
+    });
+
+    const noteResult = await client.callTool({
+      name: "search_notes",
       arguments: {
         related_to: "16367183842920002890gLG",
         related_to_type: "candidate",
@@ -295,8 +315,37 @@ describe("Recruit CRM MCP tools", () => {
     expect(
       (meetingResult.structuredContent as { meetings: Array<Record<string, unknown>> }).meetings[0],
     ).not.toHaveProperty("associated_candidates");
+    expect(noteResult.structuredContent).toMatchObject({
+      page: 1,
+      returned_count: 1,
+      has_more: true,
+      notes: [
+        {
+          id: 24667666,
+          note_type: [
+            {
+              id: 205989,
+              label: "Candidate Interaction",
+            },
+          ],
+          description: "GOOD CANDIDATE",
+          related_to: "16367183842920002890gLG",
+          related_to_type: "candidate",
+          created_on: "2024-07-30T11:10:30.000000Z",
+          updated_on: "2024-07-30T11:10:30.000000Z",
+          created_by: 66960,
+          updated_by: 66960,
+        },
+      ],
+    });
+    expect((noteResult.structuredContent as { notes: Array<Record<string, unknown>> }).notes[0]).not.toHaveProperty(
+      "related",
+    );
+    expect((noteResult.structuredContent as { notes: Array<Record<string, unknown>> }).notes[0]).not.toHaveProperty(
+      "associated_candidates",
+    );
 
-    expect(transportMock).toHaveBeenCalledTimes(7);
+    expect(transportMock).toHaveBeenCalledTimes(8);
 
     await client.close();
     await server.close();
@@ -426,6 +475,52 @@ describe("Recruit CRM MCP tools", () => {
     await expect(
       client.callTool({
         name: "search_meetings",
+        arguments: {
+          related_to: "16367183842920002890gLG",
+        },
+      }),
+    ).resolves.toMatchObject({
+      isError: true,
+      content: [
+        {
+          text: "related_to and related_to_type must be provided together.",
+        },
+      ],
+    });
+
+    expect(transportMock).not.toHaveBeenCalled();
+
+    await client.close();
+    await server.close();
+  });
+
+  it("validates related_to and related_to_type together for note search", async () => {
+    const transportMock = vi.fn(async (_request: HttpRequestOptions): Promise<HttpResponse> => {
+      throw new Error("Note search should fail before making an API request.");
+    });
+
+    const server = createRecruitCrmServer({
+      config: {
+        apiToken: "test-token",
+        baseUrl: "https://api.recruitcrm.io/v1",
+        timeoutMs: 10_000,
+        debugSchemaErrors: false,
+      },
+      transport: transportMock,
+    });
+
+    const client = new Client({
+      name: "test-client",
+      version: "1.0.0",
+    });
+
+    const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
+    await server.connect(serverTransport);
+    await client.connect(clientTransport);
+
+    await expect(
+      client.callTool({
+        name: "search_notes",
         arguments: {
           related_to: "16367183842920002890gLG",
         },

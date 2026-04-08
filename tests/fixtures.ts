@@ -2,6 +2,7 @@ import type {
   RecruitCrmCandidateCustomField,
   CandidateDetail,
   RecruitCrmMeetingSearchResponse,
+  RecruitCrmNoteSearchResponse,
   RecruitCrmSearchResponse,
   RecruitCrmTaskSearchResponse,
 } from "../src/recruitcrm/types.js";
@@ -173,6 +174,37 @@ export const sampleMeetingSearchResponse: RecruitCrmMeetingSearchResponse = {
       associated_deals: [],
       collaborator_users: [],
       collaborator_teams: [],
+    },
+  ],
+};
+
+export const sampleNoteSearchResponse: RecruitCrmNoteSearchResponse = {
+  current_page: 1,
+  next_page_url: "https://api.recruitcrm.io/v1/notes/search?page=2",
+  data: [
+    {
+      id: 24667666,
+      note_type: {
+        id: 205989,
+        label: "Candidate Interaction",
+      },
+      description: "GOOD CANDIDATE",
+      related_to: "16367183842920002890gLG",
+      related_to_type: "candidate",
+      created_on: "2024-07-30T11:10:30.000000Z",
+      updated_on: "2024-07-30T11:10:30.000000Z",
+      created_by: 66960,
+      updated_by: 66960,
+      related: {
+        slug: "16367183842920002890gLG",
+      },
+      associated_candidates: ["16367183842920002890gLG"],
+      associated_companies: [],
+      associated_contacts: [],
+      associated_jobs: [],
+      associated_deals: [],
+      collaborator_users: [],
+      collaborator_teams: [null],
     },
   ],
 };
