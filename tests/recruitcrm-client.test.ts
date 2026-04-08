@@ -6,6 +6,7 @@ import {
   sampleCallLogSearchResponse,
   sampleCandidateJobAssignmentHiringStageHistoryResponse,
   sampleCandidateDetailResponse,
+  sampleJobSearchResponse,
   sampleMeetingSearchResponse,
   sampleNoteSearchResponse,
   sampleSearchResponse,
@@ -84,6 +85,67 @@ describe("RecruitCrmClient", () => {
       },
       title: "Follow up",
       status: 1,
+    });
+  });
+
+  it("parses job search payloads while tolerating large nested payloads", async () => {
+    const transport = vi.fn(async (_request: HttpRequestOptions): Promise<HttpResponse> => ({
+      statusCode: 200,
+      bodyText: JSON.stringify(sampleJobSearchResponse),
+    }));
+    const client = new RecruitCrmClient(baseConfig, transport);
+
+    const result = await client.searchJobs({
+      job_slug: "job-sample-001",
+      limit: 1,
+    });
+
+    expect(result.current_page).toBe(1);
+    expect(result.next_page_url).toBe("https://api.recruitcrm.io/v1/jobs/search?page=2");
+    expect(result.data[0]).toMatchObject({
+      id: 313,
+      slug: "job-sample-001",
+      name: "Operations Analyst",
+      company_slug: "company-sample-001",
+      contact_slug: "contact-sample-001",
+      salary_type: {
+        id: "2",
+        label: "Annual Salary",
+      },
+      job_status: {
+        id: 1,
+        label: "Open",
+      },
+      job_type: "Contract",
+      enable_job_application_form: 1,
+    });
+    expect(transport).toHaveBeenCalledWith(
+      expect.objectContaining({
+        method: "GET",
+        url: expect.objectContaining({
+          pathname: "/v1/jobs/search",
+        }),
+      }),
+    );
+  });
+
+  it("accepts empty paginated job search payloads", async () => {
+    const transport = vi.fn(async (_request: HttpRequestOptions): Promise<HttpResponse> => ({
+      statusCode: 200,
+      bodyText: JSON.stringify({
+        current_page: 1,
+        next_page_url: null,
+        data: [],
+      }),
+    }));
+    const client = new RecruitCrmClient(baseConfig, transport);
+
+    const result = await client.searchJobs({ name: "Operations Analyst" });
+
+    expect(result).toEqual({
+      current_page: 1,
+      next_page_url: null,
+      data: [],
     });
   });
 

@@ -8,12 +8,14 @@ import type {
   RecruitCrmCandidateJobAssignmentHiringStageHistoryResponse,
   RecruitCrmCallLogSearchResponse,
   CandidateDetail,
+  RecruitCrmJobSearchResponse,
   RecruitCrmMeetingSearchResponse,
   RecruitCrmNoteSearchResponse,
   RecruitCrmSearchResponse,
   RecruitCrmTaskSearchResponse,
   SearchCandidatesInput,
   SearchCallLogsInput,
+  SearchJobsInput,
   SearchMeetingsInput,
   SearchNotesInput,
   SearchTasksInput,
@@ -41,6 +43,61 @@ const searchResponseSchema = z
     current_page: z.coerce.number().int().positive().optional(),
     next_page_url: z.union([z.string(), z.null()]).optional(),
     data: z.array(candidateSchema),
+  })
+  .passthrough();
+
+const jobStatusSchema = z
+  .object({
+    id: nullableNumberOrStringSchema,
+    label: nullableStringLikeSchema,
+  })
+  .passthrough();
+
+const salaryTypeSchema = z
+  .object({
+    id: nullableNumberOrStringSchema,
+    label: nullableStringLikeSchema,
+  })
+  .passthrough();
+
+const jobSchema = z
+  .object({
+    id: nullableNumberOrStringSchema,
+    slug: nullableStringLikeSchema,
+    name: nullableStringLikeSchema,
+    company_slug: nullableStringLikeSchema,
+    contact_slug: nullableStringLikeSchema,
+    secondary_contact_slugs: z.array(z.union([z.string(), z.number(), z.null()])).nullish(),
+    note_for_candidates: nullableStringLikeSchema,
+    number_of_openings: nullableNumberOrStringSchema,
+    minimum_experience: nullableNumberOrStringSchema,
+    maximum_experience: nullableNumberOrStringSchema,
+    min_annual_salary: nullableNumberOrStringSchema,
+    max_annual_salary: nullableNumberOrStringSchema,
+    salary_type: z.union([salaryTypeSchema, z.string(), z.number(), z.null()]).optional(),
+    job_status: z.union([jobStatusSchema, z.null()]).optional(),
+    job_skill: nullableStringLikeSchema,
+    job_type: nullableStringLikeSchema,
+    pay_rate: nullableNumberOrStringSchema,
+    bill_rate: nullableNumberOrStringSchema,
+    job_category: nullableStringLikeSchema,
+    city: nullableStringLikeSchema,
+    locality: nullableStringLikeSchema,
+    state: nullableStringLikeSchema,
+    country: nullableStringLikeSchema,
+    enable_job_application_form: z.union([z.number(), z.string(), z.boolean(), z.null()]).optional(),
+    application_form_url: nullableStringLikeSchema,
+    created_on: nullableStringLikeSchema,
+    updated_on: nullableStringLikeSchema,
+    owner: nullableNumberOrStringSchema,
+  })
+  .passthrough();
+
+const jobSearchResponseSchema = z
+  .object({
+    current_page: z.coerce.number().int().positive().optional(),
+    next_page_url: z.union([z.string(), z.null()]).optional(),
+    data: z.array(jobSchema),
   })
   .passthrough();
 
@@ -287,6 +344,12 @@ export class RecruitCrmClient {
     return this.#requestJson("/candidates/search", searchResponseSchema, request);
   }
 
+  async searchJobs(filters: SearchJobsInput): Promise<RecruitCrmJobSearchResponse> {
+    const request = buildSearchJobsRequest(filters);
+
+    return this.#requestJson("/jobs/search", jobSearchResponseSchema, request);
+  }
+
   async searchTasks(filters: SearchTasksInput): Promise<RecruitCrmTaskSearchResponse> {
     const request = buildSearchTasksRequest(filters);
 
@@ -450,6 +513,54 @@ export function buildSearchCandidatesRequest(filters: SearchCandidatesInput): Ge
   };
 }
 
+export function buildSearchJobsRequest(filters: SearchJobsInput): GetRequestOptions {
+  const query = new URLSearchParams();
+  const page = normalizePage(filters.page);
+  const limit = normalizeLimit(filters.limit);
+
+  query.set("page", String(page));
+  query.set("limit", String(limit));
+
+  if (filters.job_slug) {
+    query.set("job_slug", filters.job_slug);
+    return { query };
+  }
+
+  setStringParam(query, "city", filters.city);
+  setStringParam(query, "company_name", filters.company_name);
+  setStringParam(query, "company_slug", filters.company_slug);
+  setStringParam(query, "contact_email", filters.contact_email);
+  setStringParam(query, "contact_name", filters.contact_name);
+  setStringParam(query, "contact_number", filters.contact_number);
+  setStringParam(query, "contact_slug", filters.contact_slug);
+  setStringParam(query, "country", filters.country);
+  setStringParam(query, "created_from", filters.created_from);
+  setStringParam(query, "created_to", filters.created_to);
+  setNumberParam(query, "enable_job_application_form", filters.enable_job_application_form);
+  setStringParam(query, "full_address", filters.full_address);
+  setStringParam(query, "job_category", filters.job_category);
+  setStringParam(query, "job_skill", filters.job_skill);
+  setNumberParam(query, "job_status", filters.job_status);
+  setNumberParam(query, "job_type", filters.job_type);
+  setStringParam(query, "locality", filters.locality);
+  setStringParam(query, "name", filters.name);
+  setStringParam(query, "note_for_candidates", filters.note_for_candidates);
+  setStringParam(query, "owner_email", filters.owner_email);
+  setStringParam(query, "owner_id", filters.owner_id);
+  setStringParam(query, "owner_name", filters.owner_name);
+  setStringParam(query, "secondary_contact_email", filters.secondary_contact_email);
+  setStringParam(query, "secondary_contact_name", filters.secondary_contact_name);
+  setStringParam(query, "secondary_contact_number", filters.secondary_contact_number);
+  setStringParam(query, "secondary_contact_slug", filters.secondary_contact_slug);
+  setStringParam(query, "updated_from", filters.updated_from);
+  setStringParam(query, "updated_to", filters.updated_to);
+  setBooleanParam(query, "exact_search", filters.exact_search);
+  query.set("sort_by", filters.sort_by ?? "updatedon");
+  query.set("sort_order", filters.sort_order ?? "desc");
+
+  return { query };
+}
+
 export function buildSearchTasksRequest(filters: SearchTasksInput): GetRequestOptions {
   const query = new URLSearchParams();
   const page = normalizePage(filters.page);
@@ -529,6 +640,12 @@ function setStringParam(params: URLSearchParams, key: string, value: string | un
   }
 }
 
+function setNumberParam(params: URLSearchParams, key: string, value: number | undefined): void {
+  if (value !== undefined) {
+    params.set(key, String(value));
+  }
+}
+
 function setBooleanParam(params: URLSearchParams, key: string, value: boolean | undefined): void {
   if (value !== undefined) {
     params.set(key, String(value));
@@ -561,6 +678,14 @@ function buildSearchCandidatesCustomFieldsBody(
 function normalizePage(value: number | undefined): number {
   if (value === undefined || !Number.isFinite(value) || value < 1) {
     return 1;
+  }
+
+  return Math.floor(value);
+}
+
+function normalizeLimit(value: number | undefined): number {
+  if (value === undefined || !Number.isFinite(value) || value < 1) {
+    return 100;
   }
 
   return Math.floor(value);

@@ -5,6 +5,8 @@ import type {
   CandidateJobAssignmentHiringStageHistoryItem,
   CandidateJobAssignmentHiringStageHistoryResult,
   CandidateSummary,
+  JobStatusSummary,
+  JobSummary,
   MeetingSummary,
   MeetingTypeSummary,
   RecruitCrmActivityRelated,
@@ -14,6 +16,9 @@ import type {
   RecruitCrmCallLog,
   RecruitCrmCallLogSearchResponse,
   RecruitCrmCallLogType,
+  RecruitCrmJob,
+  RecruitCrmJobSearchResponse,
+  RecruitCrmJobStatus,
   RecruitCrmMeeting,
   RecruitCrmMeetingSearchResponse,
   RecruitCrmMeetingType,
@@ -28,6 +33,7 @@ import type {
   SearchNotesResult,
   SearchCallLogsResult,
   SearchCandidatesResult,
+  SearchJobsResult,
   SearchTasksResult,
   NoteSummary,
   NoteTypeSummary,
@@ -46,6 +52,15 @@ export function mapSearchCandidatesResult(
   };
 }
 
+export function mapSearchJobsResult(response: RecruitCrmJobSearchResponse): SearchJobsResult {
+  return {
+    page: response.current_page ?? 1,
+    returned_count: response.data.length,
+    has_more: hasNextPage(response.next_page_url),
+    jobs: response.data.map(mapJobSummary),
+  };
+}
+
 export function mapCandidateSummary(candidate: RecruitCrmCandidate): CandidateSummary {
   return {
     slug: candidate.slug,
@@ -56,6 +71,39 @@ export function mapCandidateSummary(candidate: RecruitCrmCandidate): CandidateSu
     current_status: normalizeString(candidate.current_status),
     city: normalizeString(candidate.city),
     updated_on: normalizeString(candidate.updated_on),
+  };
+}
+
+export function mapJobSummary(job: RecruitCrmJob): JobSummary {
+  return {
+    id: normalizeNumber(job.id),
+    slug: normalizeString(job.slug),
+    name: normalizeString(job.name),
+    company_slug: normalizeString(job.company_slug),
+    contact_slug: normalizeString(job.contact_slug),
+    secondary_contact_slugs: normalizeStringArray(job.secondary_contact_slugs),
+    job_status: normalizeJobStatus(job.job_status),
+    note_for_candidates: normalizeString(job.note_for_candidates),
+    number_of_openings: normalizeNumber(job.number_of_openings),
+    minimum_experience: normalizeNumber(job.minimum_experience),
+    maximum_experience: normalizeNumber(job.maximum_experience),
+    min_annual_salary: normalizeNumber(job.min_annual_salary),
+    max_annual_salary: normalizeNumber(job.max_annual_salary),
+    pay_rate: normalizeNumber(job.pay_rate),
+    bill_rate: normalizeNumber(job.bill_rate),
+    salary_type: normalizeSalaryType(job.salary_type),
+    job_type: normalizeJobType(job.job_type),
+    job_category: normalizeString(job.job_category),
+    job_skill: normalizeString(job.job_skill),
+    city: normalizeString(job.city),
+    locality: normalizeString(job.locality),
+    state: normalizeString(job.state),
+    country: normalizeString(job.country),
+    enable_job_application_form: normalizeBoolean(job.enable_job_application_form),
+    application_form_url: normalizeString(job.application_form_url),
+    owner: normalizeNumber(job.owner),
+    created_on: normalizeString(job.created_on),
+    updated_on: normalizeString(job.updated_on),
   };
 }
 
@@ -205,6 +253,17 @@ export function mapCandidateJobAssignmentHiringStageHistoryItem(
   };
 }
 
+function normalizeJobStatus(jobStatus: RecruitCrmJobStatus | null | undefined): JobStatusSummary | null {
+  if (jobStatus === undefined || jobStatus === null) {
+    return null;
+  }
+
+  return {
+    id: normalizeNumber(jobStatus.id),
+    label: normalizeString(jobStatus.label),
+  };
+}
+
 function hasNextPage(nextPageUrl: string | null | undefined): boolean {
   return Boolean(nextPageUrl && nextPageUrl !== "null");
 }
@@ -265,6 +324,16 @@ function normalizeBoolean(value: number | string | boolean | null | undefined): 
   return null;
 }
 
+function normalizeStringArray(values: Array<string | number | null> | null | undefined): string[] {
+  if (!values || values.length === 0) {
+    return [];
+  }
+
+  return values
+    .map((value) => normalizeString(value))
+    .filter((value): value is string => value !== null);
+}
+
 function normalizeTaskTypes(
   taskTypes: RecruitCrmTaskType | RecruitCrmTaskType[] | null | undefined,
 ): TaskTypeSummary[] | null {
@@ -291,6 +360,68 @@ function normalizeIdentifier(value: number | string | null | undefined): number 
 
   const trimmed = value.trim();
   return trimmed === "" ? null : trimmed;
+}
+
+function normalizeSalaryType(
+  salaryType:
+    | string
+    | number
+    | {
+        id?: number | string | null;
+        label?: string | number | null;
+      }
+    | null
+    | undefined,
+): string | null {
+  if (salaryType === undefined || salaryType === null) {
+    return null;
+  }
+
+  if (typeof salaryType === "object") {
+    return normalizeString(salaryType.label);
+  }
+
+  return normalizeString(salaryType);
+}
+
+function normalizeJobType(value: string | number | null | undefined): string | null {
+  if (value === undefined || value === null) {
+    return null;
+  }
+
+  if (typeof value === "number") {
+    return mapJobTypeCode(value);
+  }
+
+  const trimmed = value.trim();
+
+  if (trimmed === "") {
+    return null;
+  }
+
+  const numericValue = Number(trimmed);
+
+  if (Number.isFinite(numericValue)) {
+    const mapped = mapJobTypeCode(numericValue);
+    return mapped ?? trimmed;
+  }
+
+  return trimmed;
+}
+
+function mapJobTypeCode(value: number): string | null {
+  switch (value) {
+    case 1:
+      return "Part Time";
+    case 2:
+      return "Full Time";
+    case 3:
+      return "Contract";
+    case 4:
+      return "Contract to Permanent";
+    default:
+      return null;
+  }
 }
 
 function normalizeMeetingTypes(

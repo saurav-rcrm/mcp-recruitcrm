@@ -5,11 +5,13 @@ import {
   mapCandidateJobAssignmentHiringStageHistoryItem,
   mapCandidateJobAssignmentHiringStageHistoryResult,
   mapCandidateSummary,
+  mapJobSummary,
   mapMeetingSummary,
   mapSearchMeetingsResult,
   mapSearchNotesResult,
   mapSearchCallLogsResult,
   mapSearchCandidatesResult,
+  mapSearchJobsResult,
   mapSearchTasksResult,
   mapNoteSummary,
   mapTaskSummary,
@@ -17,6 +19,7 @@ import {
 import {
   sampleCallLogSearchResponse,
   sampleCandidateJobAssignmentHiringStageHistoryResponse,
+  sampleJobSearchResponse,
   sampleMeetingSearchResponse,
   sampleNoteSearchResponse,
   sampleSearchResponse,
@@ -137,6 +140,65 @@ describe("task mappers", () => {
     expect(summary.related).toEqual({
       company_name: "Acme Labs",
     });
+  });
+});
+
+describe("job mappers", () => {
+  it("maps job search results into compact structured output", () => {
+    const result = mapSearchJobsResult(sampleJobSearchResponse);
+
+    expect(result.page).toBe(1);
+    expect(result.returned_count).toBe(1);
+    expect(result.has_more).toBe(true);
+    expect(result.jobs).toHaveLength(1);
+    expect(result.jobs[0]).toEqual({
+      id: 313,
+      slug: "job-sample-001",
+      name: "Operations Analyst",
+      company_slug: "company-sample-001",
+      contact_slug: "contact-sample-001",
+      secondary_contact_slugs: ["contact-sample-002"],
+      job_status: {
+        id: 1,
+        label: "Open",
+      },
+      note_for_candidates: "Please bring sample documents.",
+      number_of_openings: 2,
+      minimum_experience: 2,
+      maximum_experience: 3,
+      min_annual_salary: 90000,
+      max_annual_salary: 110000,
+      pay_rate: 80,
+      bill_rate: 100,
+      salary_type: "Annual Salary",
+      job_type: "Contract",
+      job_category: "Operations",
+      job_skill: "Data Analysis, Project Management",
+      city: "Example City",
+      locality: "Downtown",
+      state: "Example State",
+      country: "Example Country",
+      enable_job_application_form: true,
+      application_form_url: "https://recruitcrm.io/apply/job-sample-001",
+      owner: 8772,
+      created_on: "2026-04-01T09:15:00.000000Z",
+      updated_on: "2026-04-07T10:30:00.000000Z",
+    });
+  });
+
+  it("normalizes numeric job types and removes blank secondary contact slugs", () => {
+    const summary = mapJobSummary({
+      ...sampleJobSearchResponse.data[0],
+      job_type: 4,
+      secondary_contact_slugs: ["contact-sample-002", "", null, 4040],
+      enable_job_application_form: "0",
+      salary_type: "Annual Salary",
+    });
+
+    expect(summary.job_type).toBe("Contract to Permanent");
+    expect(summary.secondary_contact_slugs).toEqual(["contact-sample-002", "4040"]);
+    expect(summary.enable_job_application_form).toBe(false);
+    expect(summary.salary_type).toBe("Annual Salary");
   });
 });
 

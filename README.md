@@ -13,6 +13,7 @@ This server exposes compact Recruit CRM search and lookup tools for MCP clients.
 | Tool | Description |
 | --- | --- |
 | `search_candidates` | Search candidates and return compact summaries for large result sets. Returns `slug`, which can be used for candidate detail lookup or Recruit CRM app links. |
+| `search_jobs` | Search jobs and return compact summaries for large result sets. Returns job, company, and contact slugs for Recruit CRM app links. |
 | `search_tasks` | Search tasks and return compact task summaries with related entity context. Returns `related_to` and `related_to_type` for related entity links. |
 | `search_meetings` | Search meetings and return compact meeting summaries with scheduling metadata. Returns `related_to` and `related_to_type` for related entity links. |
 | `search_notes` | Search notes and return compact note summaries with related entity context. Returns `related_to` and `related_to_type` for related entity links. |
@@ -29,9 +30,9 @@ Current live Recruit CRM `resource_url` values use the app path pattern `https:/
 | Entity | App Link Pattern | Source Field In MCP Output |
 | --- | --- | --- |
 | Candidate | `https://app.recruitcrm.io/candidate/{slug}` | `search_candidates.slug` or `get_candidate_details.slug` |
-| Company | `https://app.recruitcrm.io/company/{slug}` | activity search `related_to` when `related_to_type` is `company`, or `get_candidate_job_assignment_hiring_stage_history.history[].company_slug` |
-| Contact | `https://app.recruitcrm.io/contact/{slug}` | activity search `related_to` when `related_to_type` is `contact` |
-| Job | `https://app.recruitcrm.io/job/{slug}` | activity search `related_to` when `related_to_type` is `job`, or `get_candidate_job_assignment_hiring_stage_history.history[].job_slug` |
+| Company | `https://app.recruitcrm.io/company/{slug}` | `search_jobs.company_slug`, activity search `related_to` when `related_to_type` is `company`, or `get_candidate_job_assignment_hiring_stage_history.history[].company_slug` |
+| Contact | `https://app.recruitcrm.io/contact/{slug}` | `search_jobs.contact_slug` or activity search `related_to` when `related_to_type` is `contact` |
+| Job | `https://app.recruitcrm.io/job/{slug}` | `search_jobs.slug`, activity search `related_to` when `related_to_type` is `job`, or `get_candidate_job_assignment_hiring_stage_history.history[].job_slug` |
 | Deal | `https://app.recruitcrm.io/deal/{slug}` | activity search `related_to` when `related_to_type` is `deal` |
 
 ## Required Environment Variable
@@ -81,6 +82,7 @@ npm test
 - Runs locally on the user's machine over `stdio`
 - No live deployment required
 - Search results exclude email and phone by default
+- `search_jobs` excludes contact emails, phone numbers, and large nested arrays or objects such as job questions, custom fields, collaborator payloads, and feed metadata
 - `search_tasks` exposes only a compact `related` identity object from the nested `related` payload and excludes the rest of that payload plus associated entity and collaborator arrays
 - `search_meetings` exposes only a compact `related` identity object from the nested `related` payload and excludes the rest of that payload plus attendee, associated entity, and collaborator arrays
 - `search_notes` exposes only a compact `related` identity object from the nested `related` payload and excludes the rest of that payload plus associated entity and collaborator arrays

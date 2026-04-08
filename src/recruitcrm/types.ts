@@ -96,6 +96,43 @@ export type SearchCallLogsInput = {
   updated_to?: string;
 };
 
+export type SearchJobsInput = {
+  page?: number;
+  city?: string;
+  company_name?: string;
+  company_slug?: string;
+  contact_email?: string;
+  contact_name?: string;
+  contact_number?: string;
+  contact_slug?: string;
+  country?: string;
+  created_from?: string;
+  created_to?: string;
+  enable_job_application_form?: 0 | 1;
+  exact_search?: boolean;
+  full_address?: string;
+  job_category?: string;
+  job_skill?: string;
+  job_slug?: string;
+  job_status?: number;
+  job_type?: 1 | 2 | 3 | 4;
+  limit?: number;
+  locality?: string;
+  name?: string;
+  note_for_candidates?: string;
+  owner_email?: string;
+  owner_id?: string;
+  owner_name?: string;
+  secondary_contact_email?: string;
+  secondary_contact_name?: string;
+  secondary_contact_number?: string;
+  secondary_contact_slug?: string;
+  sort_by?: "createdon" | "updatedon";
+  sort_order?: "asc" | "desc";
+  updated_from?: string;
+  updated_to?: string;
+};
+
 export type RecruitCrmCandidate = {
   slug: string;
   first_name?: string | number | null;
@@ -135,6 +172,57 @@ export type RecruitCrmSearchResponse = {
   current_page?: number;
   next_page_url?: string | null;
   data: RecruitCrmCandidate[];
+};
+
+export type RecruitCrmJobStatus = {
+  id?: number | string | null;
+  label?: string | number | null;
+  [key: string]: unknown;
+};
+
+export type RecruitCrmJob = {
+  id?: number | string | null;
+  slug?: string | number | null;
+  name?: string | number | null;
+  company_slug?: string | number | null;
+  contact_slug?: string | number | null;
+  secondary_contact_slugs?: Array<string | number | null> | null;
+  note_for_candidates?: string | number | null;
+  number_of_openings?: number | string | null;
+  minimum_experience?: number | string | null;
+  maximum_experience?: number | string | null;
+  min_annual_salary?: number | string | null;
+  max_annual_salary?: number | string | null;
+  salary_type?:
+    | string
+    | number
+    | {
+        id?: number | string | null;
+        label?: string | number | null;
+      }
+    | null;
+  job_status?: RecruitCrmJobStatus | null;
+  job_skill?: string | number | null;
+  job_type?: string | number | null;
+  pay_rate?: number | string | null;
+  bill_rate?: number | string | null;
+  job_category?: string | number | null;
+  city?: string | number | null;
+  locality?: string | number | null;
+  state?: string | number | null;
+  country?: string | number | null;
+  enable_job_application_form?: number | string | boolean | null;
+  application_form_url?: string | number | null;
+  created_on?: string | number | null;
+  updated_on?: string | number | null;
+  owner?: number | string | null;
+  [key: string]: unknown;
+};
+
+export type RecruitCrmJobSearchResponse = {
+  current_page?: number;
+  next_page_url?: string | null;
+  data: RecruitCrmJob[];
 };
 
 export type RecruitCrmTaskType = {
@@ -476,6 +564,49 @@ export type SearchCallLogsResult = {
   returned_count: number;
   has_more: boolean;
   call_logs: CallLogSummary[];
+};
+
+export type JobStatusSummary = {
+  id: number | null;
+  label: string | null;
+};
+
+export type JobSummary = {
+  id: number | null;
+  slug: string | null;
+  name: string | null;
+  company_slug: string | null;
+  contact_slug: string | null;
+  secondary_contact_slugs: string[];
+  job_status: JobStatusSummary | null;
+  note_for_candidates: string | null;
+  number_of_openings: number | null;
+  minimum_experience: number | null;
+  maximum_experience: number | null;
+  min_annual_salary: number | null;
+  max_annual_salary: number | null;
+  pay_rate: number | null;
+  bill_rate: number | null;
+  salary_type: string | null;
+  job_type: string | null;
+  job_category: string | null;
+  job_skill: string | null;
+  city: string | null;
+  locality: string | null;
+  state: string | null;
+  country: string | null;
+  enable_job_application_form: boolean | null;
+  application_form_url: string | null;
+  owner: number | null;
+  created_on: string | null;
+  updated_on: string | null;
+};
+
+export type SearchJobsResult = {
+  page: number;
+  returned_count: number;
+  has_more: boolean;
+  jobs: JobSummary[];
 };
 
 export type CandidateJobAssignmentHiringStageHistoryItem = {

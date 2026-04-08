@@ -9,6 +9,7 @@ import {
   sampleCandidateCustomFieldsResponse,
   sampleCandidateDetailResponse,
   sampleCandidateJobAssignmentHiringStageHistoryResponse,
+  sampleJobSearchResponse,
   sampleMeetingSearchResponse,
   sampleNoteSearchResponse,
   sampleSearchResponse,
@@ -52,6 +53,16 @@ describe("Recruit CRM MCP tools", () => {
             ...sampleCandidateDetailResponse,
             slug: "010011",
           }),
+        };
+      }
+
+      if (request.url.pathname.endsWith("/jobs/search")) {
+        expect(request.url.searchParams.get("job_slug")).toBe("job-sample-001");
+        expect(request.url.searchParams.get("limit")).toBe("10");
+
+        return {
+          statusCode: 200,
+          bodyText: JSON.stringify(sampleJobSearchResponse),
         };
       }
 
@@ -127,6 +138,7 @@ describe("Recruit CRM MCP tools", () => {
     const tools = await client.listTools();
     expect(tools.tools.map((tool) => tool.name)).toEqual([
       "search_candidates",
+      "search_jobs",
       "search_tasks",
       "search_meetings",
       "search_notes",
@@ -198,6 +210,14 @@ describe("Recruit CRM MCP tools", () => {
       name: "get_candidate_details",
       arguments: {
         candidate_slug: "010011",
+      },
+    });
+
+    const jobResult = await client.callTool({
+      name: "search_jobs",
+      arguments: {
+        job_slug: "job-sample-001",
+        limit: 10,
       },
     });
 
@@ -274,6 +294,55 @@ describe("Recruit CRM MCP tools", () => {
           institute_name: "Example Institute of Technology",
         }),
       ]),
+    );
+    expect(jobResult.structuredContent).toMatchObject({
+      page: 1,
+      returned_count: 1,
+      has_more: true,
+      jobs: [
+        {
+          id: 313,
+          slug: "job-sample-001",
+          name: "Operations Analyst",
+          company_slug: "company-sample-001",
+          contact_slug: "contact-sample-001",
+          secondary_contact_slugs: ["contact-sample-002"],
+          job_status: {
+            id: 1,
+            label: "Open",
+          },
+          note_for_candidates: "Please bring sample documents.",
+          number_of_openings: 2,
+          minimum_experience: 2,
+          maximum_experience: 3,
+          min_annual_salary: 90000,
+          max_annual_salary: 110000,
+          pay_rate: 80,
+          bill_rate: 100,
+          salary_type: "Annual Salary",
+          job_type: "Contract",
+          job_category: "Operations",
+          job_skill: "Data Analysis, Project Management",
+          city: "Example City",
+          locality: "Downtown",
+          state: "Example State",
+          country: "Example Country",
+          enable_job_application_form: true,
+          application_form_url: "https://recruitcrm.io/apply/job-sample-001",
+          owner: 8772,
+          created_on: "2026-04-01T09:15:00.000000Z",
+          updated_on: "2026-04-07T10:30:00.000000Z",
+        },
+      ],
+    });
+    expect((jobResult.structuredContent as { jobs: Array<Record<string, unknown>> }).jobs[0]).not.toHaveProperty(
+      "job_status_comment",
+    );
+    expect((jobResult.structuredContent as { jobs: Array<Record<string, unknown>> }).jobs[0]).not.toHaveProperty(
+      "contact_email",
+    );
+    expect((jobResult.structuredContent as { jobs: Array<Record<string, unknown>> }).jobs[0]).not.toHaveProperty(
+      "custom_fields",
     );
     expect(historyResult.structuredContent).toMatchObject({
       candidate_slug: "010011",
@@ -454,7 +523,7 @@ describe("Recruit CRM MCP tools", () => {
       (callLogResult.structuredContent as { call_logs: Array<Record<string, unknown>> }).call_logs[0],
     ).not.toHaveProperty("associated_candidates");
 
-    expect(transportMock).toHaveBeenCalledTimes(10);
+    expect(transportMock).toHaveBeenCalledTimes(11);
 
     await client.close();
     await server.close();

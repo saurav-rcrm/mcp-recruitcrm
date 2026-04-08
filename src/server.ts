@@ -15,6 +15,7 @@ import {
   mapCandidateJobAssignmentHiringStageHistoryResult,
   mapSearchCallLogsResult,
   mapSearchCandidatesResult,
+  mapSearchJobsResult,
   mapSearchMeetingsResult,
   mapSearchNotesResult,
   mapSearchTasksResult,
@@ -28,6 +29,8 @@ import {
   type CandidateCustomFieldListResult,
   type CandidateDetail,
   type SearchCandidatesInput,
+  type SearchJobsInput,
+  type SearchJobsResult,
   type SearchMeetingsInput,
   type SearchMeetingsResult,
   type SearchNotesInput,
@@ -44,6 +47,12 @@ const booleanLikeSchema = z
 const textFilterSchema = z.string().trim().min(1);
 const customFieldFilterValueSchema = z.union([z.string().trim().min(1), z.number()]);
 const customFieldFilterTypeSchema = z.enum(CUSTOM_FIELD_FILTER_TYPES);
+const binaryNumberSchema = z
+  .union([z.literal("0"), z.literal("1"), z.literal(0), z.literal(1)])
+  .transform((value) => Number(value) as 0 | 1);
+const jobTypeInputSchema = z
+  .union([z.literal("1"), z.literal("2"), z.literal("3"), z.literal("4"), z.literal(1), z.literal(2), z.literal(3), z.literal(4)])
+  .transform((value) => Number(value) as 1 | 2 | 3 | 4);
 
 const searchCandidatesInputSchema = {
   page: z.coerce.number().int().min(1).optional().describe("Page number."),
@@ -92,6 +101,43 @@ const searchTasksInputSchema = {
   title: textFilterSchema.optional().describe("Task title."),
   updated_from: textFilterSchema.optional().describe("Task updated-on date range start."),
   updated_to: textFilterSchema.optional().describe("Task updated-on date range end."),
+};
+
+const searchJobsInputSchema = {
+  page: z.coerce.number().int().min(1).optional().describe("Page number."),
+  city: textFilterSchema.optional().describe("City."),
+  company_name: textFilterSchema.optional().describe("Company name."),
+  company_slug: textFilterSchema.optional().describe("Company slug."),
+  contact_email: textFilterSchema.optional().describe("Primary contact email."),
+  contact_name: textFilterSchema.optional().describe("Primary contact name."),
+  contact_number: textFilterSchema.optional().describe("Primary contact number."),
+  contact_slug: textFilterSchema.optional().describe("Primary contact slug."),
+  country: textFilterSchema.optional().describe("Country."),
+  created_from: textFilterSchema.optional().describe("Created-on date range start."),
+  created_to: textFilterSchema.optional().describe("Created-on date range end."),
+  enable_job_application_form: binaryNumberSchema.optional().describe("Filter by job application form enabled flag."),
+  exact_search: booleanLikeSchema.optional().describe("Use exact search instead of partial match."),
+  full_address: textFilterSchema.optional().describe("Full address."),
+  job_category: textFilterSchema.optional().describe("Job category."),
+  job_skill: textFilterSchema.optional().describe("Job skill."),
+  job_slug: textFilterSchema.optional().describe("Job slug. Other filters are ignored when provided."),
+  job_status: z.coerce.number().int().optional().describe("Job status id."),
+  job_type: jobTypeInputSchema.optional().describe("Job type."),
+  limit: z.coerce.number().int().min(1).optional().describe("Results per page."),
+  locality: textFilterSchema.optional().describe("Locality."),
+  name: textFilterSchema.optional().describe("Job name."),
+  note_for_candidates: textFilterSchema.optional().describe("Note for candidates."),
+  owner_email: textFilterSchema.optional().describe("Job owner email."),
+  owner_id: textFilterSchema.optional().describe("Job owner id."),
+  owner_name: textFilterSchema.optional().describe("Job owner name."),
+  secondary_contact_email: textFilterSchema.optional().describe("Secondary contact email."),
+  secondary_contact_name: textFilterSchema.optional().describe("Secondary contact name."),
+  secondary_contact_number: textFilterSchema.optional().describe("Secondary contact number."),
+  secondary_contact_slug: textFilterSchema.optional().describe("Secondary contact slug."),
+  sort_by: z.enum(["createdon", "updatedon"]).optional().describe("Sort field."),
+  sort_order: z.enum(["asc", "desc"]).optional().describe("Sort order."),
+  updated_from: textFilterSchema.optional().describe("Updated-on date range start."),
+  updated_to: textFilterSchema.optional().describe("Updated-on date range end."),
 };
 
 const searchMeetingsInputSchema = {
@@ -152,6 +198,49 @@ const searchCandidatesOutputSchema = {
   returned_count: z.number().int().min(0),
   has_more: z.boolean(),
   candidates: z.array(candidateSummarySchema),
+};
+
+const jobStatusSummarySchema = z.object({
+  id: nullableNumberSchema,
+  label: nullableStringSchema,
+});
+
+const jobSummarySchema = z.object({
+  id: nullableNumberSchema,
+  slug: nullableStringSchema,
+  name: nullableStringSchema,
+  company_slug: nullableStringSchema,
+  contact_slug: nullableStringSchema,
+  secondary_contact_slugs: z.array(z.string()),
+  job_status: z.union([jobStatusSummarySchema, z.null()]),
+  note_for_candidates: nullableStringSchema,
+  number_of_openings: nullableNumberSchema,
+  minimum_experience: nullableNumberSchema,
+  maximum_experience: nullableNumberSchema,
+  min_annual_salary: nullableNumberSchema,
+  max_annual_salary: nullableNumberSchema,
+  pay_rate: nullableNumberSchema,
+  bill_rate: nullableNumberSchema,
+  salary_type: nullableStringSchema,
+  job_type: nullableStringSchema,
+  job_category: nullableStringSchema,
+  job_skill: nullableStringSchema,
+  city: nullableStringSchema,
+  locality: nullableStringSchema,
+  state: nullableStringSchema,
+  country: nullableStringSchema,
+  enable_job_application_form: nullableBooleanSchema,
+  application_form_url: nullableStringSchema,
+  owner: nullableNumberSchema,
+  created_on: nullableStringSchema,
+  updated_on: nullableStringSchema,
+});
+
+const searchJobsOutputSchema = {
+  page: z.number().int().min(1),
+  returned_count: z.number().int().min(0),
+  has_more: z.boolean(),
+  jobs: z.array(jobSummarySchema),
 };
 
 const taskTypeSummarySchema = z.object({
@@ -358,6 +447,20 @@ export function createRecruitCrmServer(dependencies: ServerDependencies = {}): M
   );
 
   server.registerTool(
+    "search_jobs",
+    {
+      description:
+        "Search Recruit CRM jobs and return compact summaries designed for large result sets. Returns slug, company_slug, and contact_slug values that can be used to open Recruit CRM app URLs like https://app.recruitcrm.io/job/{slug}, https://app.recruitcrm.io/company/{company_slug}, and https://app.recruitcrm.io/contact/{contact_slug}.",
+      inputSchema: searchJobsInputSchema,
+      outputSchema: searchJobsOutputSchema,
+      annotations: {
+        readOnlyHint: true,
+      },
+    },
+    async (args) => formatResult(await executeSearchJobs(client, args)),
+  );
+
+  server.registerTool(
     "search_tasks",
     {
       description:
@@ -516,6 +619,47 @@ export async function executeSearchCandidates(
   });
 
   return mapSearchCandidatesResult(result);
+}
+
+export async function executeSearchJobs(client: RecruitCrmClient, args: SearchJobsInput): Promise<SearchJobsResult> {
+  const result = await client.searchJobs({
+    page: args.page ?? 1,
+    city: args.city,
+    company_name: args.company_name,
+    company_slug: args.company_slug,
+    contact_email: args.contact_email,
+    contact_name: args.contact_name,
+    contact_number: args.contact_number,
+    contact_slug: args.contact_slug,
+    country: args.country,
+    created_from: args.created_from,
+    created_to: args.created_to,
+    enable_job_application_form: args.enable_job_application_form,
+    exact_search: args.exact_search,
+    full_address: args.full_address,
+    job_category: args.job_category,
+    job_skill: args.job_skill,
+    job_slug: args.job_slug,
+    job_status: args.job_status,
+    job_type: args.job_type,
+    limit: args.limit ?? 100,
+    locality: args.locality,
+    name: args.name,
+    note_for_candidates: args.note_for_candidates,
+    owner_email: args.owner_email,
+    owner_id: args.owner_id,
+    owner_name: args.owner_name,
+    secondary_contact_email: args.secondary_contact_email,
+    secondary_contact_name: args.secondary_contact_name,
+    secondary_contact_number: args.secondary_contact_number,
+    secondary_contact_slug: args.secondary_contact_slug,
+    sort_by: args.sort_by ?? "updatedon",
+    sort_order: args.sort_order ?? "desc",
+    updated_from: args.updated_from,
+    updated_to: args.updated_to,
+  });
+
+  return mapSearchJobsResult(result);
 }
 
 export async function executeSearchTasks(client: RecruitCrmClient, args: SearchTasksInput): Promise<SearchTasksResult> {
@@ -728,6 +872,7 @@ function mapTaskSearchError(error: unknown, args: SearchTasksInput): RecruitCrmA
 function formatResult(
   result:
     | SearchCandidatesResult
+    | SearchJobsResult
     | SearchMeetingsResult
     | SearchNotesResult
     | SearchCallLogsResult

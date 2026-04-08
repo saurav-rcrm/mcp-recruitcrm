@@ -3,6 +3,7 @@ import type {
   RecruitCrmCandidateJobAssignmentHiringStageHistoryResponse,
   RecruitCrmCallLogSearchResponse,
   CandidateDetail,
+  RecruitCrmJobSearchResponse,
   RecruitCrmMeetingSearchResponse,
   RecruitCrmNoteSearchResponse,
   RecruitCrmSearchResponse,
@@ -94,6 +95,87 @@ export const sampleCandidateCustomFieldsResponse: RecruitCrmCandidateCustomField
     default_value: "",
   },
 ];
+
+export const sampleJobSearchResponse: RecruitCrmJobSearchResponse = {
+  current_page: 1,
+  next_page_url: "https://api.recruitcrm.io/v1/jobs/search?page=2",
+  data: [
+    {
+      id: 313,
+      slug: "job-sample-001",
+      name: "Operations Analyst",
+      company_slug: "company-sample-001",
+      contact_slug: "contact-sample-001",
+      secondary_contact_slugs: ["contact-sample-002", "", null],
+      note_for_candidates: "Please bring sample documents.",
+      number_of_openings: 2,
+      minimum_experience: 2,
+      maximum_experience: 3,
+      min_annual_salary: 90000,
+      max_annual_salary: 110000,
+      salary_type: {
+        id: "2",
+        label: "Annual Salary",
+      },
+      job_status: {
+        id: 1,
+        label: "Open",
+      },
+      job_status_comment:
+        '[{"status_id":1,"remark":"","updated_by":"Sample User","updated_on":1710853474,"status_label":"Open"}]',
+      job_skill: "Data Analysis, Project Management",
+      job_type: "Contract",
+      pay_rate: 80,
+      bill_rate: 100,
+      job_category: "Operations",
+      city: "Example City",
+      locality: "Downtown",
+      state: "Example State",
+      country: "Example Country",
+      created_on: "2026-04-01T09:15:00.000000Z",
+      updated_on: "2026-04-07T10:30:00.000000Z",
+      owner: 8772,
+      enable_job_application_form: 1,
+      application_form_url: "https://recruitcrm.io/apply/job-sample-001",
+      contact_email: "primary.contact@example.com",
+      contact_number: "+1-555-0102",
+      secondary_contact_email: "secondary.contact@example.com",
+      secondary_contact_number: "+1-555-0103",
+      job_description_text: "<p>Large ignored description</p>",
+      job_description_file: "https://files.example.com/job-description.pdf",
+      job_questions: [
+        {
+          id: 721,
+          question: "Why this role?",
+        },
+      ],
+      custom_fields: [
+        {
+          field_id: 1,
+          value: "Region 1",
+        },
+      ],
+      collaborator_users: [
+        {
+          id: 34,
+          first_name: "Sample",
+          last_name: "User",
+          email: "sample.user@example.com",
+        },
+      ],
+      collaborator_teams: [null],
+      xml_feeds: [null],
+      resource_url: "https://app.recruitcrm.io/job/job-sample-001",
+      shared_job_image: "https://app.recruitcrm.io/assets/images/default-share.png",
+      targetcompanies: [
+        {
+          name: "Sample Target Company",
+          slug: "company-sample-target-001",
+        },
+      ],
+    },
+  ],
+};
 
 export const sampleTaskSearchResponse: RecruitCrmTaskSearchResponse = {
   current_page: 1,

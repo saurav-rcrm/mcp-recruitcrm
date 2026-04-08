@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   buildSearchCandidatesRequest,
   buildSearchCallLogsRequest,
+  buildSearchJobsRequest,
   buildSearchMeetingsRequest,
   buildSearchNotesRequest,
   buildSearchTasksRequest,
@@ -137,6 +138,114 @@ describe("buildSearchTasksRequest", () => {
 
     expect(request.query?.get("related_to")).toBe("candidate-related-sample-001");
     expect(request.query?.get("related_to_type")).toBe("candidate");
+  });
+});
+
+describe("buildSearchJobsRequest", () => {
+  it("defaults page, limit, and sort settings", () => {
+    const request = buildSearchJobsRequest({
+      name: "Operations Analyst",
+    });
+
+    expect(request.query?.get("page")).toBe("1");
+    expect(request.query?.get("limit")).toBe("100");
+    expect(request.query?.get("name")).toBe("Operations Analyst");
+    expect(request.query?.get("sort_by")).toBe("updatedon");
+    expect(request.query?.get("sort_order")).toBe("desc");
+    expect(request.jsonBody).toBeUndefined();
+  });
+
+  it("serializes all supported job query params", () => {
+    const request = buildSearchJobsRequest({
+      page: 3,
+      city: "Example City",
+      company_name: "Acme Labs",
+      company_slug: "company-sample-001",
+      contact_email: "primary.contact@example.com",
+      contact_name: "Sample Contact",
+      contact_number: "+1-555-0102",
+      contact_slug: "contact-sample-001",
+      country: "Example Country",
+      created_from: "2026-01-01",
+      created_to: "2026-01-31",
+      enable_job_application_form: 1,
+      exact_search: true,
+      full_address: "123 Example Street",
+      job_category: "Operations",
+      job_skill: "Project Management",
+      job_status: 3,
+      job_type: 4,
+      limit: 25,
+      locality: "Downtown",
+      name: "Operations Analyst",
+      note_for_candidates: "Bring sample documents.",
+      owner_email: "owner@example.com",
+      owner_id: "2890",
+      owner_name: "Sample Owner",
+      secondary_contact_email: "secondary.contact@example.com",
+      secondary_contact_name: "Sample Secondary",
+      secondary_contact_number: "+1-555-0103",
+      secondary_contact_slug: "contact-sample-002",
+      sort_by: "createdon",
+      sort_order: "asc",
+      updated_from: "2026-03-01",
+      updated_to: "2026-03-31",
+    });
+
+    expect(request.query?.get("page")).toBe("3");
+    expect(request.query?.get("city")).toBe("Example City");
+    expect(request.query?.get("company_name")).toBe("Acme Labs");
+    expect(request.query?.get("company_slug")).toBe("company-sample-001");
+    expect(request.query?.get("contact_email")).toBe("primary.contact@example.com");
+    expect(request.query?.get("contact_name")).toBe("Sample Contact");
+    expect(request.query?.get("contact_number")).toBe("+1-555-0102");
+    expect(request.query?.get("contact_slug")).toBe("contact-sample-001");
+    expect(request.query?.get("country")).toBe("Example Country");
+    expect(request.query?.get("created_from")).toBe("2026-01-01");
+    expect(request.query?.get("created_to")).toBe("2026-01-31");
+    expect(request.query?.get("enable_job_application_form")).toBe("1");
+    expect(request.query?.get("exact_search")).toBe("true");
+    expect(request.query?.get("full_address")).toBe("123 Example Street");
+    expect(request.query?.get("job_category")).toBe("Operations");
+    expect(request.query?.get("job_skill")).toBe("Project Management");
+    expect(request.query?.get("job_status")).toBe("3");
+    expect(request.query?.get("job_type")).toBe("4");
+    expect(request.query?.get("limit")).toBe("25");
+    expect(request.query?.get("locality")).toBe("Downtown");
+    expect(request.query?.get("name")).toBe("Operations Analyst");
+    expect(request.query?.get("note_for_candidates")).toBe("Bring sample documents.");
+    expect(request.query?.get("owner_email")).toBe("owner@example.com");
+    expect(request.query?.get("owner_id")).toBe("2890");
+    expect(request.query?.get("owner_name")).toBe("Sample Owner");
+    expect(request.query?.get("secondary_contact_email")).toBe("secondary.contact@example.com");
+    expect(request.query?.get("secondary_contact_name")).toBe("Sample Secondary");
+    expect(request.query?.get("secondary_contact_number")).toBe("+1-555-0103");
+    expect(request.query?.get("secondary_contact_slug")).toBe("contact-sample-002");
+    expect(request.query?.get("sort_by")).toBe("createdon");
+    expect(request.query?.get("sort_order")).toBe("asc");
+    expect(request.query?.get("updated_from")).toBe("2026-03-01");
+    expect(request.query?.get("updated_to")).toBe("2026-03-31");
+  });
+
+  it("ignores other filters when job_slug is present", () => {
+    const request = buildSearchJobsRequest({
+      page: 2,
+      limit: 10,
+      job_slug: "job-sample-001",
+      name: "Operations Analyst",
+      city: "Example City",
+      sort_by: "createdon",
+      sort_order: "asc",
+    });
+
+    expect(request.query?.get("page")).toBe("2");
+    expect(request.query?.get("limit")).toBe("10");
+    expect(request.query?.get("job_slug")).toBe("job-sample-001");
+    expect(request.query?.get("name")).toBeNull();
+    expect(request.query?.get("city")).toBeNull();
+    expect(request.query?.get("sort_by")).toBeNull();
+    expect(request.query?.get("sort_order")).toBeNull();
+    expect(request.jsonBody).toBeUndefined();
   });
 });
 

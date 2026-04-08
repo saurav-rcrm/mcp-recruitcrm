@@ -32,6 +32,7 @@ describe("stdio smoke test", () => {
     const tools = await client.listTools();
     expect(tools.tools.map((tool) => tool.name)).toEqual([
       "search_candidates",
+      "search_jobs",
       "search_tasks",
       "search_meetings",
       "search_notes",
