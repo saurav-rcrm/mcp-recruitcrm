@@ -94,36 +94,6 @@ export function validateCustomFieldFilters(
     if (!field) {
       throw new RecruitCrmApiError(`Unknown candidate custom field field_id: ${filter.field_id}.`);
     }
-
-    const supportedFilterTypes = getSupportedFilterTypes(field.field_type);
-
-    if (supportedFilterTypes.length === 0) {
-      throw new RecruitCrmApiError(`Custom field ${filter.field_id} cannot be used in search.`);
-    }
-
-    if (!supportedFilterTypes.includes(filter.filter_type)) {
-      throw new RecruitCrmApiError(
-        `Filter type "${filter.filter_type}" is not supported for custom field ${filter.field_id}.`,
-      );
-    }
-
-    const filterValue = normalizeFilterValue(filter.filter_value);
-
-    if (FILTER_TYPES_REQUIRING_VALUE.has(filter.filter_type)) {
-      if (filterValue === undefined) {
-        throw new RecruitCrmApiError(
-          `filter_value is required for custom field ${filter.field_id} with filter type "${filter.filter_type}".`,
-        );
-      }
-
-      continue;
-    }
-
-    if (filter.filter_value !== undefined) {
-      throw new RecruitCrmApiError(
-        `filter_value is not allowed for custom field ${filter.field_id} with filter type "${filter.filter_type}".`,
-      );
-    }
   }
 }
 
@@ -137,27 +107,38 @@ function parseCustomFieldOptions(field: RecruitCrmCandidateCustomField): string[
     return [];
   }
 
-  const defaultValue = field.default_value?.trim();
+  if (typeof field.default_value === "string") {
+    const defaultValue = field.default_value.trim();
 
-  if (!defaultValue) {
+    if (!defaultValue) {
+      return [];
+    }
+
+    return defaultValue
+      .split(",")
+      .map((value) => value.trim())
+      .filter((value) => value.length > 0);
+  }
+
+  if (!Array.isArray(field.default_value)) {
     return [];
   }
 
-  return defaultValue
-    .split(",")
-    .map((value) => value.trim())
+  return field.default_value
+    .map((value) => {
+      if (typeof value === "string") {
+        return value.trim();
+      }
+
+      if (typeof value === "number") {
+        return String(value);
+      }
+
+      return "";
+    })
     .filter((value) => value.length > 0);
 }
 
 function normalizeFieldType(fieldType: string): string {
   return fieldType.trim().toLowerCase();
-}
-
-function normalizeFilterValue(value: string | number | undefined): string | number | undefined {
-  if (typeof value === "string") {
-    const trimmed = value.trim();
-    return trimmed === "" ? undefined : trimmed;
-  }
-
-  return value;
 }

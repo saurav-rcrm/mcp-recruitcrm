@@ -63,11 +63,6 @@ const searchCandidatesInputSchema = {
 };
 
 const nullableStringSchema = z.union([z.string(), z.null()]);
-const nullableNumberSchema = z.union([z.number(), z.null()]);
-const nullableBooleanSchema = z.union([z.boolean(), z.null()]);
-const nullableNumberOrStringSchema = z.union([z.number(), z.string(), z.null()]);
-const nullableStringOrNumberSchema = z.union([z.string(), z.number(), z.null()]);
-const nullableBooleanNumberStringSchema = z.union([z.boolean(), z.number(), z.string(), z.null()]);
 
 const candidateSummarySchema = z.object({
   slug: z.string(),
@@ -87,122 +82,7 @@ const searchCandidatesOutputSchema = {
   candidates: z.array(candidateSummarySchema),
 };
 
-const candidateDetailCustomFieldSchema = z
-  .object({
-    field_id: z.number().int().positive(),
-    entity_type: z.string(),
-    field_name: z.string(),
-    field_type: z.string(),
-    value: z.unknown(),
-  })
-  .passthrough();
-
-const candidateWorkHistorySchema = z
-  .object({
-    candidate_id: nullableNumberOrStringSchema,
-    id: z.union([z.number(), z.string()]),
-    title: nullableStringSchema,
-    work_company_name: nullableStringSchema,
-    employment_type: nullableNumberOrStringSchema,
-    industry_id: nullableNumberOrStringSchema,
-    work_location: nullableStringSchema,
-    salary: nullableNumberOrStringSchema,
-    is_currently_working: nullableBooleanNumberStringSchema,
-    work_start_date: nullableNumberOrStringSchema,
-    work_end_date: nullableNumberOrStringSchema,
-    work_description: nullableStringSchema,
-  })
-  .passthrough();
-
-const candidateEducationHistorySchema = z
-  .object({
-    candidate_id: nullableNumberOrStringSchema,
-    id: z.union([z.number(), z.string()]),
-    institute_name: nullableStringSchema,
-    educational_qualification: nullableStringSchema,
-    educational_specialization: nullableStringSchema,
-    grade: nullableStringSchema,
-    education_location: nullableStringSchema,
-    education_start_date: nullableNumberOrStringSchema,
-    education_end_date: nullableNumberOrStringSchema,
-    education_description: nullableStringSchema,
-  })
-  .passthrough();
-
-const candidateDetailOutputSchema = {
-  id: z.union([z.number(), z.string()]),
-  first_name: nullableStringSchema,
-  last_name: nullableStringSchema,
-  email: nullableStringSchema,
-  contact_number: nullableStringSchema,
-  gender_id: nullableNumberOrStringSchema,
-  qualification_id: nullableNumberOrStringSchema,
-  specialization: nullableStringSchema,
-  work_ex_year: nullableNumberOrStringSchema,
-  candidate_dob: nullableStringOrNumberSchema,
-  current_salary: nullableNumberOrStringSchema,
-  salary_expectation: nullableNumberOrStringSchema,
-  resume: nullableStringSchema,
-  willing_to_relocate: nullableBooleanNumberStringSchema,
-  current_organization: nullableStringSchema,
-  current_status: nullableStringSchema,
-  notice_period: nullableNumberOrStringSchema,
-  currency_id: nullableNumberOrStringSchema,
-  slug: z.string(),
-  profile_update_link_status: nullableNumberOrStringSchema,
-  profile_update_requested_on: nullableStringSchema,
-  profile_updated_on: nullableStringSchema,
-  avatar: nullableStringSchema,
-  facebook: nullableStringSchema,
-  twitter: nullableStringSchema,
-  linkedin: nullableStringSchema,
-  github: nullableStringSchema,
-  xing: nullableStringSchema,
-  created_on: nullableStringSchema,
-  updated_on: nullableStringSchema,
-  city: nullableStringSchema,
-  locality: nullableStringSchema,
-  state: nullableStringSchema,
-  country: nullableStringSchema,
-  address: nullableStringSchema,
-  relevant_experience: nullableNumberOrStringSchema,
-  position: nullableStringSchema,
-  available_from: nullableStringOrNumberSchema,
-  salary_type: z.object({
-    id: nullableNumberOrStringSchema,
-    label: nullableStringSchema,
-  }).nullable(),
-  source: nullableStringSchema,
-  language_skills: nullableStringSchema,
-  skill: nullableStringSchema,
-  custom_fields: z.array(candidateDetailCustomFieldSchema),
-  created_by: nullableNumberOrStringSchema,
-  updated_by: nullableNumberOrStringSchema,
-  owner: nullableNumberOrStringSchema,
-  resource_url: nullableStringSchema,
-  is_email_opted_out: z.union([z.string(), z.boolean(), z.null()]),
-  email_opt_out_source: nullableStringSchema,
-  candidate_summary: nullableStringSchema,
-  work_history: z.array(candidateWorkHistorySchema),
-  education_history: z.array(candidateEducationHistorySchema),
-  current_organization_slug: nullableStringSchema,
-  last_calllog_added_on: nullableStringSchema,
-  last_calllog_added_by: nullableNumberOrStringSchema,
-  last_email_sent_on: nullableStringSchema,
-  last_email_sent_by: nullableNumberOrStringSchema,
-  last_sms_sent_on: nullableStringSchema,
-  last_sms_sent_by: nullableNumberOrStringSchema,
-  last_meeting_created_on: nullableStringSchema,
-  last_meeting_created_by: nullableNumberOrStringSchema,
-  last_linkedin_message_sent_on: nullableStringSchema,
-  last_linkedin_message_sent_by: nullableNumberOrStringSchema,
-  last_communication: nullableStringSchema,
-  postal_code: nullableStringSchema,
-  off_limit_status_id: nullableNumberOrStringSchema,
-  status_label: nullableStringSchema,
-  off_limit_reason: nullableStringSchema,
-  off_limit_end_date: nullableStringSchema,
-};
+const candidateDetailOutputSchema = z.object({}).passthrough();
 
 const candidateCustomFieldSummarySchema = z.object({
   field_id: z.number().int().positive(),
@@ -246,7 +126,7 @@ export function createRecruitCrmServer(dependencies: ServerDependencies = {}): M
   server.registerTool(
     "search_candidates",
     {
-      description: "Search Recruit CRM candidates and return compact summaries without email or phone.",
+      description: "Search Recruit CRM candidates and return compact summaries designed for large result sets.",
       inputSchema: searchCandidatesInputSchema,
       outputSchema: searchCandidatesOutputSchema,
       annotations: {
@@ -259,7 +139,7 @@ export function createRecruitCrmServer(dependencies: ServerDependencies = {}): M
   server.registerTool(
     "get_candidate_details",
     {
-      description: "Fetch one Recruit CRM candidate by slug and return curated details.",
+      description: "Fetch one Recruit CRM candidate by slug and return the raw Recruit CRM payload.",
       inputSchema: {
         candidate_slug: textFilterSchema.describe("Candidate slug."),
       },
@@ -274,7 +154,7 @@ export function createRecruitCrmServer(dependencies: ServerDependencies = {}): M
   server.registerTool(
     "list_candidate_custom_fields",
     {
-      description: "List candidate custom fields for custom-field search. Returns searchable fields by default.",
+      description: "List curated candidate custom field metadata for search. Returns searchable fields by default.",
       inputSchema: {
         include_non_searchable: booleanLikeSchema
           .optional()
@@ -292,7 +172,7 @@ export function createRecruitCrmServer(dependencies: ServerDependencies = {}): M
   server.registerTool(
     "get_candidate_custom_field_details",
     {
-      description: "Fetch one candidate custom field by field_id, including all dropdown or multiselect options.",
+      description: "Fetch curated candidate custom field details by field_id, including dropdown or multiselect options.",
       inputSchema: {
         field_id: z.coerce.number().int().positive().describe("Candidate custom field id."),
       },

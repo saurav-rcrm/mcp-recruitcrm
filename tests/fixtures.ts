@@ -103,7 +103,10 @@ export const sampleCandidateDetailResponse: CandidateDetail = {
   candidate_dob: null,
   current_salary: 0,
   salary_expectation: 0,
-  resume: null,
+  resume: {
+    filename: "LinkedIn Profile - 21st January 2026.pdf",
+    file_link: "https://api.recruitcrm.io/v1/candidates/17607010581470019768LbX/resume/example",
+  },
   willing_to_relocate: 0,
   current_organization: "",
   current_status: "",

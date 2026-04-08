@@ -16,10 +16,28 @@ describe("RecruitCrmClient", () => {
     vi.restoreAllMocks();
   });
 
-  it("parses live-like mixed scalar search payloads", async () => {
+  it("ignores unused search field type changes", async () => {
     const transport = vi.fn(async (_request: HttpRequestOptions): Promise<HttpResponse> => ({
       statusCode: 200,
-      bodyText: JSON.stringify(sampleSearchResponse),
+      bodyText: JSON.stringify({
+        current_page: 2,
+        next_page_url: "https://api.recruitcrm.io/v1/candidates/search?page=3",
+        data: [
+          {
+            slug: "010011",
+            first_name: "Michael",
+            last_name: "Scott",
+            position: "Software Developer",
+            current_organization: "Dunder Mifflin",
+            current_status: "Employed",
+            city: "New York",
+            updated_on: "2020-06-29T05:36:22.000000Z",
+            current_salary: { amount: 150000 },
+            candidate_summary: { html: "<p>summary</p>" },
+            owner: { id: 10001 },
+          },
+        ],
+      }),
     }));
     const client = new RecruitCrmClient(baseConfig, transport);
 
@@ -28,12 +46,9 @@ describe("RecruitCrmClient", () => {
 
     expect(candidate).toMatchObject({
       slug: "010011",
-      current_salary: 150000,
-      salary_expectation: 180000,
-      salary_type: {
-        id: "1",
-        label: "Monthly Salary",
-      },
+      first_name: "Michael",
+      last_name: "Scott",
+      position: "Software Developer",
     });
   });
 
@@ -46,7 +61,7 @@ describe("RecruitCrmClient", () => {
         data: [
           {
             slug: "010011",
-            current_salary: { amount: 150000 },
+            position: { title: "bad-type" },
           },
         ],
       }),
@@ -68,7 +83,7 @@ describe("RecruitCrmClient", () => {
         data: [
           {
             slug: "010011",
-            current_salary: { amount: 150000 },
+            position: { title: "bad-type" },
           },
         ],
       }),
@@ -80,8 +95,40 @@ describe("RecruitCrmClient", () => {
     });
     expect(consoleErrorSpy).toHaveBeenCalledTimes(1);
     expect(consoleErrorSpy).toHaveBeenCalledWith(
-      expect.stringContaining("Recruit CRM schema mismatch for /candidates/search: data.0.current_salary"),
+      expect.stringContaining("Recruit CRM schema mismatch for /candidates/search: data.0.position"),
     );
+  });
+
+  it("parses custom-field metadata without validating unused fields", async () => {
+    const transport = vi.fn(async (_request: HttpRequestOptions): Promise<HttpResponse> => ({
+      statusCode: 200,
+      bodyText: JSON.stringify([
+        {
+          field_id: "34",
+          field_type: "dropdown",
+          field_name: "Category",
+          default_value: { unexpected: true },
+          unused_metadata: {
+            nested: true,
+          },
+        },
+      ]),
+    }));
+    const client = new RecruitCrmClient(baseConfig, transport);
+
+    const result = await client.getCandidateCustomFields();
+
+    expect(result).toEqual([
+      {
+        field_id: 34,
+        field_type: "dropdown",
+        field_name: "Category",
+        default_value: { unexpected: true },
+        unused_metadata: {
+          nested: true,
+        },
+      },
+    ]);
   });
 
   it("parses direct candidate detail payloads", async () => {
@@ -95,6 +142,10 @@ describe("RecruitCrmClient", () => {
 
     expect(result.slug).toBe("17755473509460000453mHh");
     expect(result.current_salary).toBe(0);
+    expect(result.resume).toEqual({
+      filename: "LinkedIn Profile - 21st January 2026.pdf",
+      file_link: "https://api.recruitcrm.io/v1/candidates/17607010581470019768LbX/resume/example",
+    });
     expect(result.salary_type).toEqual({
       id: "2",
       label: "Annual Salary",
@@ -140,10 +191,7 @@ describe("RecruitCrmClient", () => {
     const consoleErrorSpy = vi.spyOn(console, "error").mockImplementation(() => undefined);
     const transport = vi.fn(async (_request: HttpRequestOptions): Promise<HttpResponse> => ({
       statusCode: 200,
-      bodyText: JSON.stringify({
-        ...sampleCandidateDetailResponse,
-        custom_fields: {},
-      }),
+      bodyText: JSON.stringify(["not-an-object"]),
     }));
     const client = new RecruitCrmClient({ ...baseConfig, debugSchemaErrors: true }, transport);
 
@@ -152,7 +200,7 @@ describe("RecruitCrmClient", () => {
     });
     expect(consoleErrorSpy).toHaveBeenCalledTimes(1);
     expect(consoleErrorSpy).toHaveBeenCalledWith(
-      expect.stringContaining("Recruit CRM schema mismatch for /candidates/17755473509460000453mHh: custom_fields"),
+      expect.stringContaining("Recruit CRM schema mismatch for /candidates/17755473509460000453mHh: <root>:"),
     );
   });
 });

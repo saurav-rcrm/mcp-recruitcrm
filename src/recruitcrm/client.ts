@@ -12,54 +12,24 @@ import type {
 } from "./types.js";
 
 const nullableNumberOrStringSchema = z.union([z.number(), z.string(), z.null()]).optional();
-const numberOrStringSchema = z.union([z.number(), z.string()]);
-const numberOrStringOrNullSchema = z.union([z.number(), z.string(), z.null()]);
-const stringOrNullSchema = z.union([z.string(), z.null()]);
-const stringNumberOrNullSchema = z.union([z.string(), z.number(), z.null()]);
-const booleanNumberStringOrNullSchema = z.union([z.boolean(), z.number(), z.string(), z.null()]);
+const nullableStringLikeSchema = z.union([z.string(), z.number(), z.null()]).optional();
 
 const candidateSchema = z
   .object({
     slug: z.union([z.string(), z.number()]).transform((value) => String(value)),
-    first_name: z.string().nullish(),
-    last_name: z.string().nullish(),
-    email: z.string().nullish(),
-    contact_number: z.string().nullish(),
-    current_organization: z.string().nullish(),
-    current_status: z.string().nullish(),
-    city: z.string().nullish(),
-    state: z.string().nullish(),
-    country: z.string().nullish(),
-    work_ex_year: z.union([z.number(), z.string()]).nullish(),
-    updated_on: z.string().nullish(),
-    position: z.string().nullish(),
-    status_label: z.string().nullish(),
-    relevant_experience: z.union([z.number(), z.string()]).nullish(),
-    specialization: z.string().nullish(),
-    skill: z.string().nullish(),
-    language_skills: z.string().nullish(),
-    notice_period: z.union([z.number(), z.string()]).nullish(),
-    available_from: z.string().nullish(),
-    willing_to_relocate: z.union([z.number(), z.boolean()]).nullish(),
-    current_salary: nullableNumberOrStringSchema,
-    salary_expectation: nullableNumberOrStringSchema,
-    salary_type: z
-      .object({
-        id: nullableNumberOrStringSchema,
-        label: z.string().nullish(),
-      })
-      .nullish(),
-    currency_id: z.union([z.number(), z.string()]).nullish(),
-    linkedin: z.string().nullish(),
-    github: z.string().nullish(),
-    candidate_summary: z.string().nullish(),
-    owner: z.union([z.number(), z.string()]).nullish(),
+    first_name: nullableStringLikeSchema,
+    last_name: nullableStringLikeSchema,
+    current_organization: nullableStringLikeSchema,
+    current_status: nullableStringLikeSchema,
+    city: nullableStringLikeSchema,
+    updated_on: nullableStringLikeSchema,
+    position: nullableStringLikeSchema,
   })
   .passthrough();
 
 const searchResponseSchema = z
   .object({
-    current_page: z.number().int().positive().optional(),
+    current_page: z.coerce.number().int().positive().optional(),
     next_page_url: z.union([z.string(), z.null()]).optional(),
     data: z.array(candidateSchema),
   })
@@ -67,136 +37,15 @@ const searchResponseSchema = z
 
 const candidateCustomFieldSchema = z
   .object({
-    field_id: z.number().int().positive(),
-    entity_type: z.string(),
+    field_id: z.coerce.number().int().positive(),
     field_type: z.string(),
     field_name: z.string(),
-    default_value: z.string().nullish(),
+    default_value: z.unknown().optional(),
   })
   .passthrough();
 
 const candidateCustomFieldsResponseSchema = z.array(candidateCustomFieldSchema);
-
-const candidateDetailCustomFieldSchema = z
-  .object({
-    field_id: z.number().int().positive(),
-    entity_type: z.string(),
-    field_name: z.string(),
-    field_type: z.string(),
-    value: z.unknown(),
-  })
-  .passthrough();
-
-const candidateWorkHistorySchema = z
-  .object({
-    candidate_id: numberOrStringOrNullSchema,
-    id: numberOrStringSchema,
-    title: stringOrNullSchema,
-    work_company_name: stringOrNullSchema,
-    employment_type: numberOrStringOrNullSchema,
-    industry_id: numberOrStringOrNullSchema,
-    work_location: stringOrNullSchema,
-    salary: numberOrStringOrNullSchema,
-    is_currently_working: booleanNumberStringOrNullSchema,
-    work_start_date: numberOrStringOrNullSchema,
-    work_end_date: numberOrStringOrNullSchema,
-    work_description: stringOrNullSchema,
-  })
-  .passthrough();
-
-const candidateEducationHistorySchema = z
-  .object({
-    candidate_id: numberOrStringOrNullSchema,
-    id: numberOrStringSchema,
-    institute_name: stringOrNullSchema,
-    educational_qualification: stringOrNullSchema,
-    educational_specialization: stringOrNullSchema,
-    grade: stringOrNullSchema,
-    education_location: stringOrNullSchema,
-    education_start_date: numberOrStringOrNullSchema,
-    education_end_date: numberOrStringOrNullSchema,
-    education_description: stringOrNullSchema,
-  })
-  .passthrough();
-
-const candidateDetailSchema = z
-  .object({
-    id: numberOrStringSchema,
-    first_name: stringOrNullSchema,
-    last_name: stringOrNullSchema,
-    email: stringOrNullSchema,
-    contact_number: stringOrNullSchema,
-    gender_id: numberOrStringOrNullSchema,
-    qualification_id: numberOrStringOrNullSchema,
-    specialization: stringOrNullSchema,
-    work_ex_year: numberOrStringOrNullSchema,
-    candidate_dob: stringNumberOrNullSchema,
-    current_salary: numberOrStringOrNullSchema,
-    salary_expectation: numberOrStringOrNullSchema,
-    resume: stringOrNullSchema,
-    willing_to_relocate: booleanNumberStringOrNullSchema,
-    current_organization: stringOrNullSchema,
-    current_status: stringOrNullSchema,
-    notice_period: numberOrStringOrNullSchema,
-    currency_id: numberOrStringOrNullSchema,
-    slug: z.string(),
-    profile_update_link_status: numberOrStringOrNullSchema,
-    profile_update_requested_on: stringOrNullSchema,
-    profile_updated_on: stringOrNullSchema,
-    avatar: stringOrNullSchema,
-    facebook: stringOrNullSchema,
-    twitter: stringOrNullSchema,
-    linkedin: stringOrNullSchema,
-    github: stringOrNullSchema,
-    xing: stringOrNullSchema,
-    created_on: stringOrNullSchema,
-    updated_on: stringOrNullSchema,
-    city: stringOrNullSchema,
-    locality: stringOrNullSchema,
-    state: stringOrNullSchema,
-    country: stringOrNullSchema,
-    address: stringOrNullSchema,
-    relevant_experience: numberOrStringOrNullSchema,
-    position: stringOrNullSchema,
-    available_from: stringNumberOrNullSchema,
-    salary_type: z
-      .object({
-        id: numberOrStringOrNullSchema,
-        label: stringOrNullSchema,
-      })
-      .nullable(),
-    source: stringOrNullSchema,
-    language_skills: stringOrNullSchema,
-    skill: stringOrNullSchema,
-    custom_fields: z.array(candidateDetailCustomFieldSchema),
-    created_by: numberOrStringOrNullSchema,
-    updated_by: numberOrStringOrNullSchema,
-    owner: numberOrStringOrNullSchema,
-    resource_url: stringOrNullSchema,
-    is_email_opted_out: z.union([z.string(), z.boolean(), z.null()]),
-    email_opt_out_source: stringOrNullSchema,
-    candidate_summary: stringOrNullSchema,
-    work_history: z.array(candidateWorkHistorySchema),
-    education_history: z.array(candidateEducationHistorySchema),
-    current_organization_slug: stringOrNullSchema,
-    last_calllog_added_on: stringOrNullSchema,
-    last_calllog_added_by: numberOrStringOrNullSchema,
-    last_email_sent_on: stringOrNullSchema,
-    last_email_sent_by: numberOrStringOrNullSchema,
-    last_sms_sent_on: stringOrNullSchema,
-    last_sms_sent_by: numberOrStringOrNullSchema,
-    last_meeting_created_on: stringOrNullSchema,
-    last_meeting_created_by: numberOrStringOrNullSchema,
-    last_linkedin_message_sent_on: stringOrNullSchema,
-    last_linkedin_message_sent_by: numberOrStringOrNullSchema,
-    last_communication: stringOrNullSchema,
-    postal_code: stringOrNullSchema,
-    off_limit_status_id: numberOrStringOrNullSchema,
-    status_label: stringOrNullSchema,
-    off_limit_reason: stringOrNullSchema,
-    off_limit_end_date: stringOrNullSchema,
-  })
-  .passthrough();
+const candidateDetailSchema: z.ZodType<CandidateDetail> = z.object({}).passthrough();
 
 export class RecruitCrmClient {
   readonly #apiToken: string;

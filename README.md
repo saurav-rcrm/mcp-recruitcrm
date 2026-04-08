@@ -6,10 +6,10 @@ Repository: `https://github.com/saurav-rcrm/mcp-recruitcrm`
 
 ## What It Does
 
-- `search_candidates`: search candidates and return compact summaries with `slug`, `first_name`, `last_name`, `position`, `current_organization`, `current_status`, `city`, and `updated_on`
-- `get_candidate_details`: fetch one candidate by slug and return the direct Recruit CRM candidate payload, including `custom_fields`, `work_history`, and `education_history`
-- `list_candidate_custom_fields`: list candidate custom fields for custom-field search
-- `get_candidate_custom_field_details`: fetch one candidate custom field with full options when relevant
+- `search_candidates`: search candidates and return compact summaries with `slug`, `first_name`, `last_name`, `position`, `current_organization`, `current_status`, `city`, and `updated_on`. This compact shape is intentional because search can return large result sets.
+- `get_candidate_details`: fetch one candidate by slug and return the raw Recruit CRM candidate payload
+- `list_candidate_custom_fields`: list curated candidate custom field metadata for search. This stays curated because option metadata can be large.
+- `get_candidate_custom_field_details`: fetch curated candidate custom field details with full options when relevant
 
 ## Required Environment Variable
 
@@ -63,3 +63,5 @@ npm test
 ## Custom Field Flow
 
 Ask the client to resolve a custom field first, then search with its `field_id`. Example: find `Tech Stack`, get `field_id: 34`, then call `search_candidates` with `custom_fields`.
+
+`supported_filter_types` and `filter_value_required_for` are guidance for the model. The MCP server no longer blocks valid-looking searches locally based on the hardcoded field-type matrix, except when a referenced `field_id` does not exist.

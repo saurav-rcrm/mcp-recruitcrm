@@ -45,18 +45,18 @@ export type SearchCandidatesInput = {
 
 export type RecruitCrmCandidate = {
   slug: string;
-  first_name?: string | null;
-  last_name?: string | null;
+  first_name?: string | number | null;
+  last_name?: string | number | null;
   email?: string | null;
   contact_number?: string | null;
-  current_organization?: string | null;
-  current_status?: string | null;
-  city?: string | null;
+  current_organization?: string | number | null;
+  current_status?: string | number | null;
+  city?: string | number | null;
   state?: string | null;
   country?: string | null;
   work_ex_year?: number | string | null;
-  updated_on?: string | null;
-  position?: string | null;
+  updated_on?: string | number | null;
+  position?: string | number | null;
   status_label?: string | null;
   relevant_experience?: number | string | null;
   specialization?: string | null;
@@ -122,10 +122,10 @@ export type RecruitCrmCandidateEducationHistoryItem = {
 
 export type RecruitCrmCandidateCustomField = {
   field_id: number;
-  entity_type: string;
+  entity_type?: string;
   field_type: string;
   field_name: string;
-  default_value?: string | null;
+  default_value?: unknown;
 };
 
 export type CandidateSummary = {
@@ -173,76 +173,11 @@ export type CandidateCustomFieldDetail = {
 };
 
 export type CandidateDetail = {
-  id: number | string;
-  first_name: string | null;
-  last_name: string | null;
-  email: string | null;
-  contact_number: string | null;
-  gender_id: number | string | null;
-  qualification_id: number | string | null;
-  specialization: string | null;
-  work_ex_year: number | string | null;
-  candidate_dob: string | number | null;
-  current_salary: number | string | null;
-  salary_expectation: number | string | null;
-  resume: string | null;
-  willing_to_relocate: number | string | boolean | null;
-  current_organization: string | null;
-  current_status: string | null;
-  notice_period: number | string | null;
-  currency_id: number | string | null;
-  slug: string;
-  profile_update_link_status: number | string | null;
-  profile_update_requested_on: string | null;
-  profile_updated_on: string | null;
-  avatar: string | null;
-  facebook: string | null;
-  twitter: string | null;
-  linkedin: string | null;
-  github: string | null;
-  xing: string | null;
-  created_on: string | null;
-  updated_on: string | null;
-  city: string | null;
-  locality: string | null;
-  state: string | null;
-  country: string | null;
-  address: string | null;
-  relevant_experience: number | string | null;
-  position: string | null;
-  available_from: string | number | null;
-  salary_type: {
-    id: number | string | null;
-    label: string | null;
-  } | null;
-  source: string | null;
-  language_skills: string | null;
-  skill: string | null;
-  custom_fields: RecruitCrmCandidateDetailCustomField[];
-  created_by: number | string | null;
-  updated_by: number | string | null;
-  owner: number | string | null;
-  resource_url: string | null;
-  is_email_opted_out: string | boolean | null;
-  email_opt_out_source: string | null;
-  candidate_summary: string | null;
-  work_history: RecruitCrmCandidateWorkHistoryItem[];
-  education_history: RecruitCrmCandidateEducationHistoryItem[];
-  current_organization_slug: string | null;
-  last_calllog_added_on: string | null;
-  last_calllog_added_by: number | string | null;
-  last_email_sent_on: string | null;
-  last_email_sent_by: number | string | null;
-  last_sms_sent_on: string | null;
-  last_sms_sent_by: number | string | null;
-  last_meeting_created_on: string | null;
-  last_meeting_created_by: number | string | null;
-  last_linkedin_message_sent_on: string | null;
-  last_linkedin_message_sent_by: number | string | null;
-  last_communication: string | null;
-  postal_code: string | null;
-  off_limit_status_id: number | string | null;
-  status_label: string | null;
-  off_limit_reason: string | null;
-  off_limit_end_date: string | null;
+  id?: number | string;
+  slug?: number | string;
+  resume?: unknown;
+  custom_fields?: unknown[];
+  work_history?: unknown[];
+  education_history?: unknown[];
+  [key: string]: unknown;
 };

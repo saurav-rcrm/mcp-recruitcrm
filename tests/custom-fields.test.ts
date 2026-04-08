@@ -58,7 +58,7 @@ describe("candidate custom field helpers", () => {
     expect(getSupportedFilterTypes("date_time")).toEqual([]);
   });
 
-  it("rejects unknown fields, unsupported filters, and invalid filter_value usage", () => {
+  it("treats supported filter metadata as hints and only rejects unknown field ids", () => {
     expect(() =>
       validateCustomFieldFilters(
         [
@@ -83,7 +83,7 @@ describe("candidate custom field helpers", () => {
         ],
         sampleCandidateCustomFieldsResponse,
       ),
-    ).toThrowError(new RecruitCrmApiError("Custom field 55 cannot be used in search."));
+    ).not.toThrow();
 
     expect(() =>
       validateCustomFieldFilters(
@@ -96,21 +96,7 @@ describe("candidate custom field helpers", () => {
         ],
         sampleCandidateCustomFieldsResponse,
       ),
-    ).toThrowError(new RecruitCrmApiError('Filter type "greater_than" is not supported for custom field 80.'));
-
-    expect(() =>
-      validateCustomFieldFilters(
-        [
-          {
-            field_id: 34,
-            filter_type: "equals",
-          },
-        ],
-        sampleCandidateCustomFieldsResponse,
-      ),
-    ).toThrowError(
-      new RecruitCrmApiError('filter_value is required for custom field 34 with filter type "equals".'),
-    );
+    ).not.toThrow();
 
     expect(() =>
       validateCustomFieldFilters(
@@ -123,8 +109,27 @@ describe("candidate custom field helpers", () => {
         ],
         sampleCandidateCustomFieldsResponse,
       ),
-    ).toThrowError(
-      new RecruitCrmApiError('filter_value is not allowed for custom field 88 with filter type "yes".'),
-    );
+    ).not.toThrow();
+  });
+
+  it("degrades gracefully when option data is not a parseable string", () => {
+    const summary = mapCandidateCustomFieldSummary({
+      field_id: 77,
+      field_type: "dropdown",
+      field_name: "Weird Options",
+      default_value: { not: "a string" },
+    });
+
+    expect(summary.option_count).toBe(0);
+    expect(summary.options_preview).toEqual([]);
+
+    const detail = mapCandidateCustomFieldDetail({
+      field_id: 78,
+      field_type: "multiselect",
+      field_name: "Array Options",
+      default_value: ["Python", 42, null],
+    });
+
+    expect(detail.option_values).toEqual(["Python", "42"]);
   });
 });

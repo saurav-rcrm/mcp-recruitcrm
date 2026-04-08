@@ -236,4 +236,79 @@ describe("Recruit CRM MCP tools", () => {
     await client.close();
     await server.close();
   });
+
+  it("forwards custom-field filters that were previously blocked by the hardcoded matrix", async () => {
+    const transportMock = vi.fn(async (request: HttpRequestOptions): Promise<HttpResponse> => {
+      if (request.url.pathname.endsWith("/custom-fields/candidates")) {
+        return {
+          statusCode: 200,
+          bodyText: JSON.stringify(sampleCandidateCustomFieldsResponse),
+        };
+      }
+
+      if (request.url.pathname.endsWith("/candidates/search")) {
+        expect(request.jsonBody).toEqual({
+          custom_fields: [
+            {
+              field_id: 55,
+              filter_type: "equals",
+              filter_value: "Acme",
+            },
+          ],
+        });
+
+        return {
+          statusCode: 200,
+          bodyText: JSON.stringify(sampleSearchResponse),
+        };
+      }
+
+      throw new Error(`Unexpected request: ${request.url.toString()}`);
+    });
+
+    const server = createRecruitCrmServer({
+      config: {
+        apiToken: "test-token",
+        baseUrl: "https://api.recruitcrm.io/v1",
+        timeoutMs: 10_000,
+        debugSchemaErrors: false,
+      },
+      transport: transportMock,
+    });
+
+    const client = new Client({
+      name: "test-client",
+      version: "1.0.0",
+    });
+
+    const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
+    await server.connect(serverTransport);
+    await client.connect(clientTransport);
+
+    const result = await client.callTool({
+      name: "search_candidates",
+      arguments: {
+        custom_fields: [
+          {
+            field_id: 55,
+            filter_type: "equals",
+            filter_value: "Acme",
+          },
+        ],
+      },
+    });
+
+    expect(result.structuredContent).toMatchObject({
+      returned_count: 1,
+      candidates: [
+        {
+          slug: "010011",
+        },
+      ],
+    });
+    expect(transportMock).toHaveBeenCalledTimes(2);
+
+    await client.close();
+    await server.close();
+  });
 });
