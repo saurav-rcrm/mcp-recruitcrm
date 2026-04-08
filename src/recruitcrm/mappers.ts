@@ -1,9 +1,11 @@
 import type {
+  ActivityRelatedSummary,
   CallLogSummary,
   CallLogTypeSummary,
   CandidateSummary,
   MeetingSummary,
   MeetingTypeSummary,
+  RecruitCrmActivityRelated,
   RecruitCrmCandidate,
   RecruitCrmCallLog,
   RecruitCrmCallLogSearchResponse,
@@ -96,6 +98,7 @@ export function mapTaskSummary(task: RecruitCrmTask): TaskSummary {
     task_type: normalizeTaskTypes(task.task_type),
     related_to_type: normalizeString(task.related_to_type),
     related_to_name: normalizeString(task.related_to_name),
+    related: mapActivityRelated(task.related),
     description: normalizeString(task.description),
     title: normalizeString(task.title),
     status: normalizeNumber(task.status),
@@ -122,6 +125,7 @@ export function mapMeetingSummary(meeting: RecruitCrmMeeting): MeetingSummary {
     end_date: normalizeString(meeting.end_date),
     related_to: normalizeString(meeting.related_to),
     related_to_type: normalizeString(meeting.related_to_type),
+    related: mapActivityRelated(meeting.related),
     do_not_send_calendar_invites: normalizeBoolean(meeting.do_not_send_calendar_invites),
     status: normalizeScalar(meeting.status),
     reminder_date: normalizeString(meeting.reminder_date),
@@ -141,6 +145,7 @@ export function mapNoteSummary(note: RecruitCrmNote): NoteSummary {
     description: normalizeString(note.description),
     related_to: normalizeString(note.related_to),
     related_to_type: normalizeString(note.related_to_type),
+    related: mapActivityRelated(note.related),
     created_on: normalizeString(note.created_on),
     updated_on: normalizeString(note.updated_on),
     created_by: normalizeNumber(note.created_by),
@@ -158,6 +163,7 @@ export function mapCallLogSummary(callLog: RecruitCrmCallLog): CallLogSummary {
     call_notes: normalizeString(callLog.call_notes),
     related_to: normalizeString(callLog.related_to),
     related_to_type: normalizeString(callLog.related_to_type),
+    related: mapActivityRelated(callLog.related),
     duration: normalizeScalar(callLog.duration),
     created_on: normalizeString(callLog.created_on),
     updated_on: normalizeString(callLog.updated_on),
@@ -297,6 +303,47 @@ function normalizeCallLogTypes(
     id: normalizeIdentifier(callLogType.id),
     label: normalizeString(callLogType.label),
   }));
+}
+
+function mapActivityRelated(related: RecruitCrmActivityRelated | null | undefined): ActivityRelatedSummary | null {
+  if (!related) {
+    return null;
+  }
+
+  const firstName = normalizeString(related.first_name);
+  const lastName = normalizeString(related.last_name);
+
+  if (firstName !== null || lastName !== null) {
+    const person: ActivityRelatedSummary = {};
+
+    if (firstName !== null) {
+      person.first_name = firstName;
+    }
+
+    if (lastName !== null) {
+      person.last_name = lastName;
+    }
+
+    return Object.keys(person).length > 0 ? person : null;
+  }
+
+  const companyName = normalizeString(related.company_name);
+
+  if (companyName !== null) {
+    return {
+      company_name: companyName,
+    };
+  }
+
+  const name = normalizeString(related.name);
+
+  if (name !== null) {
+    return {
+      name,
+    };
+  }
+
+  return null;
 }
 
 function normalizeScalar(value: number | string | null | undefined): string | number | null {

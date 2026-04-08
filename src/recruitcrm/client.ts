@@ -50,6 +50,15 @@ const taskTypeSchema = z
   })
   .passthrough();
 
+const activityRelatedSchema = z
+  .object({
+    first_name: nullableStringLikeSchema,
+    last_name: nullableStringLikeSchema,
+    company_name: nullableStringLikeSchema,
+    name: nullableStringLikeSchema,
+  })
+  .passthrough();
+
 const taskSchema = z
   .object({
     id: nullableNumberOrStringSchema,
@@ -57,6 +66,7 @@ const taskSchema = z
     task_type: z.union([taskTypeSchema, z.array(taskTypeSchema), z.null()]).optional(),
     related_to_type: nullableStringLikeSchema,
     related_to_name: nullableStringLikeSchema,
+    related: z.union([activityRelatedSchema, z.null()]).optional(),
     description: nullableStringLikeSchema,
     title: nullableStringLikeSchema,
     status: nullableNumberOrStringSchema,
@@ -108,6 +118,7 @@ const meetingSchema = z
     end_date: nullableStringLikeSchema,
     related_to: nullableStringLikeSchema,
     related_to_type: nullableStringLikeSchema,
+    related: z.union([activityRelatedSchema, z.null()]).optional(),
     do_not_send_calendar_invites: z.union([z.number(), z.string(), z.boolean(), z.null()]).optional(),
     status: nullableNumberOrStringSchema,
     reminder_date: nullableStringLikeSchema,
@@ -152,6 +163,7 @@ const noteSchema = z
     description: nullableStringLikeSchema,
     related_to: nullableStringLikeSchema,
     related_to_type: nullableStringLikeSchema,
+    related: z.union([activityRelatedSchema, z.null()]).optional(),
     created_on: nullableStringLikeSchema,
     updated_on: nullableStringLikeSchema,
     created_by: nullableNumberOrStringSchema,
@@ -194,6 +206,7 @@ const callLogSchema = z
     call_notes: nullableStringLikeSchema,
     related_to: nullableStringLikeSchema,
     related_to_type: nullableStringLikeSchema,
+    related: z.union([activityRelatedSchema, z.null()]).optional(),
     duration: nullableNumberOrStringSchema,
     created_on: nullableStringLikeSchema,
     updated_on: nullableStringLikeSchema,

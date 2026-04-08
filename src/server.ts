@@ -157,12 +157,20 @@ const taskTypeSummarySchema = z.object({
   label: nullableStringSchema,
 });
 
+const activityRelatedSummarySchema = z.object({
+  first_name: nullableStringSchema.optional(),
+  last_name: nullableStringSchema.optional(),
+  company_name: nullableStringSchema.optional(),
+  name: nullableStringSchema.optional(),
+});
+
 const taskSummarySchema = z.object({
   id: nullableNumberSchema,
   related_to: nullableStringSchema,
   task_type: z.union([z.array(taskTypeSummarySchema), z.null()]),
   related_to_type: nullableStringSchema,
   related_to_name: nullableStringSchema,
+  related: z.union([activityRelatedSummarySchema, z.null()]),
   description: nullableStringSchema,
   title: nullableStringSchema,
   status: nullableNumberSchema,
@@ -199,6 +207,7 @@ const meetingSummarySchema = z.object({
   end_date: nullableStringSchema,
   related_to: nullableStringSchema,
   related_to_type: nullableStringSchema,
+  related: z.union([activityRelatedSummarySchema, z.null()]),
   do_not_send_calendar_invites: nullableBooleanSchema,
   status: nullableStringOrNumberSchema,
   reminder_date: nullableStringSchema,
@@ -228,6 +237,7 @@ const noteSummarySchema = z.object({
   description: nullableStringSchema,
   related_to: nullableStringSchema,
   related_to_type: nullableStringSchema,
+  related: z.union([activityRelatedSummarySchema, z.null()]),
   created_on: nullableStringSchema,
   updated_on: nullableStringSchema,
   created_by: nullableNumberSchema,
@@ -255,6 +265,7 @@ const callLogSummarySchema = z.object({
   call_notes: nullableStringSchema,
   related_to: nullableStringSchema,
   related_to_type: nullableStringSchema,
+  related: z.union([activityRelatedSummarySchema, z.null()]),
   duration: nullableStringOrNumberSchema,
   created_on: nullableStringSchema,
   updated_on: nullableStringSchema,
@@ -537,6 +548,7 @@ export async function executeSearchCallLogs(
   args: SearchCallLogsInput,
 ): Promise<SearchCallLogsResult> {
   validateRelatedFilters(args);
+  validateCallLogRelatedType(args.related_to_type);
 
   const result = await client.searchCallLogs({
     page: args.page ?? 1,
@@ -592,6 +604,20 @@ function validateRelatedFilters(args: { related_to?: string; related_to_type?: s
 
   if (hasRelatedTo !== hasRelatedToType) {
     throw new RecruitCrmApiError("related_to and related_to_type must be provided together.");
+  }
+}
+
+function validateCallLogRelatedType(relatedToType: string | undefined): void {
+  if (relatedToType === undefined) {
+    return;
+  }
+
+  const normalizedType = relatedToType.trim().toLowerCase();
+
+  if (normalizedType === "job" || normalizedType === "deal") {
+    throw new RecruitCrmApiError(
+      "Recruit CRM call log search does not support related_to_type=job or related_to_type=deal.",
+    );
   }
 }
 

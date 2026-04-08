@@ -11,11 +11,11 @@ import {
 describe("buildSearchCandidatesRequest", () => {
   it("builds query-only search requests by default", () => {
     const request = buildSearchCandidatesRequest({
-      first_name: "Michael",
+      first_name: "Sample",
     });
 
     expect(request.query?.get("page")).toBe("1");
-    expect(request.query?.get("first_name")).toBe("Michael");
+    expect(request.query?.get("first_name")).toBe("Sample");
     expect(request.query?.get("sort_by")).toBe("updatedon");
     expect(request.query?.get("sort_order")).toBe("desc");
     expect(request.jsonBody).toBeUndefined();
@@ -23,9 +23,9 @@ describe("buildSearchCandidatesRequest", () => {
 
   it("ignores other filters when candidate_slug is present", () => {
     const request = buildSearchCandidatesRequest({
-      candidate_slug: "010011",
-      first_name: "Michael",
-      country: "United States",
+      candidate_slug: "candidate-sample-001",
+      first_name: "Sample",
+      country: "Example Country",
       custom_fields: [
         {
           field_id: 34,
@@ -36,7 +36,7 @@ describe("buildSearchCandidatesRequest", () => {
       sort_by: "createdon",
     });
 
-    expect(request.query?.get("candidate_slug")).toBe("010011");
+    expect(request.query?.get("candidate_slug")).toBe("candidate-sample-001");
     expect(request.query?.get("first_name")).toBeNull();
     expect(request.query?.get("country")).toBeNull();
     expect(request.query?.get("sort_by")).toBeNull();
@@ -55,7 +55,7 @@ describe("buildSearchCandidatesRequest", () => {
 
   it("moves custom fields into a GET body", () => {
     const request = buildSearchCandidatesRequest({
-      first_name: "Michael",
+      first_name: "Sample",
       custom_fields: [
         {
           field_id: 34,
@@ -69,7 +69,7 @@ describe("buildSearchCandidatesRequest", () => {
       ],
     });
 
-    expect(request.query?.get("first_name")).toBe("Michael");
+    expect(request.query?.get("first_name")).toBe("Sample");
     expect(request.jsonBody).toEqual({
       custom_fields: [
         {
@@ -104,8 +104,8 @@ describe("buildSearchTasksRequest", () => {
       created_to: "2026-01-31",
       owner_email: "owner@example.com",
       owner_id: "2890",
-      owner_name: "Jane Scott",
-      related_to: "16367183842920002890gLG",
+      owner_name: "Sample Owner",
+      related_to: "candidate-related-sample-001",
       related_to_type: "candidate",
       starting_from: "2026-02-01",
       starting_to: "2026-02-28",
@@ -119,8 +119,8 @@ describe("buildSearchTasksRequest", () => {
     expect(request.query?.get("created_to")).toBe("2026-01-31");
     expect(request.query?.get("owner_email")).toBe("owner@example.com");
     expect(request.query?.get("owner_id")).toBe("2890");
-    expect(request.query?.get("owner_name")).toBe("Jane Scott");
-    expect(request.query?.get("related_to")).toBe("16367183842920002890gLG");
+    expect(request.query?.get("owner_name")).toBe("Sample Owner");
+    expect(request.query?.get("related_to")).toBe("candidate-related-sample-001");
     expect(request.query?.get("related_to_type")).toBe("candidate");
     expect(request.query?.get("starting_from")).toBe("2026-02-01");
     expect(request.query?.get("starting_to")).toBe("2026-02-28");
@@ -131,11 +131,11 @@ describe("buildSearchTasksRequest", () => {
 
   it("supports related_to and related_to_type together", () => {
     const request = buildSearchTasksRequest({
-      related_to: "16367183842920002890gLG",
+      related_to: "candidate-related-sample-001",
       related_to_type: "candidate",
     });
 
-    expect(request.query?.get("related_to")).toBe("16367183842920002890gLG");
+    expect(request.query?.get("related_to")).toBe("candidate-related-sample-001");
     expect(request.query?.get("related_to_type")).toBe("candidate");
   });
 });
@@ -158,8 +158,8 @@ describe("buildSearchMeetingsRequest", () => {
       created_to: "2026-01-31",
       owner_email: "owner@example.com",
       owner_id: "2890",
-      owner_name: "Jane Scott",
-      related_to: "16367183842920002890gLG",
+      owner_name: "Sample Owner",
+      related_to: "candidate-related-sample-001",
       related_to_type: "candidate",
       starting_from: "2026-02-01",
       starting_to: "2026-02-28",
@@ -173,8 +173,8 @@ describe("buildSearchMeetingsRequest", () => {
     expect(request.query?.get("created_to")).toBe("2026-01-31");
     expect(request.query?.get("owner_email")).toBe("owner@example.com");
     expect(request.query?.get("owner_id")).toBe("2890");
-    expect(request.query?.get("owner_name")).toBe("Jane Scott");
-    expect(request.query?.get("related_to")).toBe("16367183842920002890gLG");
+    expect(request.query?.get("owner_name")).toBe("Sample Owner");
+    expect(request.query?.get("related_to")).toBe("candidate-related-sample-001");
     expect(request.query?.get("related_to_type")).toBe("candidate");
     expect(request.query?.get("starting_from")).toBe("2026-02-01");
     expect(request.query?.get("starting_to")).toBe("2026-02-28");
@@ -187,12 +187,12 @@ describe("buildSearchMeetingsRequest", () => {
 describe("buildSearchNotesRequest", () => {
   it("defaults page to 1 and keeps the request query-only", () => {
     const request = buildSearchNotesRequest({
-      related_to: "16367183842920002890gLG",
+      related_to: "candidate-related-sample-001",
       related_to_type: "candidate",
     });
 
     expect(request.query?.get("page")).toBe("1");
-    expect(request.query?.get("related_to")).toBe("16367183842920002890gLG");
+    expect(request.query?.get("related_to")).toBe("candidate-related-sample-001");
     expect(request.query?.get("related_to_type")).toBe("candidate");
     expect(request.jsonBody).toBeUndefined();
   });
@@ -202,7 +202,7 @@ describe("buildSearchNotesRequest", () => {
       page: 4,
       added_from: "2026-01-01",
       added_to: "2026-01-31",
-      related_to: "16367183842920002890gLG",
+      related_to: "candidate-related-sample-001",
       related_to_type: "candidate",
       updated_from: "2026-03-01",
       updated_to: "2026-03-31",
@@ -211,7 +211,7 @@ describe("buildSearchNotesRequest", () => {
     expect(request.query?.get("page")).toBe("4");
     expect(request.query?.get("added_from")).toBe("2026-01-01");
     expect(request.query?.get("added_to")).toBe("2026-01-31");
-    expect(request.query?.get("related_to")).toBe("16367183842920002890gLG");
+    expect(request.query?.get("related_to")).toBe("candidate-related-sample-001");
     expect(request.query?.get("related_to_type")).toBe("candidate");
     expect(request.query?.get("updated_from")).toBe("2026-03-01");
     expect(request.query?.get("updated_to")).toBe("2026-03-31");
@@ -221,12 +221,12 @@ describe("buildSearchNotesRequest", () => {
 describe("buildSearchCallLogsRequest", () => {
   it("defaults page to 1 and keeps the request query-only", () => {
     const request = buildSearchCallLogsRequest({
-      related_to: "16367183842920002890gLG",
+      related_to: "candidate-related-sample-001",
       related_to_type: "candidate",
     });
 
     expect(request.query?.get("page")).toBe("1");
-    expect(request.query?.get("related_to")).toBe("16367183842920002890gLG");
+    expect(request.query?.get("related_to")).toBe("candidate-related-sample-001");
     expect(request.query?.get("related_to_type")).toBe("candidate");
     expect(request.jsonBody).toBeUndefined();
   });
@@ -235,7 +235,7 @@ describe("buildSearchCallLogsRequest", () => {
     const request = buildSearchCallLogsRequest({
       page: 5,
       call_type: "CALL_OUTGOING",
-      related_to: "16367183842920002890gLG",
+      related_to: "candidate-related-sample-001",
       related_to_type: "candidate",
       starting_from: "2026-01-01",
       starting_to: "2026-01-31",
@@ -245,7 +245,7 @@ describe("buildSearchCallLogsRequest", () => {
 
     expect(request.query?.get("page")).toBe("5");
     expect(request.query?.get("call_type")).toBe("CALL_OUTGOING");
-    expect(request.query?.get("related_to")).toBe("16367183842920002890gLG");
+    expect(request.query?.get("related_to")).toBe("candidate-related-sample-001");
     expect(request.query?.get("related_to_type")).toBe("candidate");
     expect(request.query?.get("starting_from")).toBe("2026-01-01");
     expect(request.query?.get("starting_to")).toBe("2026-01-31");

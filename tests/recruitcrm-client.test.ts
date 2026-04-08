@@ -32,12 +32,12 @@ describe("RecruitCrmClient", () => {
         data: [
           {
             slug: "010011",
-            first_name: "Michael",
-            last_name: "Scott",
+            first_name: "Sample",
+            last_name: "Candidate",
             position: "Software Developer",
-            current_organization: "Dunder Mifflin",
+            current_organization: "Acme Labs",
             current_status: "Employed",
-            city: "New York",
+            city: "Example City",
             updated_on: "2020-06-29T05:36:22.000000Z",
             current_salary: { amount: 150000 },
             candidate_summary: { html: "<p>summary</p>" },
@@ -48,13 +48,13 @@ describe("RecruitCrmClient", () => {
     }));
     const client = new RecruitCrmClient(baseConfig, transport);
 
-    const result = await client.searchCandidates({ first_name: "Michael" });
+    const result = await client.searchCandidates({ first_name: "Sample" });
     const candidate = result.data[0];
 
     expect(candidate).toMatchObject({
       slug: "010011",
-      first_name: "Michael",
-      last_name: "Scott",
+      first_name: "Sample",
+      last_name: "Candidate",
       position: "Software Developer",
     });
   });
@@ -67,7 +67,7 @@ describe("RecruitCrmClient", () => {
     const client = new RecruitCrmClient(baseConfig, transport);
 
     const result = await client.searchTasks({
-      related_to: "16367183842920002890gLG",
+      related_to: "candidate-related-sample-001",
       related_to_type: "candidate",
     });
 
@@ -75,8 +75,12 @@ describe("RecruitCrmClient", () => {
     expect(result.next_page_url).toBe("https://api.recruitcrm.io/v1/tasks/search?page=2");
     expect(result.data[0]).toMatchObject({
       id: 2572223,
-      related_to: "16367183842920002890gLG",
+      related_to: "candidate-related-sample-001",
       task_type: null,
+      related: {
+        first_name: "Sample",
+        last_name: "Candidate",
+      },
       title: "Follow up",
       status: 1,
     });
@@ -139,7 +143,7 @@ describe("RecruitCrmClient", () => {
     const client = new RecruitCrmClient(baseConfig, transport);
 
     const result = await client.searchMeetings({
-      related_to: "16367183842920002890gLG",
+      related_to: "candidate-related-sample-001",
       related_to_type: "candidate",
     });
 
@@ -147,10 +151,14 @@ describe("RecruitCrmClient", () => {
     expect(result.next_page_url).toBe("https://api.recruitcrm.io/v1/meetings/search?page=2");
     expect(result.data[0]).toMatchObject({
       id: 47202185,
-      title: "Aamer Ayoob - NQB is 1 of the Leading Global E/Customer Success Manager (Netflix)",
+      title: "Sample Candidate/Product Manager (Acme Labs)",
       meeting_type: {
         id: 20707,
         label: "Candidate Interview with Client",
+      },
+      related: {
+        first_name: "Sample",
+        last_name: "Candidate",
       },
       all_day: 1,
     });
@@ -180,7 +188,7 @@ describe("RecruitCrmClient", () => {
     const client = new RecruitCrmClient(baseConfig, transport);
 
     const result = await client.searchNotes({
-      related_to: "16367183842920002890gLG",
+      related_to: "candidate-related-sample-001",
       related_to_type: "candidate",
     });
 
@@ -192,7 +200,11 @@ describe("RecruitCrmClient", () => {
         id: 205989,
         label: "Candidate Interaction",
       },
-      related_to: "16367183842920002890gLG",
+      related_to: "candidate-related-sample-001",
+      related: {
+        first_name: "Sample",
+        last_name: "Candidate",
+      },
     });
   });
 
@@ -220,7 +232,7 @@ describe("RecruitCrmClient", () => {
     const client = new RecruitCrmClient(baseConfig, transport);
 
     const result = await client.searchCallLogs({
-      related_to: "16367183842920002890gLG",
+      related_to: "candidate-related-sample-001",
       related_to_type: "candidate",
     });
 
@@ -232,6 +244,10 @@ describe("RecruitCrmClient", () => {
       custom_call_type: {
         id: 2,
         label: "Pitch Attempt",
+      },
+      related: {
+        first_name: "Sample",
+        last_name: "Candidate",
       },
       duration: 17,
     });
@@ -269,7 +285,7 @@ describe("RecruitCrmClient", () => {
     }));
     const client = new RecruitCrmClient(baseConfig, transport);
 
-    await expect(client.searchCandidates({ first_name: "Michael" })).rejects.toMatchObject({
+    await expect(client.searchCandidates({ first_name: "Sample" })).rejects.toMatchObject({
       message: "Recruit CRM API returned an invalid response.",
     });
     expect(consoleErrorSpy).not.toHaveBeenCalled();
@@ -291,7 +307,7 @@ describe("RecruitCrmClient", () => {
     }));
     const client = new RecruitCrmClient({ ...baseConfig, debugSchemaErrors: true }, transport);
 
-    await expect(client.searchCandidates({ first_name: "Michael" })).rejects.toMatchObject({
+    await expect(client.searchCandidates({ first_name: "Sample" })).rejects.toMatchObject({
       message: "Recruit CRM API returned an invalid response.",
     });
     expect(consoleErrorSpy).toHaveBeenCalledTimes(1);
@@ -339,13 +355,13 @@ describe("RecruitCrmClient", () => {
     }));
     const client = new RecruitCrmClient(baseConfig, transport);
 
-    const result = await client.getCandidateDetails("17755473509460000453mHh");
+    const result = await client.getCandidateDetails("candidate-detail-sample-001");
 
-    expect(result.slug).toBe("17755473509460000453mHh");
+    expect(result.slug).toBe("candidate-detail-sample-001");
     expect(result.current_salary).toBe(0);
     expect(result.resume).toEqual({
-      filename: "LinkedIn Profile - 21st January 2026.pdf",
-      file_link: "https://api.recruitcrm.io/v1/candidates/17607010581470019768LbX/resume/example",
+      filename: "Sample Resume.pdf",
+      file_link: "https://api.recruitcrm.io/v1/candidates/candidate-detail-sample-001/resume/example",
     });
     expect(result.salary_type).toEqual({
       id: "2",
@@ -362,15 +378,15 @@ describe("RecruitCrmClient", () => {
     expect(result.work_history).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
-          title: "Власник компанії",
-          work_company_name: "TATfood",
+          title: "Founder",
+          work_company_name: "Acme Foods",
         }),
       ]),
     );
     expect(result.education_history).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
-          institute_name: "National University of Food Technologies",
+          institute_name: "Example Institute of Technology",
         }),
       ]),
     );
@@ -396,12 +412,12 @@ describe("RecruitCrmClient", () => {
     }));
     const client = new RecruitCrmClient({ ...baseConfig, debugSchemaErrors: true }, transport);
 
-    await expect(client.getCandidateDetails("17755473509460000453mHh")).rejects.toMatchObject({
+    await expect(client.getCandidateDetails("candidate-detail-sample-001")).rejects.toMatchObject({
       message: "Recruit CRM API returned an invalid response.",
     });
     expect(consoleErrorSpy).toHaveBeenCalledTimes(1);
     expect(consoleErrorSpy).toHaveBeenCalledWith(
-      expect.stringContaining("Recruit CRM schema mismatch for /candidates/17755473509460000453mHh: <root>:"),
+      expect.stringContaining("Recruit CRM schema mismatch for /candidates/candidate-detail-sample-001: <root>:"),
     );
   });
 });

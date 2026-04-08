@@ -26,7 +26,7 @@ describe("Recruit CRM MCP tools", () => {
 
       if (request.url.pathname.endsWith("/candidates/search")) {
         if (request.jsonBody) {
-          expect(request.url.searchParams.get("first_name")).toBe("Michael");
+          expect(request.url.searchParams.get("first_name")).toBe("Sample");
           expect(request.jsonBody).toEqual({
             custom_fields: [
               {
@@ -55,7 +55,7 @@ describe("Recruit CRM MCP tools", () => {
       }
 
       if (request.url.pathname.endsWith("/tasks/search")) {
-        expect(request.url.searchParams.get("related_to")).toBe("16367183842920002890gLG");
+        expect(request.url.searchParams.get("related_to")).toBe("candidate-related-sample-001");
         expect(request.url.searchParams.get("related_to_type")).toBe("candidate");
 
         return {
@@ -65,7 +65,7 @@ describe("Recruit CRM MCP tools", () => {
       }
 
       if (request.url.pathname.endsWith("/meetings/search")) {
-        expect(request.url.searchParams.get("related_to")).toBe("16367183842920002890gLG");
+        expect(request.url.searchParams.get("related_to")).toBe("candidate-related-sample-001");
         expect(request.url.searchParams.get("related_to_type")).toBe("candidate");
 
         return {
@@ -75,7 +75,7 @@ describe("Recruit CRM MCP tools", () => {
       }
 
       if (request.url.pathname.endsWith("/notes/search")) {
-        expect(request.url.searchParams.get("related_to")).toBe("16367183842920002890gLG");
+        expect(request.url.searchParams.get("related_to")).toBe("candidate-related-sample-001");
         expect(request.url.searchParams.get("related_to_type")).toBe("candidate");
 
         return {
@@ -85,7 +85,7 @@ describe("Recruit CRM MCP tools", () => {
       }
 
       if (request.url.pathname.endsWith("/call-logs/search")) {
-        expect(request.url.searchParams.get("related_to")).toBe("16367183842920002890gLG");
+        expect(request.url.searchParams.get("related_to")).toBe("candidate-related-sample-001");
         expect(request.url.searchParams.get("related_to_type")).toBe("candidate");
 
         return {
@@ -156,7 +156,7 @@ describe("Recruit CRM MCP tools", () => {
     const searchResult = await client.callTool({
       name: "search_candidates",
       arguments: {
-        first_name: "Michael",
+        first_name: "Sample",
         custom_fields: [
           {
             field_id: 34,
@@ -174,12 +174,12 @@ describe("Recruit CRM MCP tools", () => {
       candidates: [
         {
           slug: "010011",
-          first_name: "Michael",
-          last_name: "Scott",
+          first_name: "Sample",
+          last_name: "Candidate",
           position: "Software Developer",
-          current_organization: "Dunder Mifflin",
+          current_organization: "Acme Labs",
           current_status: "Employed",
-          city: "New York",
+          city: "Example City",
           updated_on: "2020-06-29T05:36:22.000000Z",
         },
       ],
@@ -195,7 +195,7 @@ describe("Recruit CRM MCP tools", () => {
     const taskResult = await client.callTool({
       name: "search_tasks",
       arguments: {
-        related_to: "16367183842920002890gLG",
+        related_to: "candidate-related-sample-001",
         related_to_type: "candidate",
       },
     });
@@ -203,7 +203,7 @@ describe("Recruit CRM MCP tools", () => {
     const meetingResult = await client.callTool({
       name: "search_meetings",
       arguments: {
-        related_to: "16367183842920002890gLG",
+        related_to: "candidate-related-sample-001",
         related_to_type: "candidate",
       },
     });
@@ -211,7 +211,7 @@ describe("Recruit CRM MCP tools", () => {
     const noteResult = await client.callTool({
       name: "search_notes",
       arguments: {
-        related_to: "16367183842920002890gLG",
+        related_to: "candidate-related-sample-001",
         related_to_type: "candidate",
       },
     });
@@ -219,15 +219,15 @@ describe("Recruit CRM MCP tools", () => {
     const callLogResult = await client.callTool({
       name: "search_call_logs",
       arguments: {
-        related_to: "16367183842920002890gLG",
+        related_to: "candidate-related-sample-001",
         related_to_type: "candidate",
       },
     });
 
     expect(detailResult.structuredContent).toMatchObject({
       slug: "010011",
-      first_name: "Saurav",
-      last_name: "Jordan",
+      first_name: "Sample",
+      last_name: "Profile",
       current_salary: 0,
       salary_type: {
         id: "2",
@@ -245,8 +245,8 @@ describe("Recruit CRM MCP tools", () => {
     expect((detailResult.structuredContent as { work_history: Array<Record<string, unknown>> }).work_history).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
-          title: "Власник компанії",
-          work_company_name: "TATfood",
+          title: "Founder",
+          work_company_name: "Acme Foods",
         }),
       ]),
     );
@@ -255,7 +255,7 @@ describe("Recruit CRM MCP tools", () => {
     ).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
-          institute_name: "National University of Food Technologies",
+          institute_name: "Example Institute of Technology",
         }),
       ]),
     );
@@ -266,10 +266,14 @@ describe("Recruit CRM MCP tools", () => {
       tasks: [
         {
           id: 2572223,
-          related_to: "16367183842920002890gLG",
+          related_to: "candidate-related-sample-001",
           task_type: null,
           related_to_type: "candidate",
-          related_to_name: "Aamer Ayoob - NQB is 1 of the Leading Global E",
+          related_to_name: "Sample Candidate",
+          related: {
+            first_name: "Sample",
+            last_name: "Candidate",
+          },
           description: null,
           title: "Follow up",
           status: 1,
@@ -285,9 +289,6 @@ describe("Recruit CRM MCP tools", () => {
       ],
     });
     expect((taskResult.structuredContent as { tasks: Array<Record<string, unknown>> }).tasks[0]).not.toHaveProperty(
-      "related",
-    );
-    expect((taskResult.structuredContent as { tasks: Array<Record<string, unknown>> }).tasks[0]).not.toHaveProperty(
       "associated_candidates",
     );
     expect((taskResult.structuredContent as { tasks: Array<Record<string, unknown>> }).tasks[0]).not.toHaveProperty(
@@ -300,7 +301,7 @@ describe("Recruit CRM MCP tools", () => {
       meetings: [
         {
           id: 47202185,
-          title: "Aamer Ayoob - NQB is 1 of the Leading Global E/Customer Success Manager (Netflix)",
+          title: "Sample Candidate/Product Manager (Acme Labs)",
           meeting_type: [
             {
               id: 20707,
@@ -308,12 +309,16 @@ describe("Recruit CRM MCP tools", () => {
             },
           ],
           description: "<p>Test</p>",
-          address: "https://us04web.zoom.us/j/75090638594?pwd=U06ZW6PX4hTukaYGNRGv6YphA7nj9a.1",
+          address: "https://meet.example.com/sample-meeting",
           reminder: 30,
           start_date: "2025-10-31T09:30:00.000000Z",
           end_date: "2025-10-31T10:00:00.000000Z",
-          related_to: "16367183842920002890gLG",
+          related_to: "candidate-related-sample-001",
           related_to_type: "candidate",
+          related: {
+            first_name: "Sample",
+            last_name: "Candidate",
+          },
           do_not_send_calendar_invites: true,
           status: 0,
           reminder_date: "2025-10-31T09:00:00.000000Z",
@@ -331,9 +336,6 @@ describe("Recruit CRM MCP tools", () => {
     ).not.toHaveProperty("attendees");
     expect(
       (meetingResult.structuredContent as { meetings: Array<Record<string, unknown>> }).meetings[0],
-    ).not.toHaveProperty("related");
-    expect(
-      (meetingResult.structuredContent as { meetings: Array<Record<string, unknown>> }).meetings[0],
     ).not.toHaveProperty("associated_candidates");
     expect(noteResult.structuredContent).toMatchObject({
       page: 1,
@@ -348,9 +350,13 @@ describe("Recruit CRM MCP tools", () => {
               label: "Candidate Interaction",
             },
           ],
-          description: "GOOD CANDIDATE",
-          related_to: "16367183842920002890gLG",
+          description: "Sample note content",
+          related_to: "candidate-related-sample-001",
           related_to_type: "candidate",
+          related: {
+            first_name: "Sample",
+            last_name: "Candidate",
+          },
           created_on: "2024-07-30T11:10:30.000000Z",
           updated_on: "2024-07-30T11:10:30.000000Z",
           created_by: 66960,
@@ -358,9 +364,6 @@ describe("Recruit CRM MCP tools", () => {
         },
       ],
     });
-    expect((noteResult.structuredContent as { notes: Array<Record<string, unknown>> }).notes[0]).not.toHaveProperty(
-      "related",
-    );
     expect((noteResult.structuredContent as { notes: Array<Record<string, unknown>> }).notes[0]).not.toHaveProperty(
       "associated_candidates",
     );
@@ -379,10 +382,14 @@ describe("Recruit CRM MCP tools", () => {
             },
           ],
           call_started_on: "2022-03-10T17:16:43.000000Z",
-          contact_number: "+19195234827",
+          contact_number: "+1-555-0101",
           call_notes: null,
-          related_to: "16367183842920002890gLG",
+          related_to: "candidate-related-sample-001",
           related_to_type: "candidate",
+          related: {
+            first_name: "Sample",
+            last_name: "Candidate",
+          },
           duration: 17,
           created_on: "2022-03-10T17:16:43.000000Z",
           updated_on: "2022-03-10T17:17:20.000000Z",
@@ -391,9 +398,6 @@ describe("Recruit CRM MCP tools", () => {
         },
       ],
     });
-    expect(
-      (callLogResult.structuredContent as { call_logs: Array<Record<string, unknown>> }).call_logs[0],
-    ).not.toHaveProperty("related");
     expect(
       (callLogResult.structuredContent as { call_logs: Array<Record<string, unknown>> }).call_logs[0],
     ).not.toHaveProperty("associated_candidates");
@@ -483,7 +487,7 @@ describe("Recruit CRM MCP tools", () => {
       client.callTool({
         name: "search_tasks",
         arguments: {
-          related_to: "16367183842920002890gLG",
+          related_to: "candidate-related-sample-001",
         },
       }),
     ).resolves.toMatchObject({
@@ -529,7 +533,7 @@ describe("Recruit CRM MCP tools", () => {
       client.callTool({
         name: "search_meetings",
         arguments: {
-          related_to: "16367183842920002890gLG",
+          related_to: "candidate-related-sample-001",
         },
       }),
     ).resolves.toMatchObject({
@@ -575,7 +579,7 @@ describe("Recruit CRM MCP tools", () => {
       client.callTool({
         name: "search_notes",
         arguments: {
-          related_to: "16367183842920002890gLG",
+          related_to: "candidate-related-sample-001",
         },
       }),
     ).resolves.toMatchObject({
@@ -621,7 +625,7 @@ describe("Recruit CRM MCP tools", () => {
       client.callTool({
         name: "search_call_logs",
         arguments: {
-          related_to: "16367183842920002890gLG",
+          related_to: "candidate-related-sample-001",
         },
       }),
     ).resolves.toMatchObject({
@@ -629,6 +633,100 @@ describe("Recruit CRM MCP tools", () => {
       content: [
         {
           text: "related_to and related_to_type must be provided together.",
+        },
+      ],
+    });
+
+    expect(transportMock).not.toHaveBeenCalled();
+
+    await client.close();
+    await server.close();
+  });
+
+  it("rejects deal related_to_type for call log search before making an API request", async () => {
+    const transportMock = vi.fn(async (_request: HttpRequestOptions): Promise<HttpResponse> => {
+      throw new Error("Call log search should fail before making an API request.");
+    });
+
+    const server = createRecruitCrmServer({
+      config: {
+        apiToken: "test-token",
+        baseUrl: "https://api.recruitcrm.io/v1",
+        timeoutMs: 10_000,
+        debugSchemaErrors: false,
+      },
+      transport: transportMock,
+    });
+
+    const client = new Client({
+      name: "test-client",
+      version: "1.0.0",
+    });
+
+    const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
+    await server.connect(serverTransport);
+    await client.connect(clientTransport);
+
+    await expect(
+      client.callTool({
+        name: "search_call_logs",
+        arguments: {
+          related_to: "deal-related-sample-001",
+          related_to_type: "deal",
+        },
+      }),
+    ).resolves.toMatchObject({
+      isError: true,
+      content: [
+        {
+          text: "Recruit CRM call log search does not support related_to_type=job or related_to_type=deal.",
+        },
+      ],
+    });
+
+    expect(transportMock).not.toHaveBeenCalled();
+
+    await client.close();
+    await server.close();
+  });
+
+  it("rejects job related_to_type for call log search before making an API request", async () => {
+    const transportMock = vi.fn(async (_request: HttpRequestOptions): Promise<HttpResponse> => {
+      throw new Error("Call log search should fail before making an API request.");
+    });
+
+    const server = createRecruitCrmServer({
+      config: {
+        apiToken: "test-token",
+        baseUrl: "https://api.recruitcrm.io/v1",
+        timeoutMs: 10_000,
+        debugSchemaErrors: false,
+      },
+      transport: transportMock,
+    });
+
+    const client = new Client({
+      name: "test-client",
+      version: "1.0.0",
+    });
+
+    const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
+    await server.connect(serverTransport);
+    await client.connect(clientTransport);
+
+    await expect(
+      client.callTool({
+        name: "search_call_logs",
+        arguments: {
+          related_to: "job-related-sample-001",
+          related_to_type: "job",
+        },
+      }),
+    ).resolves.toMatchObject({
+      isError: true,
+      content: [
+        {
+          text: "Recruit CRM call log search does not support related_to_type=job or related_to_type=deal.",
         },
       ],
     });

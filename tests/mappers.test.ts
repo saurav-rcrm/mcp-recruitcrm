@@ -26,12 +26,12 @@ describe("candidate mappers", () => {
 
     expect(summary).toEqual({
       slug: "010011",
-      first_name: "Michael",
-      last_name: "Scott",
+      first_name: "Sample",
+      last_name: "Candidate",
       position: "Software Developer",
-      current_organization: "Dunder Mifflin",
+      current_organization: "Acme Labs",
       current_status: "Employed",
-      city: "New York",
+      city: "Example City",
       updated_on: "2020-06-29T05:36:22.000000Z",
     });
     expect("email" in summary).toBe(false);
@@ -59,10 +59,14 @@ describe("task mappers", () => {
     expect(result.tasks).toHaveLength(1);
     expect(result.tasks[0]).toEqual({
       id: 2572223,
-      related_to: "16367183842920002890gLG",
+      related_to: "candidate-related-sample-001",
       task_type: null,
       related_to_type: "candidate",
-      related_to_name: "Aamer Ayoob - NQB is 1 of the Leading Global E",
+      related_to_name: "Sample Candidate",
+      related: {
+        first_name: "Sample",
+        last_name: "Candidate",
+      },
       description: null,
       title: "Follow up",
       status: 1,
@@ -114,6 +118,23 @@ describe("task mappers", () => {
       },
     ]);
   });
+
+  it("maps company related payloads into a compact company_name object", () => {
+    const summary = mapTaskSummary({
+      ...sampleTaskSearchResponse.data[0],
+      related_to_type: "company",
+      related_to_name: null,
+      related: {
+        slug: "company-related-sample-001",
+        company_name: "Acme Labs",
+        website: "https://www.example.com",
+      },
+    });
+
+    expect(summary.related).toEqual({
+      company_name: "Acme Labs",
+    });
+  });
 });
 
 describe("meeting mappers", () => {
@@ -126,7 +147,7 @@ describe("meeting mappers", () => {
     expect(result.meetings).toHaveLength(1);
     expect(result.meetings[0]).toEqual({
       id: 47202185,
-      title: "Aamer Ayoob - NQB is 1 of the Leading Global E/Customer Success Manager (Netflix)",
+      title: "Sample Candidate/Product Manager (Acme Labs)",
       meeting_type: [
         {
           id: 20707,
@@ -134,12 +155,16 @@ describe("meeting mappers", () => {
         },
       ],
       description: "<p>Test</p>",
-      address: "https://us04web.zoom.us/j/75090638594?pwd=U06ZW6PX4hTukaYGNRGv6YphA7nj9a.1",
+      address: "https://meet.example.com/sample-meeting",
       reminder: 30,
       start_date: "2025-10-31T09:30:00.000000Z",
       end_date: "2025-10-31T10:00:00.000000Z",
-      related_to: "16367183842920002890gLG",
+      related_to: "candidate-related-sample-001",
       related_to_type: "candidate",
+      related: {
+        first_name: "Sample",
+        last_name: "Candidate",
+      },
       do_not_send_calendar_invites: true,
       status: 0,
       reminder_date: "2025-10-31T09:00:00.000000Z",
@@ -193,9 +218,13 @@ describe("note mappers", () => {
           label: "Candidate Interaction",
         },
       ],
-      description: "GOOD CANDIDATE",
-      related_to: "16367183842920002890gLG",
+      description: "Sample note content",
+      related_to: "candidate-related-sample-001",
       related_to_type: "candidate",
+      related: {
+        first_name: "Sample",
+        last_name: "Candidate",
+      },
       created_on: "2024-07-30T11:10:30.000000Z",
       updated_on: "2024-07-30T11:10:30.000000Z",
       created_by: 66960,
@@ -210,6 +239,22 @@ describe("note mappers", () => {
     });
 
     expect(summary.note_type).toBeNull();
+  });
+
+  it("maps job related payloads into a compact name object", () => {
+    const summary = mapNoteSummary({
+      ...sampleNoteSearchResponse.data[0],
+      related_to_type: "job",
+      related: {
+        slug: "job-related-sample-001",
+        name: "Sample Role",
+        company: "Acme Labs",
+      },
+    });
+
+    expect(summary.related).toEqual({
+      name: "Sample Role",
+    });
   });
 });
 
@@ -231,10 +276,14 @@ describe("call log mappers", () => {
         },
       ],
       call_started_on: "2022-03-10T17:16:43.000000Z",
-      contact_number: "+19195234827",
+      contact_number: "+1-555-0101",
       call_notes: null,
-      related_to: "16367183842920002890gLG",
+      related_to: "candidate-related-sample-001",
       related_to_type: "candidate",
+      related: {
+        first_name: "Sample",
+        last_name: "Candidate",
+      },
       duration: 17,
       created_on: "2022-03-10T17:16:43.000000Z",
       updated_on: "2022-03-10T17:17:20.000000Z",

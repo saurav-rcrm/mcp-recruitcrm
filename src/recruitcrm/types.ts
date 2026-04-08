@@ -143,12 +143,21 @@ export type RecruitCrmTaskType = {
   [key: string]: unknown;
 };
 
+export type RecruitCrmActivityRelated = {
+  first_name?: string | number | null;
+  last_name?: string | number | null;
+  company_name?: string | number | null;
+  name?: string | number | null;
+  [key: string]: unknown;
+};
+
 export type RecruitCrmTask = {
   id?: number | string | null;
   related_to?: string | number | null;
   task_type?: RecruitCrmTaskType | RecruitCrmTaskType[] | null;
   related_to_type?: string | number | null;
   related_to_name?: string | number | null;
+  related?: RecruitCrmActivityRelated | null;
   description?: string | number | null;
   title?: string | number | null;
   status?: number | string | null;
@@ -186,6 +195,7 @@ export type RecruitCrmMeeting = {
   end_date?: string | number | null;
   related_to?: string | number | null;
   related_to_type?: string | number | null;
+  related?: RecruitCrmActivityRelated | null;
   do_not_send_calendar_invites?: number | string | boolean | null;
   status?: number | string | null;
   reminder_date?: string | number | null;
@@ -216,6 +226,7 @@ export type RecruitCrmNote = {
   description?: string | number | null;
   related_to?: string | number | null;
   related_to_type?: string | number | null;
+  related?: RecruitCrmActivityRelated | null;
   created_on?: string | number | null;
   updated_on?: string | number | null;
   created_by?: number | string | null;
@@ -244,6 +255,7 @@ export type RecruitCrmCallLog = {
   call_notes?: string | number | null;
   related_to?: string | number | null;
   related_to_type?: string | number | null;
+  related?: RecruitCrmActivityRelated | null;
   duration?: number | string | null;
   created_on?: string | number | null;
   updated_on?: string | number | null;
@@ -325,12 +337,20 @@ export type TaskTypeSummary = {
   label: string | null;
 };
 
+export type ActivityRelatedSummary = {
+  first_name?: string;
+  last_name?: string;
+  company_name?: string;
+  name?: string;
+};
+
 export type TaskSummary = {
   id: number | null;
   related_to: string | null;
   task_type: TaskTypeSummary[] | null;
   related_to_type: string | null;
   related_to_name: string | null;
+  related: ActivityRelatedSummary | null;
   description: string | null;
   title: string | null;
   status: number | null;
@@ -367,6 +387,7 @@ export type MeetingSummary = {
   end_date: string | null;
   related_to: string | null;
   related_to_type: string | null;
+  related: ActivityRelatedSummary | null;
   do_not_send_calendar_invites: boolean | null;
   status: string | number | null;
   reminder_date: string | null;
@@ -396,6 +417,7 @@ export type NoteSummary = {
   description: string | null;
   related_to: string | null;
   related_to_type: string | null;
+  related: ActivityRelatedSummary | null;
   created_on: string | null;
   updated_on: string | null;
   created_by: number | null;
@@ -423,6 +445,7 @@ export type CallLogSummary = {
   call_notes: string | null;
   related_to: string | null;
   related_to_type: string | null;
+  related: ActivityRelatedSummary | null;
   duration: string | number | null;
   created_on: string | null;
   updated_on: string | null;
