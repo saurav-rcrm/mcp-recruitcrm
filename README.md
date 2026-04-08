@@ -6,14 +6,33 @@ Repository: `https://github.com/saurav-rcrm/mcp-recruitcrm`
 
 ## What It Does
 
-- `search_candidates`: search candidates and return compact summaries with `slug`, `first_name`, `last_name`, `position`, `current_organization`, `current_status`, `city`, and `updated_on`. This compact shape is intentional because search can return large result sets.
-- `search_tasks`: search tasks and return compact summaries with task metadata such as `id`, `title`, `status`, `related_to`, `related_to_type`, `related_to_name`, a compact `related` identity object, reminder fields, owner, and audit timestamps.
-- `search_meetings`: search meetings and return compact summaries with meeting metadata such as `id`, `title`, `meeting_type`, schedule fields, reminder fields, related entity identifiers, a compact `related` identity object, and audit timestamps.
-- `search_notes`: search notes and return compact summaries with note metadata such as `id`, `note_type`, `description`, related entity identifiers, a compact `related` identity object, and audit timestamps.
-- `search_call_logs`: search call logs and return compact summaries with call metadata such as `id`, `call_type`, `custom_call_type`, call timing, phone number, notes, related entity identifiers, a compact `related` identity object, duration, and audit timestamps.
-- `get_candidate_details`: fetch one candidate by slug and return the raw Recruit CRM candidate payload
-- `list_candidate_custom_fields`: list curated candidate custom field metadata for search. This stays curated because option metadata can be large.
-- `get_candidate_custom_field_details`: fetch curated candidate custom field details with full options when relevant
+This server exposes compact Recruit CRM search and lookup tools for MCP clients.
+
+## Tools
+
+| Tool | Description |
+| --- | --- |
+| `search_candidates` | Search candidates and return compact summaries for large result sets. Returns `slug`, which can be used for candidate detail lookup or Recruit CRM app links. |
+| `search_tasks` | Search tasks and return compact task summaries with related entity context. Returns `related_to` and `related_to_type` for related entity links. |
+| `search_meetings` | Search meetings and return compact meeting summaries with scheduling metadata. Returns `related_to` and `related_to_type` for related entity links. |
+| `search_notes` | Search notes and return compact note summaries with related entity context. Returns `related_to` and `related_to_type` for related entity links. |
+| `search_call_logs` | Search call logs and return compact call summaries with related entity context. Returns `related_to` and `related_to_type` for related entity links. |
+| `get_candidate_details` | Fetch one candidate by slug and return the raw Recruit CRM payload, which may include `resource_url`. |
+| `get_candidate_job_assignment_hiring_stage_history` | Fetch one candidate's job assignment hiring stage history by slug and return compact entries with job, company, stage, remark, and update metadata. |
+| `list_candidate_custom_fields` | List curated searchable candidate custom field metadata. |
+| `get_candidate_custom_field_details` | Fetch curated details for one candidate custom field, including full option values when relevant. |
+
+## Open In Recruit CRM
+
+Current live Recruit CRM `resource_url` values use the app path pattern `https://app.recruitcrm.io/<entity>/<slug>`.
+
+| Entity | App Link Pattern | Source Field In MCP Output |
+| --- | --- | --- |
+| Candidate | `https://app.recruitcrm.io/candidate/{slug}` | `search_candidates.slug` or `get_candidate_details.slug` |
+| Company | `https://app.recruitcrm.io/company/{slug}` | activity search `related_to` when `related_to_type` is `company`, or `get_candidate_job_assignment_hiring_stage_history.history[].company_slug` |
+| Contact | `https://app.recruitcrm.io/contact/{slug}` | activity search `related_to` when `related_to_type` is `contact` |
+| Job | `https://app.recruitcrm.io/job/{slug}` | activity search `related_to` when `related_to_type` is `job`, or `get_candidate_job_assignment_hiring_stage_history.history[].job_slug` |
+| Deal | `https://app.recruitcrm.io/deal/{slug}` | activity search `related_to` when `related_to_type` is `deal` |
 
 ## Required Environment Variable
 

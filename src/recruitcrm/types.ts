@@ -270,6 +270,24 @@ export type RecruitCrmCallLogSearchResponse = {
   data: RecruitCrmCallLog[];
 };
 
+export type RecruitCrmCandidateJobAssignmentHiringStageHistoryItem = {
+  job_slug?: string | number | null;
+  job_name?: string | number | null;
+  company_slug?: string | number | null;
+  company_name?: string | number | null;
+  job_status_id?: number | string | null;
+  job_status_label?: string | number | null;
+  candidate_status_id?: number | string | null;
+  candidate_status?: string | number | null;
+  remark?: string | number | null;
+  updated_by?: number | string | null;
+  updated_on?: string | number | null;
+  [key: string]: unknown;
+};
+
+export type RecruitCrmCandidateJobAssignmentHiringStageHistoryResponse =
+  RecruitCrmCandidateJobAssignmentHiringStageHistoryItem[];
+
 export type RecruitCrmCandidateDetailCustomField = {
   field_id: number;
   entity_type: string;
@@ -458,6 +476,26 @@ export type SearchCallLogsResult = {
   returned_count: number;
   has_more: boolean;
   call_logs: CallLogSummary[];
+};
+
+export type CandidateJobAssignmentHiringStageHistoryItem = {
+  job_slug: string | null;
+  job_name: string | null;
+  company_slug: string | null;
+  company_name: string | null;
+  job_status_id: number | null;
+  job_status_label: string | null;
+  candidate_status_id: number | null;
+  candidate_status: string | null;
+  remark: string | null;
+  updated_by: number | null;
+  updated_on: string | null;
+};
+
+export type CandidateJobAssignmentHiringStageHistoryResult = {
+  candidate_slug: string;
+  returned_count: number;
+  history: CandidateJobAssignmentHiringStageHistoryItem[];
 };
 
 export type CandidateCustomFieldSummary = {

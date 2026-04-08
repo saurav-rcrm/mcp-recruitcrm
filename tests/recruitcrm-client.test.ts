@@ -4,6 +4,7 @@ import { RecruitCrmClient } from "../src/recruitcrm/client.js";
 import type { HttpRequestOptions, HttpResponse } from "../src/recruitcrm/http.js";
 import {
   sampleCallLogSearchResponse,
+  sampleCandidateJobAssignmentHiringStageHistoryResponse,
   sampleCandidateDetailResponse,
   sampleMeetingSearchResponse,
   sampleNoteSearchResponse,
@@ -267,6 +268,26 @@ describe("RecruitCrmClient", () => {
       next_page_url: null,
       data: [],
     });
+  });
+
+  it("parses candidate job assignment hiring stage history payloads", async () => {
+    const transport = vi.fn(async (_request: HttpRequestOptions): Promise<HttpResponse> => ({
+      statusCode: 200,
+      bodyText: JSON.stringify(sampleCandidateJobAssignmentHiringStageHistoryResponse),
+    }));
+    const client = new RecruitCrmClient(baseConfig, transport);
+
+    const result = await client.getCandidateJobAssignmentHiringStageHistory("candidate-related-sample-001");
+
+    expect(result).toEqual(sampleCandidateJobAssignmentHiringStageHistoryResponse);
+    expect(transport).toHaveBeenCalledWith(
+      expect.objectContaining({
+        method: "GET",
+        url: expect.objectContaining({
+          pathname: "/v1/candidates/candidate-related-sample-001/history",
+        }),
+      }),
+    );
   });
 
   it("keeps invalid payload errors generic when debug logging is disabled", async () => {

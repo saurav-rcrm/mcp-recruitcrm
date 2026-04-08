@@ -2,11 +2,15 @@ import type {
   ActivityRelatedSummary,
   CallLogSummary,
   CallLogTypeSummary,
+  CandidateJobAssignmentHiringStageHistoryItem,
+  CandidateJobAssignmentHiringStageHistoryResult,
   CandidateSummary,
   MeetingSummary,
   MeetingTypeSummary,
   RecruitCrmActivityRelated,
   RecruitCrmCandidate,
+  RecruitCrmCandidateJobAssignmentHiringStageHistoryItem,
+  RecruitCrmCandidateJobAssignmentHiringStageHistoryResponse,
   RecruitCrmCallLog,
   RecruitCrmCallLogSearchResponse,
   RecruitCrmCallLogType,
@@ -91,6 +95,17 @@ export function mapSearchCallLogsResult(response: RecruitCrmCallLogSearchRespons
   };
 }
 
+export function mapCandidateJobAssignmentHiringStageHistoryResult(
+  candidateSlug: string,
+  response: RecruitCrmCandidateJobAssignmentHiringStageHistoryResponse,
+): CandidateJobAssignmentHiringStageHistoryResult {
+  return {
+    candidate_slug: candidateSlug,
+    returned_count: response.length,
+    history: response.map(mapCandidateJobAssignmentHiringStageHistoryItem),
+  };
+}
+
 export function mapTaskSummary(task: RecruitCrmTask): TaskSummary {
   return {
     id: normalizeNumber(task.id),
@@ -169,6 +184,24 @@ export function mapCallLogSummary(callLog: RecruitCrmCallLog): CallLogSummary {
     updated_on: normalizeString(callLog.updated_on),
     created_by: normalizeNumber(callLog.created_by),
     updated_by: normalizeNumber(callLog.updated_by),
+  };
+}
+
+export function mapCandidateJobAssignmentHiringStageHistoryItem(
+  item: RecruitCrmCandidateJobAssignmentHiringStageHistoryItem,
+): CandidateJobAssignmentHiringStageHistoryItem {
+  return {
+    job_slug: normalizeString(item.job_slug),
+    job_name: normalizeString(item.job_name),
+    company_slug: normalizeString(item.company_slug),
+    company_name: normalizeString(item.company_name),
+    job_status_id: normalizeNumber(item.job_status_id),
+    job_status_label: normalizeString(item.job_status_label),
+    candidate_status_id: normalizeNumber(item.candidate_status_id),
+    candidate_status: normalizeString(item.candidate_status),
+    remark: normalizeString(item.remark),
+    updated_by: normalizeNumber(item.updated_by),
+    updated_on: normalizeString(item.updated_on),
   };
 }
 

@@ -5,6 +5,7 @@ import type { AppConfig } from "../config.js";
 import { nodeHttpTransport, type HttpTransport } from "./http.js";
 import type {
   RecruitCrmCandidateCustomField,
+  RecruitCrmCandidateJobAssignmentHiringStageHistoryResponse,
   RecruitCrmCallLogSearchResponse,
   CandidateDetail,
   RecruitCrmMeetingSearchResponse,
@@ -233,6 +234,26 @@ const callLogSearchResponseSchema = z
     ),
   ]);
 
+const candidateJobAssignmentHiringStageHistoryItemSchema = z
+  .object({
+    job_slug: nullableStringLikeSchema,
+    job_name: nullableStringLikeSchema,
+    company_slug: nullableStringLikeSchema,
+    company_name: nullableStringLikeSchema,
+    job_status_id: nullableNumberOrStringSchema,
+    job_status_label: nullableStringLikeSchema,
+    candidate_status_id: nullableNumberOrStringSchema,
+    candidate_status: nullableStringLikeSchema,
+    remark: nullableStringLikeSchema,
+    updated_by: nullableNumberOrStringSchema,
+    updated_on: nullableStringLikeSchema,
+  })
+  .passthrough();
+
+const candidateJobAssignmentHiringStageHistoryResponseSchema = z.array(
+  candidateJobAssignmentHiringStageHistoryItemSchema,
+);
+
 const candidateCustomFieldSchema = z
   .object({
     field_id: z.coerce.number().int().positive(),
@@ -288,6 +309,15 @@ export class RecruitCrmClient {
     const request = buildSearchCallLogsRequest(filters);
 
     return this.#requestJson("/call-logs/search", callLogSearchResponseSchema, request);
+  }
+
+  async getCandidateJobAssignmentHiringStageHistory(
+    candidateSlug: string,
+  ): Promise<RecruitCrmCandidateJobAssignmentHiringStageHistoryResponse> {
+    return this.#requestJson(
+      `/candidates/${encodeURIComponent(candidateSlug)}/history`,
+      candidateJobAssignmentHiringStageHistoryResponseSchema,
+    );
   }
 
   async getCandidateDetails(candidateSlug: string): Promise<CandidateDetail> {

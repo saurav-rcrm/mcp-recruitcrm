@@ -8,6 +8,7 @@ import {
   sampleCallLogSearchResponse,
   sampleCandidateCustomFieldsResponse,
   sampleCandidateDetailResponse,
+  sampleCandidateJobAssignmentHiringStageHistoryResponse,
   sampleMeetingSearchResponse,
   sampleNoteSearchResponse,
   sampleSearchResponse,
@@ -51,6 +52,13 @@ describe("Recruit CRM MCP tools", () => {
             ...sampleCandidateDetailResponse,
             slug: "010011",
           }),
+        };
+      }
+
+      if (request.url.pathname.endsWith("/candidates/010011/history")) {
+        return {
+          statusCode: 200,
+          bodyText: JSON.stringify(sampleCandidateJobAssignmentHiringStageHistoryResponse),
         };
       }
 
@@ -124,6 +132,7 @@ describe("Recruit CRM MCP tools", () => {
       "search_notes",
       "search_call_logs",
       "get_candidate_details",
+      "get_candidate_job_assignment_hiring_stage_history",
       "list_candidate_custom_fields",
       "get_candidate_custom_field_details",
     ]);
@@ -187,6 +196,13 @@ describe("Recruit CRM MCP tools", () => {
 
     const detailResult = await client.callTool({
       name: "get_candidate_details",
+      arguments: {
+        candidate_slug: "010011",
+      },
+    });
+
+    const historyResult = await client.callTool({
+      name: "get_candidate_job_assignment_hiring_stage_history",
       arguments: {
         candidate_slug: "010011",
       },
@@ -256,6 +272,42 @@ describe("Recruit CRM MCP tools", () => {
       expect.arrayContaining([
         expect.objectContaining({
           institute_name: "Example Institute of Technology",
+        }),
+      ]),
+    );
+    expect(historyResult.structuredContent).toMatchObject({
+      candidate_slug: "010011",
+      returned_count: 3,
+    });
+    expect(
+      (historyResult.structuredContent as { history: Array<Record<string, unknown>> }).history,
+    ).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          job_slug: "16540132164740000453lqF",
+          job_name: "Chief of Staff",
+          company_slug: "7063184",
+          company_name: "Google",
+          job_status_id: 1,
+          job_status_label: "Open",
+          candidate_status_id: 231169,
+          candidate_status: "1st Interview",
+          remark: "great profile",
+          updated_by: 0,
+          updated_on: "2025-02-27T14:53:15.000000Z",
+        }),
+        expect.objectContaining({
+          job_slug: "17331412929920063396kmG",
+          job_name: "Pool for XYZ client",
+          company_slug: "16868200767130002890hdW",
+          company_name: "Apple",
+          job_status_id: 1,
+          job_status_label: "Open",
+          candidate_status_id: 503354,
+          candidate_status: "Phone Screen",
+          remark: null,
+          updated_by: 453,
+          updated_on: "2025-02-28T13:26:04.000000Z",
         }),
       ]),
     );
@@ -402,7 +454,7 @@ describe("Recruit CRM MCP tools", () => {
       (callLogResult.structuredContent as { call_logs: Array<Record<string, unknown>> }).call_logs[0],
     ).not.toHaveProperty("associated_candidates");
 
-    expect(transportMock).toHaveBeenCalledTimes(9);
+    expect(transportMock).toHaveBeenCalledTimes(10);
 
     await client.close();
     await server.close();

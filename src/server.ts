@@ -12,6 +12,7 @@ import {
 } from "./recruitcrm/custom-fields.js";
 import type { HttpTransport } from "./recruitcrm/http.js";
 import {
+  mapCandidateJobAssignmentHiringStageHistoryResult,
   mapSearchCallLogsResult,
   mapSearchCandidatesResult,
   mapSearchMeetingsResult,
@@ -21,6 +22,7 @@ import {
 import {
   type SearchCallLogsInput,
   type SearchCallLogsResult,
+  type CandidateJobAssignmentHiringStageHistoryResult,
   CUSTOM_FIELD_FILTER_TYPES,
   type CandidateCustomFieldDetail,
   type CandidateCustomFieldListResult,
@@ -280,6 +282,26 @@ const searchCallLogsOutputSchema = {
   call_logs: z.array(callLogSummarySchema),
 };
 
+const candidateJobAssignmentHiringStageHistoryItemSchema = z.object({
+  job_slug: nullableStringSchema,
+  job_name: nullableStringSchema,
+  company_slug: nullableStringSchema,
+  company_name: nullableStringSchema,
+  job_status_id: nullableNumberSchema,
+  job_status_label: nullableStringSchema,
+  candidate_status_id: nullableNumberSchema,
+  candidate_status: nullableStringSchema,
+  remark: nullableStringSchema,
+  updated_by: nullableNumberSchema,
+  updated_on: nullableStringSchema,
+});
+
+const candidateJobAssignmentHiringStageHistoryOutputSchema = {
+  candidate_slug: z.string(),
+  returned_count: z.number().int().min(0),
+  history: z.array(candidateJobAssignmentHiringStageHistoryItemSchema),
+};
+
 const candidateDetailOutputSchema = z.object({}).passthrough();
 
 const candidateCustomFieldSummarySchema = z.object({
@@ -324,7 +346,8 @@ export function createRecruitCrmServer(dependencies: ServerDependencies = {}): M
   server.registerTool(
     "search_candidates",
     {
-      description: "Search Recruit CRM candidates and return compact summaries designed for large result sets.",
+      description:
+        "Search Recruit CRM candidates and return compact summaries designed for large result sets. Returns candidate slug values that can be used with get_candidate_details or to open Recruit CRM app links like https://app.recruitcrm.io/candidate/{slug}.",
       inputSchema: searchCandidatesInputSchema,
       outputSchema: searchCandidatesOutputSchema,
       annotations: {
@@ -337,7 +360,8 @@ export function createRecruitCrmServer(dependencies: ServerDependencies = {}): M
   server.registerTool(
     "search_tasks",
     {
-      description: "Search Recruit CRM tasks and return compact summaries designed for large result sets.",
+      description:
+        "Search Recruit CRM tasks and return compact summaries designed for large result sets. Returns related_to and related_to_type values that can be used to open related entities in Recruit CRM app URLs like https://app.recruitcrm.io/{related_to_type}/{related_to}.",
       inputSchema: searchTasksInputSchema,
       outputSchema: searchTasksOutputSchema,
       annotations: {
@@ -350,7 +374,8 @@ export function createRecruitCrmServer(dependencies: ServerDependencies = {}): M
   server.registerTool(
     "search_meetings",
     {
-      description: "Search Recruit CRM meetings and return compact summaries designed for large result sets.",
+      description:
+        "Search Recruit CRM meetings and return compact summaries designed for large result sets. Returns related_to and related_to_type values that can be used to open related entities in Recruit CRM app URLs like https://app.recruitcrm.io/{related_to_type}/{related_to}.",
       inputSchema: searchMeetingsInputSchema,
       outputSchema: searchMeetingsOutputSchema,
       annotations: {
@@ -363,7 +388,8 @@ export function createRecruitCrmServer(dependencies: ServerDependencies = {}): M
   server.registerTool(
     "search_notes",
     {
-      description: "Search Recruit CRM notes and return compact summaries designed for large result sets.",
+      description:
+        "Search Recruit CRM notes and return compact summaries designed for large result sets. Returns related_to and related_to_type values that can be used to open related entities in Recruit CRM app URLs like https://app.recruitcrm.io/{related_to_type}/{related_to}.",
       inputSchema: searchNotesInputSchema,
       outputSchema: searchNotesOutputSchema,
       annotations: {
@@ -376,7 +402,8 @@ export function createRecruitCrmServer(dependencies: ServerDependencies = {}): M
   server.registerTool(
     "search_call_logs",
     {
-      description: "Search Recruit CRM call logs and return compact summaries designed for large result sets.",
+      description:
+        "Search Recruit CRM call logs and return compact summaries designed for large result sets. Returns related_to and related_to_type values that can be used to open related entities in Recruit CRM app URLs like https://app.recruitcrm.io/{related_to_type}/{related_to}.",
       inputSchema: searchCallLogsInputSchema,
       outputSchema: searchCallLogsOutputSchema,
       annotations: {
@@ -389,7 +416,8 @@ export function createRecruitCrmServer(dependencies: ServerDependencies = {}): M
   server.registerTool(
     "get_candidate_details",
     {
-      description: "Fetch one Recruit CRM candidate by slug and return the raw Recruit CRM payload.",
+      description:
+        "Fetch one Recruit CRM candidate by slug and return the raw Recruit CRM payload. The raw payload may include resource_url for opening the candidate directly in Recruit CRM.",
       inputSchema: {
         candidate_slug: textFilterSchema.describe("Candidate slug."),
       },
@@ -399,6 +427,23 @@ export function createRecruitCrmServer(dependencies: ServerDependencies = {}): M
       },
     },
     async ({ candidate_slug }) => formatResult(await executeGetCandidateDetails(client, candidate_slug)),
+  );
+
+  server.registerTool(
+    "get_candidate_job_assignment_hiring_stage_history",
+    {
+      description:
+        "Fetch one candidate's job assignment hiring stage history by candidate slug. Returns compact entries with job, company, stage, remark, and update metadata.",
+      inputSchema: {
+        candidate_slug: textFilterSchema.describe("Candidate slug."),
+      },
+      outputSchema: candidateJobAssignmentHiringStageHistoryOutputSchema,
+      annotations: {
+        readOnlyHint: true,
+      },
+    },
+    async ({ candidate_slug }) =>
+      formatResult(await executeGetCandidateJobAssignmentHiringStageHistory(client, candidate_slug)),
   );
 
   server.registerTool(
@@ -571,6 +616,15 @@ export async function executeGetCandidateDetails(
   return client.getCandidateDetails(candidateSlug);
 }
 
+export async function executeGetCandidateJobAssignmentHiringStageHistory(
+  client: RecruitCrmClient,
+  candidateSlug: string,
+): Promise<CandidateJobAssignmentHiringStageHistoryResult> {
+  const result = await client.getCandidateJobAssignmentHiringStageHistory(candidateSlug);
+
+  return mapCandidateJobAssignmentHiringStageHistoryResult(candidateSlug, result);
+}
+
 export async function executeListCandidateCustomFields(
   client: RecruitCrmClient,
   includeNonSearchable = false,
@@ -679,6 +733,7 @@ function formatResult(
     | SearchCallLogsResult
     | SearchTasksResult
     | CandidateDetail
+    | CandidateJobAssignmentHiringStageHistoryResult
     | CandidateCustomFieldListResult
     | CandidateCustomFieldDetail,
 ) {

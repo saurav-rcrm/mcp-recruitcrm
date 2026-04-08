@@ -2,6 +2,8 @@ import { describe, expect, it } from "vitest";
 
 import {
   mapCallLogSummary,
+  mapCandidateJobAssignmentHiringStageHistoryItem,
+  mapCandidateJobAssignmentHiringStageHistoryResult,
   mapCandidateSummary,
   mapMeetingSummary,
   mapSearchMeetingsResult,
@@ -14,6 +16,7 @@ import {
 } from "../src/recruitcrm/mappers.js";
 import {
   sampleCallLogSearchResponse,
+  sampleCandidateJobAssignmentHiringStageHistoryResponse,
   sampleMeetingSearchResponse,
   sampleNoteSearchResponse,
   sampleSearchResponse,
@@ -301,5 +304,69 @@ describe("call log mappers", () => {
 
     expect(summary.custom_call_type).toBeNull();
     expect(summary.call_notes).toBeNull();
+  });
+});
+
+describe("candidate job assignment hiring stage history mappers", () => {
+  it("maps history results into compact structured output", () => {
+    const result = mapCandidateJobAssignmentHiringStageHistoryResult(
+      "candidate-related-sample-001",
+      sampleCandidateJobAssignmentHiringStageHistoryResponse,
+    );
+
+    expect(result).toEqual({
+      candidate_slug: "candidate-related-sample-001",
+      returned_count: 3,
+      history: [
+        {
+          job_slug: "16540132164740000453lqF",
+          job_name: "Chief of Staff",
+          company_slug: "7063184",
+          company_name: "Google",
+          job_status_id: 1,
+          job_status_label: "Open",
+          candidate_status_id: 231169,
+          candidate_status: "1st Interview",
+          remark: "great profile",
+          updated_by: 0,
+          updated_on: "2025-02-27T14:53:15.000000Z",
+        },
+        {
+          job_slug: "17331412929920063396kmG",
+          job_name: "Pool for XYZ client",
+          company_slug: "16868200767130002890hdW",
+          company_name: "Apple",
+          job_status_id: 1,
+          job_status_label: "Open",
+          candidate_status_id: 503354,
+          candidate_status: "Phone Screen",
+          remark: null,
+          updated_by: 453,
+          updated_on: "2025-02-28T13:26:04.000000Z",
+        },
+        {
+          job_slug: "16540132164740000453lqF",
+          job_name: "Chief of Staff",
+          company_slug: "7063184",
+          company_name: "Google",
+          job_status_id: 1,
+          job_status_label: "Open",
+          candidate_status_id: 364508,
+          candidate_status: null,
+          remark: "great candidate",
+          updated_by: 0,
+          updated_on: "2024-12-02T15:14:51.000000Z",
+        },
+      ],
+    });
+  });
+
+  it("normalizes blank remark values to null", () => {
+    const summary = mapCandidateJobAssignmentHiringStageHistoryItem(
+      sampleCandidateJobAssignmentHiringStageHistoryResponse[1]!,
+    );
+
+    expect(summary.remark).toBeNull();
+    expect(summary.updated_by).toBe(453);
   });
 });
