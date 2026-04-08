@@ -1,0 +1,42 @@
+import { Client } from "@modelcontextprotocol/sdk/client/index.js";
+import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js";
+import { afterEach, describe, expect, it } from "vitest";
+
+const transports: StdioClientTransport[] = [];
+
+describe("stdio smoke test", () => {
+  afterEach(async () => {
+    await Promise.all(transports.map(async (transport) => transport.close().catch(() => undefined)));
+    transports.length = 0;
+  });
+
+  it("starts over stdio and exposes the expected tools", async () => {
+    const transport = new StdioClientTransport({
+      command: process.execPath,
+      args: ["--import", "tsx", "src/index.ts"],
+      cwd: process.cwd(),
+      stderr: "pipe",
+      env: {
+        RECRUITCRM_API_TOKEN: "test-token",
+      },
+    });
+    transports.push(transport);
+
+    const client = new Client({
+      name: "smoke-client",
+      version: "1.0.0",
+    });
+
+    await client.connect(transport);
+
+    const tools = await client.listTools();
+    expect(tools.tools.map((tool) => tool.name)).toEqual([
+      "search_candidates",
+      "get_candidate_details",
+      "list_candidate_custom_fields",
+      "get_candidate_custom_field_details",
+    ]);
+
+    await client.close();
+  });
+});

@@ -1,0 +1,90 @@
+import type {
+  RecruitCrmCandidateCustomField,
+  RecruitCrmSearchResponse,
+} from "../src/recruitcrm/types.js";
+
+export const sampleSearchResponse: RecruitCrmSearchResponse = {
+  current_page: 2,
+  next_page_url: "https://api.recruitcrm.io/v1/candidates/search?page=3",
+  data: [
+    {
+      slug: "010011",
+      first_name: "Michael",
+      last_name: "Scott",
+      email: "mscott@gmail.com",
+      contact_number: "+1123226666",
+      position: "Software Developer",
+      current_organization: "Dunder Mifflin",
+      current_status: "Employed",
+      status_label: "Unavailable",
+      city: "New York",
+      state: "New York",
+      country: "United States",
+      work_ex_year: 2,
+      updated_on: "2020-06-29T05:36:22.000000Z",
+      relevant_experience: 2,
+      specialization: "Computer Science",
+      skill: "Java,Python",
+      language_skills: "English(Native/Bilingual Proficiency)",
+      notice_period: 60,
+      available_from: "2020-06-29T05:36:22.000000Z",
+      willing_to_relocate: 1,
+      current_salary: "150000",
+      salary_expectation: "180000",
+      salary_type: {
+        id: 1,
+        label: "Monthly Salary",
+      },
+      currency_id: 2,
+      linkedin: "http://www.linkedin.com/michael4",
+      github: "",
+      candidate_summary: "Regional manager turned engineer.",
+      owner: 10001,
+    },
+  ],
+};
+
+export const sampleCandidateCustomFieldsResponse: RecruitCrmCandidateCustomField[] = [
+  {
+    field_id: 34,
+    entity_type: "candidate",
+    field_type: "multiselect",
+    field_name: "Tech Stack",
+    default_value: "Python,Java,XYZ",
+  },
+  {
+    field_id: 38,
+    entity_type: "candidate",
+    field_type: "dropdown",
+    field_name: "Category",
+    default_value: "Sciences,Finance,Operations",
+  },
+  {
+    field_id: 80,
+    entity_type: "candidate",
+    field_type: "file",
+    field_name: "Branded CV",
+    default_value: "",
+  },
+  {
+    field_id: 88,
+    entity_type: "candidate",
+    field_type: "checkbox",
+    field_name: "Enrichment",
+    default_value: "",
+  },
+  {
+    field_id: 55,
+    entity_type: "candidate",
+    field_type: "company",
+    field_name: "Referred by",
+    default_value: "",
+  },
+  {
+    field_id: 7,
+    entity_type: "candidate",
+    field_type: "date_time",
+    field_name: "Yop Date 2026",
+    default_value: "",
+  },
+];
