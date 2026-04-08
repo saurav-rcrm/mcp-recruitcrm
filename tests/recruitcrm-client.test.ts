@@ -75,6 +75,22 @@ describe("RecruitCrmClient", () => {
     });
   });
 
+  it("normalizes empty task search arrays into an empty paginated response", async () => {
+    const transport = vi.fn(async (_request: HttpRequestOptions): Promise<HttpResponse> => ({
+      statusCode: 200,
+      bodyText: JSON.stringify([]),
+    }));
+    const client = new RecruitCrmClient(baseConfig, transport);
+
+    const result = await client.searchTasks({});
+
+    expect(result).toEqual({
+      current_page: 1,
+      next_page_url: null,
+      data: [],
+    });
+  });
+
   it("keeps invalid payload errors generic when debug logging is disabled", async () => {
     const consoleErrorSpy = vi.spyOn(console, "error").mockImplementation(() => undefined);
     const transport = vi.fn(async (_request: HttpRequestOptions): Promise<HttpResponse> => ({

@@ -337,6 +337,53 @@ describe("Recruit CRM MCP tools", () => {
     await server.close();
   });
 
+  it("returns an empty task list when the API responds with an empty array", async () => {
+    const transportMock = vi.fn(async (request: HttpRequestOptions): Promise<HttpResponse> => {
+      if (request.url.pathname.endsWith("/tasks/search")) {
+        return {
+          statusCode: 200,
+          bodyText: JSON.stringify([]),
+        };
+      }
+
+      throw new Error(`Unexpected request: ${request.url.toString()}`);
+    });
+
+    const server = createRecruitCrmServer({
+      config: {
+        apiToken: "test-token",
+        baseUrl: "https://api.recruitcrm.io/v1",
+        timeoutMs: 10_000,
+        debugSchemaErrors: false,
+      },
+      transport: transportMock,
+    });
+
+    const client = new Client({
+      name: "test-client",
+      version: "1.0.0",
+    });
+
+    const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
+    await server.connect(serverTransport);
+    await client.connect(clientTransport);
+
+    const result = await client.callTool({
+      name: "search_tasks",
+      arguments: {},
+    });
+
+    expect(result.structuredContent).toEqual({
+      page: 1,
+      returned_count: 0,
+      has_more: false,
+      tasks: [],
+    });
+
+    await client.close();
+    await server.close();
+  });
+
   it("forwards custom-field filters that were previously blocked by the hardcoded matrix", async () => {
     const transportMock = vi.fn(async (request: HttpRequestOptions): Promise<HttpResponse> => {
       if (request.url.pathname.endsWith("/custom-fields/candidates")) {

@@ -66,12 +66,22 @@ const taskSchema = z
   .passthrough();
 
 const taskSearchResponseSchema = z
-  .object({
-    current_page: z.coerce.number().int().positive().optional(),
-    next_page_url: z.union([z.string(), z.null()]).optional(),
-    data: z.array(taskSchema),
-  })
-  .passthrough();
+  .union([
+    z
+      .object({
+        current_page: z.coerce.number().int().positive().optional(),
+        next_page_url: z.union([z.string(), z.null()]).optional(),
+        data: z.array(taskSchema),
+      })
+      .passthrough(),
+    z.array(z.unknown()).length(0).transform(
+      (): RecruitCrmTaskSearchResponse => ({
+        current_page: 1,
+        next_page_url: null,
+        data: [],
+      }),
+    ),
+  ]);
 
 const candidateCustomFieldSchema = z
   .object({
