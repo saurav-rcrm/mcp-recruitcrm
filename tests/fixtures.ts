@@ -1,5 +1,6 @@
 import type {
   RecruitCrmCandidateCustomField,
+  RecruitCrmCallLogSearchResponse,
   CandidateDetail,
   RecruitCrmMeetingSearchResponse,
   RecruitCrmNoteSearchResponse,
@@ -195,6 +196,41 @@ export const sampleNoteSearchResponse: RecruitCrmNoteSearchResponse = {
       updated_on: "2024-07-30T11:10:30.000000Z",
       created_by: 66960,
       updated_by: 66960,
+      related: {
+        slug: "16367183842920002890gLG",
+      },
+      associated_candidates: ["16367183842920002890gLG"],
+      associated_companies: [],
+      associated_contacts: [],
+      associated_jobs: [],
+      associated_deals: [],
+      collaborator_users: [],
+      collaborator_teams: [null],
+    },
+  ],
+};
+
+export const sampleCallLogSearchResponse: RecruitCrmCallLogSearchResponse = {
+  current_page: 1,
+  next_page_url: "https://api.recruitcrm.io/v1/call-logs/search?page=2",
+  data: [
+    {
+      id: 498645,
+      call_type: "CALL_OUTGOING",
+      custom_call_type: {
+        id: 2,
+        label: "Pitch Attempt",
+      },
+      call_started_on: "2022-03-10T17:16:43.000000Z",
+      contact_number: "+19195234827",
+      call_notes: "",
+      duration: 17,
+      related_to: "16367183842920002890gLG",
+      related_to_type: "candidate",
+      created_on: "2022-03-10T17:16:43.000000Z",
+      updated_on: "2022-03-10T17:17:20.000000Z",
+      created_by: 8772,
+      updated_by: 8772,
       related: {
         slug: "16367183842920002890gLG",
       },

@@ -11,8 +11,16 @@ import {
   validateCustomFieldFilters,
 } from "./recruitcrm/custom-fields.js";
 import type { HttpTransport } from "./recruitcrm/http.js";
-import { mapSearchCandidatesResult, mapSearchMeetingsResult, mapSearchNotesResult, mapSearchTasksResult } from "./recruitcrm/mappers.js";
 import {
+  mapSearchCallLogsResult,
+  mapSearchCandidatesResult,
+  mapSearchMeetingsResult,
+  mapSearchNotesResult,
+  mapSearchTasksResult,
+} from "./recruitcrm/mappers.js";
+import {
+  type SearchCallLogsInput,
+  type SearchCallLogsResult,
   CUSTOM_FIELD_FILTER_TYPES,
   type CandidateCustomFieldDetail,
   type CandidateCustomFieldListResult,
@@ -108,6 +116,17 @@ const searchNotesInputSchema = {
   related_to_type: textFilterSchema.optional().describe("Related entity type. Must be used with related_to."),
   updated_from: textFilterSchema.optional().describe("Note updated-on date range start."),
   updated_to: textFilterSchema.optional().describe("Note updated-on date range end."),
+};
+
+const searchCallLogsInputSchema = {
+  page: z.coerce.number().int().min(1).optional().describe("Page number."),
+  call_type: z.enum(["CALL_OUTGOING", "CALL_INCOMING"]).optional().describe("Call direction filter."),
+  related_to: textFilterSchema.optional().describe("Related entity slug. Must be used with related_to_type."),
+  related_to_type: textFilterSchema.optional().describe("Related entity type. Must be used with related_to."),
+  starting_from: textFilterSchema.optional().describe("Call started-on date/time range start."),
+  starting_to: textFilterSchema.optional().describe("Call started-on date/time range end."),
+  updated_from: textFilterSchema.optional().describe("Call log updated-on date range start."),
+  updated_to: textFilterSchema.optional().describe("Call log updated-on date range end."),
 };
 
 const nullableStringSchema = z.union([z.string(), z.null()]);
@@ -222,6 +241,34 @@ const searchNotesOutputSchema = {
   notes: z.array(noteSummarySchema),
 };
 
+const callLogTypeSummarySchema = z.object({
+  id: nullableStringOrNumberSchema,
+  label: nullableStringSchema,
+});
+
+const callLogSummarySchema = z.object({
+  id: nullableNumberSchema,
+  call_type: nullableStringSchema,
+  custom_call_type: z.union([z.array(callLogTypeSummarySchema), z.null()]),
+  call_started_on: nullableStringSchema,
+  contact_number: nullableStringSchema,
+  call_notes: nullableStringSchema,
+  related_to: nullableStringSchema,
+  related_to_type: nullableStringSchema,
+  duration: nullableStringOrNumberSchema,
+  created_on: nullableStringSchema,
+  updated_on: nullableStringSchema,
+  created_by: nullableNumberSchema,
+  updated_by: nullableNumberSchema,
+});
+
+const searchCallLogsOutputSchema = {
+  page: z.number().int().min(1),
+  returned_count: z.number().int().min(0),
+  has_more: z.boolean(),
+  call_logs: z.array(callLogSummarySchema),
+};
+
 const candidateDetailOutputSchema = z.object({}).passthrough();
 
 const candidateCustomFieldSummarySchema = z.object({
@@ -313,6 +360,19 @@ export function createRecruitCrmServer(dependencies: ServerDependencies = {}): M
       },
     },
     async (args) => formatResult(await executeSearchNotes(client, args)),
+  );
+
+  server.registerTool(
+    "search_call_logs",
+    {
+      description: "Search Recruit CRM call logs and return compact summaries designed for large result sets.",
+      inputSchema: searchCallLogsInputSchema,
+      outputSchema: searchCallLogsOutputSchema,
+      annotations: {
+        readOnlyHint: true,
+      },
+    },
+    async (args) => formatResult(await executeSearchCallLogs(client, args)),
   );
 
   server.registerTool(
@@ -472,6 +532,26 @@ export async function executeSearchNotes(client: RecruitCrmClient, args: SearchN
   return mapSearchNotesResult(result);
 }
 
+export async function executeSearchCallLogs(
+  client: RecruitCrmClient,
+  args: SearchCallLogsInput,
+): Promise<SearchCallLogsResult> {
+  validateRelatedFilters(args);
+
+  const result = await client.searchCallLogs({
+    page: args.page ?? 1,
+    call_type: args.call_type,
+    related_to: args.related_to,
+    related_to_type: args.related_to_type,
+    starting_from: args.starting_from,
+    starting_to: args.starting_to,
+    updated_from: args.updated_from,
+    updated_to: args.updated_to,
+  });
+
+  return mapSearchCallLogsResult(result);
+}
+
 export async function executeGetCandidateDetails(
   client: RecruitCrmClient,
   candidateSlug: string,
@@ -570,6 +650,7 @@ function formatResult(
     | SearchCandidatesResult
     | SearchMeetingsResult
     | SearchNotesResult
+    | SearchCallLogsResult
     | SearchTasksResult
     | CandidateDetail
     | CandidateCustomFieldListResult

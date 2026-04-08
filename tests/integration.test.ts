@@ -5,6 +5,7 @@ import { describe, expect, it, vi } from "vitest";
 import { createRecruitCrmServer } from "../src/server.js";
 import type { HttpRequestOptions, HttpResponse } from "../src/recruitcrm/http.js";
 import {
+  sampleCallLogSearchResponse,
   sampleCandidateCustomFieldsResponse,
   sampleCandidateDetailResponse,
   sampleMeetingSearchResponse,
@@ -83,6 +84,16 @@ describe("Recruit CRM MCP tools", () => {
         };
       }
 
+      if (request.url.pathname.endsWith("/call-logs/search")) {
+        expect(request.url.searchParams.get("related_to")).toBe("16367183842920002890gLG");
+        expect(request.url.searchParams.get("related_to_type")).toBe("candidate");
+
+        return {
+          statusCode: 200,
+          bodyText: JSON.stringify(sampleCallLogSearchResponse),
+        };
+      }
+
       throw new Error(`Unexpected request: ${request.url.toString()}`);
     });
 
@@ -111,6 +122,7 @@ describe("Recruit CRM MCP tools", () => {
       "search_tasks",
       "search_meetings",
       "search_notes",
+      "search_call_logs",
       "get_candidate_details",
       "list_candidate_custom_fields",
       "get_candidate_custom_field_details",
@@ -198,6 +210,14 @@ describe("Recruit CRM MCP tools", () => {
 
     const noteResult = await client.callTool({
       name: "search_notes",
+      arguments: {
+        related_to: "16367183842920002890gLG",
+        related_to_type: "candidate",
+      },
+    });
+
+    const callLogResult = await client.callTool({
+      name: "search_call_logs",
       arguments: {
         related_to: "16367183842920002890gLG",
         related_to_type: "candidate",
@@ -344,8 +364,41 @@ describe("Recruit CRM MCP tools", () => {
     expect((noteResult.structuredContent as { notes: Array<Record<string, unknown>> }).notes[0]).not.toHaveProperty(
       "associated_candidates",
     );
+    expect(callLogResult.structuredContent).toMatchObject({
+      page: 1,
+      returned_count: 1,
+      has_more: true,
+      call_logs: [
+        {
+          id: 498645,
+          call_type: "CALL_OUTGOING",
+          custom_call_type: [
+            {
+              id: 2,
+              label: "Pitch Attempt",
+            },
+          ],
+          call_started_on: "2022-03-10T17:16:43.000000Z",
+          contact_number: "+19195234827",
+          call_notes: null,
+          related_to: "16367183842920002890gLG",
+          related_to_type: "candidate",
+          duration: 17,
+          created_on: "2022-03-10T17:16:43.000000Z",
+          updated_on: "2022-03-10T17:17:20.000000Z",
+          created_by: 8772,
+          updated_by: 8772,
+        },
+      ],
+    });
+    expect(
+      (callLogResult.structuredContent as { call_logs: Array<Record<string, unknown>> }).call_logs[0],
+    ).not.toHaveProperty("related");
+    expect(
+      (callLogResult.structuredContent as { call_logs: Array<Record<string, unknown>> }).call_logs[0],
+    ).not.toHaveProperty("associated_candidates");
 
-    expect(transportMock).toHaveBeenCalledTimes(8);
+    expect(transportMock).toHaveBeenCalledTimes(9);
 
     await client.close();
     await server.close();
@@ -521,6 +574,52 @@ describe("Recruit CRM MCP tools", () => {
     await expect(
       client.callTool({
         name: "search_notes",
+        arguments: {
+          related_to: "16367183842920002890gLG",
+        },
+      }),
+    ).resolves.toMatchObject({
+      isError: true,
+      content: [
+        {
+          text: "related_to and related_to_type must be provided together.",
+        },
+      ],
+    });
+
+    expect(transportMock).not.toHaveBeenCalled();
+
+    await client.close();
+    await server.close();
+  });
+
+  it("validates related_to and related_to_type together for call log search", async () => {
+    const transportMock = vi.fn(async (_request: HttpRequestOptions): Promise<HttpResponse> => {
+      throw new Error("Call log search should fail before making an API request.");
+    });
+
+    const server = createRecruitCrmServer({
+      config: {
+        apiToken: "test-token",
+        baseUrl: "https://api.recruitcrm.io/v1",
+        timeoutMs: 10_000,
+        debugSchemaErrors: false,
+      },
+      transport: transportMock,
+    });
+
+    const client = new Client({
+      name: "test-client",
+      version: "1.0.0",
+    });
+
+    const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
+    await server.connect(serverTransport);
+    await client.connect(clientTransport);
+
+    await expect(
+      client.callTool({
+        name: "search_call_logs",
         arguments: {
           related_to: "16367183842920002890gLG",
         },

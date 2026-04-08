@@ -85,6 +85,17 @@ export type SearchNotesInput = {
   updated_to?: string;
 };
 
+export type SearchCallLogsInput = {
+  page?: number;
+  call_type?: "CALL_OUTGOING" | "CALL_INCOMING";
+  related_to?: string;
+  related_to_type?: string;
+  starting_from?: string;
+  starting_to?: string;
+  updated_from?: string;
+  updated_to?: string;
+};
+
 export type RecruitCrmCandidate = {
   slug: string;
   first_name?: string | number | null;
@@ -216,6 +227,35 @@ export type RecruitCrmNoteSearchResponse = {
   current_page?: number;
   next_page_url?: string | null;
   data: RecruitCrmNote[];
+};
+
+export type RecruitCrmCallLogType = {
+  id?: number | string | null;
+  label?: string | number | null;
+  [key: string]: unknown;
+};
+
+export type RecruitCrmCallLog = {
+  id?: number | string | null;
+  call_type?: string | number | null;
+  custom_call_type?: RecruitCrmCallLogType | RecruitCrmCallLogType[] | null;
+  call_started_on?: string | number | null;
+  contact_number?: string | number | null;
+  call_notes?: string | number | null;
+  related_to?: string | number | null;
+  related_to_type?: string | number | null;
+  duration?: number | string | null;
+  created_on?: string | number | null;
+  updated_on?: string | number | null;
+  created_by?: number | string | null;
+  updated_by?: number | string | null;
+  [key: string]: unknown;
+};
+
+export type RecruitCrmCallLogSearchResponse = {
+  current_page?: number;
+  next_page_url?: string | null;
+  data: RecruitCrmCallLog[];
 };
 
 export type RecruitCrmCandidateDetailCustomField = {
@@ -367,6 +407,34 @@ export type SearchNotesResult = {
   returned_count: number;
   has_more: boolean;
   notes: NoteSummary[];
+};
+
+export type CallLogTypeSummary = {
+  id: string | number | null;
+  label: string | null;
+};
+
+export type CallLogSummary = {
+  id: number | null;
+  call_type: string | null;
+  custom_call_type: CallLogTypeSummary[] | null;
+  call_started_on: string | null;
+  contact_number: string | null;
+  call_notes: string | null;
+  related_to: string | null;
+  related_to_type: string | null;
+  duration: string | number | null;
+  created_on: string | null;
+  updated_on: string | null;
+  created_by: number | null;
+  updated_by: number | null;
+};
+
+export type SearchCallLogsResult = {
+  page: number;
+  returned_count: number;
+  has_more: boolean;
+  call_logs: CallLogSummary[];
 };
 
 export type CandidateCustomFieldSummary = {

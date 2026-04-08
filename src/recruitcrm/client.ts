@@ -5,12 +5,14 @@ import type { AppConfig } from "../config.js";
 import { nodeHttpTransport, type HttpTransport } from "./http.js";
 import type {
   RecruitCrmCandidateCustomField,
+  RecruitCrmCallLogSearchResponse,
   CandidateDetail,
   RecruitCrmMeetingSearchResponse,
   RecruitCrmNoteSearchResponse,
   RecruitCrmSearchResponse,
   RecruitCrmTaskSearchResponse,
   SearchCandidatesInput,
+  SearchCallLogsInput,
   SearchMeetingsInput,
   SearchNotesInput,
   SearchTasksInput,
@@ -175,6 +177,49 @@ const noteSearchResponseSchema = z
     ),
   ]);
 
+const callLogTypeSchema = z
+  .object({
+    id: nullableNumberOrStringSchema,
+    label: nullableStringLikeSchema,
+  })
+  .passthrough();
+
+const callLogSchema = z
+  .object({
+    id: nullableNumberOrStringSchema,
+    call_type: nullableStringLikeSchema,
+    custom_call_type: z.union([callLogTypeSchema, z.array(callLogTypeSchema), z.null()]).optional(),
+    call_started_on: nullableStringLikeSchema,
+    contact_number: nullableStringLikeSchema,
+    call_notes: nullableStringLikeSchema,
+    related_to: nullableStringLikeSchema,
+    related_to_type: nullableStringLikeSchema,
+    duration: nullableNumberOrStringSchema,
+    created_on: nullableStringLikeSchema,
+    updated_on: nullableStringLikeSchema,
+    created_by: nullableNumberOrStringSchema,
+    updated_by: nullableNumberOrStringSchema,
+  })
+  .passthrough();
+
+const callLogSearchResponseSchema = z
+  .union([
+    z
+      .object({
+        current_page: z.coerce.number().int().positive().optional(),
+        next_page_url: z.union([z.string(), z.null()]).optional(),
+        data: z.array(callLogSchema),
+      })
+      .passthrough(),
+    z.array(z.unknown()).length(0).transform(
+      (): RecruitCrmCallLogSearchResponse => ({
+        current_page: 1,
+        next_page_url: null,
+        data: [],
+      }),
+    ),
+  ]);
+
 const candidateCustomFieldSchema = z
   .object({
     field_id: z.coerce.number().int().positive(),
@@ -224,6 +269,12 @@ export class RecruitCrmClient {
     const request = buildSearchNotesRequest(filters);
 
     return this.#requestJson("/notes/search", noteSearchResponseSchema, request);
+  }
+
+  async searchCallLogs(filters: SearchCallLogsInput): Promise<RecruitCrmCallLogSearchResponse> {
+    const request = buildSearchCallLogsRequest(filters);
+
+    return this.#requestJson("/call-logs/search", callLogSearchResponseSchema, request);
   }
 
   async getCandidateDetails(candidateSlug: string): Promise<CandidateDetail> {
@@ -407,6 +458,22 @@ export function buildSearchNotesRequest(filters: SearchNotesInput): GetRequestOp
   setStringParam(query, "added_to", filters.added_to);
   setStringParam(query, "related_to", filters.related_to);
   setStringParam(query, "related_to_type", filters.related_to_type);
+  setStringParam(query, "updated_from", filters.updated_from);
+  setStringParam(query, "updated_to", filters.updated_to);
+
+  return { query };
+}
+
+export function buildSearchCallLogsRequest(filters: SearchCallLogsInput): GetRequestOptions {
+  const query = new URLSearchParams();
+  const page = normalizePage(filters.page);
+
+  query.set("page", String(page));
+  setStringParam(query, "call_type", filters.call_type);
+  setStringParam(query, "related_to", filters.related_to);
+  setStringParam(query, "related_to_type", filters.related_to_type);
+  setStringParam(query, "starting_from", filters.starting_from);
+  setStringParam(query, "starting_to", filters.starting_to);
   setStringParam(query, "updated_from", filters.updated_from);
   setStringParam(query, "updated_to", filters.updated_to);
 

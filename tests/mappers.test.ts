@@ -1,16 +1,24 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  mapCallLogSummary,
   mapCandidateSummary,
   mapMeetingSummary,
   mapSearchMeetingsResult,
   mapSearchNotesResult,
+  mapSearchCallLogsResult,
   mapSearchCandidatesResult,
   mapSearchTasksResult,
   mapNoteSummary,
   mapTaskSummary,
 } from "../src/recruitcrm/mappers.js";
-import { sampleMeetingSearchResponse, sampleNoteSearchResponse, sampleSearchResponse, sampleTaskSearchResponse } from "./fixtures.js";
+import {
+  sampleCallLogSearchResponse,
+  sampleMeetingSearchResponse,
+  sampleNoteSearchResponse,
+  sampleSearchResponse,
+  sampleTaskSearchResponse,
+} from "./fixtures.js";
 
 describe("candidate mappers", () => {
   it("omits contact fields from search summaries", () => {
@@ -202,5 +210,47 @@ describe("note mappers", () => {
     });
 
     expect(summary.note_type).toBeNull();
+  });
+});
+
+describe("call log mappers", () => {
+  it("maps call log search results into compact structured output", () => {
+    const result = mapSearchCallLogsResult(sampleCallLogSearchResponse);
+
+    expect(result.page).toBe(1);
+    expect(result.returned_count).toBe(1);
+    expect(result.has_more).toBe(true);
+    expect(result.call_logs).toHaveLength(1);
+    expect(result.call_logs[0]).toEqual({
+      id: 498645,
+      call_type: "CALL_OUTGOING",
+      custom_call_type: [
+        {
+          id: 2,
+          label: "Pitch Attempt",
+        },
+      ],
+      call_started_on: "2022-03-10T17:16:43.000000Z",
+      contact_number: "+19195234827",
+      call_notes: null,
+      related_to: "16367183842920002890gLG",
+      related_to_type: "candidate",
+      duration: 17,
+      created_on: "2022-03-10T17:16:43.000000Z",
+      updated_on: "2022-03-10T17:17:20.000000Z",
+      created_by: 8772,
+      updated_by: 8772,
+    });
+  });
+
+  it("accepts null custom_call_type payloads", () => {
+    const summary = mapCallLogSummary({
+      ...sampleCallLogSearchResponse.data[0],
+      custom_call_type: null,
+      call_notes: null,
+    });
+
+    expect(summary.custom_call_type).toBeNull();
+    expect(summary.call_notes).toBeNull();
   });
 });
