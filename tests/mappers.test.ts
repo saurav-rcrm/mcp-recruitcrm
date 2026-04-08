@@ -9,19 +9,17 @@ describe("candidate mappers", () => {
 
     expect(summary).toEqual({
       slug: "010011",
-      full_name: "Michael Scott",
+      first_name: "Michael",
+      last_name: "Scott",
       position: "Software Developer",
       current_organization: "Dunder Mifflin",
       current_status: "Employed",
-      status_label: "Unavailable",
       city: "New York",
-      state: "New York",
-      country: "United States",
-      work_ex_year: 2,
       updated_on: "2020-06-29T05:36:22.000000Z",
     });
     expect("email" in summary).toBe(false);
     expect("contact_number" in summary).toBe(false);
+    expect("full_name" in summary).toBe(false);
   });
 
   it("includes contact fields in candidate details", () => {

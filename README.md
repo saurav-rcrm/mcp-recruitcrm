@@ -6,7 +6,7 @@ Repository: `https://github.com/saurav-rcrm/mcp-recruitcrm`
 
 ## What It Does
 
-- `search_candidates`: search candidates and return compact summaries without email or phone
+- `search_candidates`: search candidates and return compact summaries with `slug`, `first_name`, `last_name`, `position`, `current_organization`, `current_status`, `city`, and `updated_on`
 - `get_candidate_details`: fetch one candidate by slug and return curated details
 - `list_candidate_custom_fields`: list candidate custom fields for custom-field search
 - `get_candidate_custom_field_details`: fetch one candidate custom field with full options when relevant
@@ -19,6 +19,7 @@ Optional:
 
 - `RECRUITCRM_BASE_URL` default: `https://api.recruitcrm.io/v1`
 - `RECRUITCRM_TIMEOUT_MS` default: `10000`
+- `RECRUITCRM_DEBUG_SCHEMA_ERRORS` default: `false`
 
 ## Install And Run
 

@@ -29,10 +29,10 @@ export const sampleSearchResponse: RecruitCrmSearchResponse = {
       notice_period: 60,
       available_from: "2020-06-29T05:36:22.000000Z",
       willing_to_relocate: 1,
-      current_salary: "150000",
-      salary_expectation: "180000",
+      current_salary: 150000,
+      salary_expectation: 180000,
       salary_type: {
-        id: 1,
+        id: "1",
         label: "Monthly Salary",
       },
       currency_id: 2,

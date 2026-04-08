@@ -65,10 +65,10 @@ export type RecruitCrmCandidate = {
   notice_period?: number | string | null;
   available_from?: string | null;
   willing_to_relocate?: number | boolean | null;
-  current_salary?: string | null;
-  salary_expectation?: string | null;
+  current_salary?: string | number | null;
+  salary_expectation?: string | number | null;
   salary_type?: {
-    id?: number | null;
+    id?: number | string | null;
     label?: string | null;
   } | null;
   currency_id?: number | string | null;
@@ -94,15 +94,12 @@ export type RecruitCrmCandidateCustomField = {
 
 export type CandidateSummary = {
   slug: string;
-  full_name: string;
+  first_name: string | null;
+  last_name: string | null;
   position: string | null;
   current_organization: string | null;
   current_status: string | null;
-  status_label: string | null;
   city: string | null;
-  state: string | null;
-  country: string | null;
-  work_ex_year: number | null;
   updated_on: string | null;
 };
 

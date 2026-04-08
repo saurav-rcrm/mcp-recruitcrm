@@ -44,6 +44,7 @@ describe("Recruit CRM MCP tools", () => {
         apiToken: "test-token",
         baseUrl: "https://api.recruitcrm.io/v1",
         timeoutMs: 10_000,
+        debugSchemaErrors: false,
       },
       transport: transportMock,
     });
@@ -111,7 +112,13 @@ describe("Recruit CRM MCP tools", () => {
       candidates: [
         {
           slug: "010011",
-          full_name: "Michael Scott",
+          first_name: "Michael",
+          last_name: "Scott",
+          position: "Software Developer",
+          current_organization: "Dunder Mifflin",
+          current_status: "Employed",
+          city: "New York",
+          updated_on: "2020-06-29T05:36:22.000000Z",
         },
       ],
     });

@@ -68,15 +68,12 @@ const nullableBooleanSchema = z.union([z.boolean(), z.null()]);
 
 const candidateSummarySchema = z.object({
   slug: z.string(),
-  full_name: z.string(),
+  first_name: nullableStringSchema,
+  last_name: nullableStringSchema,
   position: nullableStringSchema,
   current_organization: nullableStringSchema,
   current_status: nullableStringSchema,
-  status_label: nullableStringSchema,
   city: nullableStringSchema,
-  state: nullableStringSchema,
-  country: nullableStringSchema,
-  work_ex_year: nullableNumberSchema,
   updated_on: nullableStringSchema,
 });
 

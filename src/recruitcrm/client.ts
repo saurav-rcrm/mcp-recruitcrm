@@ -10,6 +10,8 @@ import type {
   SearchCandidateCustomFieldFilter,
 } from "./types.js";
 
+const nullableNumberOrStringSchema = z.union([z.number(), z.string(), z.null()]).optional();
+
 const candidateSchema = z
   .object({
     slug: z.union([z.string(), z.number()]).transform((value) => String(value)),
@@ -33,11 +35,11 @@ const candidateSchema = z
     notice_period: z.union([z.number(), z.string()]).nullish(),
     available_from: z.string().nullish(),
     willing_to_relocate: z.union([z.number(), z.boolean()]).nullish(),
-    current_salary: z.string().nullish(),
-    salary_expectation: z.string().nullish(),
+    current_salary: nullableNumberOrStringSchema,
+    salary_expectation: nullableNumberOrStringSchema,
     salary_type: z
       .object({
-        id: z.number().nullish(),
+        id: nullableNumberOrStringSchema,
         label: z.string().nullish(),
       })
       .nullish(),
@@ -73,12 +75,14 @@ export class RecruitCrmClient {
   readonly #apiToken: string;
   readonly #baseUrl: string;
   readonly #timeoutMs: number;
+  readonly #debugSchemaErrors: boolean;
   readonly #transport: HttpTransport;
 
   constructor(config: AppConfig, transport: HttpTransport = nodeHttpTransport) {
     this.#apiToken = config.apiToken;
     this.#baseUrl = config.baseUrl;
     this.#timeoutMs = config.timeoutMs;
+    this.#debugSchemaErrors = config.debugSchemaErrors;
     this.#transport = transport;
   }
 
@@ -135,10 +139,25 @@ export class RecruitCrmClient {
     const parsed = schema.safeParse(payload);
 
     if (!parsed.success) {
+      this.#logSchemaIssues(path, parsed.error.issues);
       throw invalidApiResponse();
     }
 
     return parsed.data;
+  }
+
+  #logSchemaIssues(path: string, issues: Array<{ path: PropertyKey[]; message: string }>): void {
+    if (!this.#debugSchemaErrors || issues.length === 0) {
+      return;
+    }
+
+    const formattedIssues = issues
+      .slice(0, 5)
+      .map((issue) => `${formatIssuePath(issue.path)}: ${issue.message}`)
+      .join("; ");
+    const moreIssues = issues.length > 5 ? `; +${issues.length - 5} more` : "";
+
+    console.error(`Recruit CRM schema mismatch for ${path}: ${formattedIssues}${moreIssues}`);
   }
 }
 
@@ -240,4 +259,12 @@ function normalizePage(value: number | undefined): number {
   }
 
   return Math.floor(value);
+}
+
+function formatIssuePath(path: PropertyKey[]): string {
+  if (path.length === 0) {
+    return "<root>";
+  }
+
+  return path.map((segment) => String(segment)).join(".");
 }
