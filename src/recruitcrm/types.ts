@@ -133,6 +133,23 @@ export type SearchJobsInput = {
   updated_to?: string;
 };
 
+export type SearchCompaniesInput = {
+  page?: number;
+  company_name?: string;
+  created_from?: string;
+  created_to?: string;
+  marked_as_off_limit?: boolean;
+  owner_email?: string;
+  owner_id?: number;
+  owner_name?: string;
+  updated_from?: string;
+  updated_to?: string;
+  company_slug?: string;
+  exact_search?: boolean;
+  sort_by?: "createdon" | "updatedon";
+  sort_order?: "asc" | "desc";
+};
+
 export type RecruitCrmCandidate = {
   slug: string;
   first_name?: string | number | null;
@@ -223,6 +240,38 @@ export type RecruitCrmJobSearchResponse = {
   current_page?: number;
   next_page_url?: string | null;
   data: RecruitCrmJob[];
+};
+
+export type RecruitCrmCompany = {
+  id?: number | string | null;
+  slug?: string | number | null;
+  company_name?: string | number | null;
+  website?: string | number | null;
+  city?: string | number | null;
+  locality?: string | number | null;
+  state?: string | number | null;
+  country?: string | number | null;
+  postal_code?: string | number | null;
+  address?: string | number | null;
+  owner?: number | string | null;
+  contact_slug?: string | number | Array<string | number | null> | null;
+  is_child_company?: string | number | boolean | null;
+  is_parent_company?: string | number | boolean | null;
+  child_company_slugs?: Array<string | number | null> | null;
+  parent_company_slug?: string | number | null;
+  off_limit_status_id?: number | string | null;
+  status_label?: string | number | null;
+  off_limit_reason?: string | number | null;
+  off_limit_end_date?: string | number | null;
+  created_on?: string | number | null;
+  updated_on?: string | number | null;
+  [key: string]: unknown;
+};
+
+export type RecruitCrmCompanySearchResponse = {
+  current_page?: number;
+  next_page_url?: string | null;
+  data: RecruitCrmCompany[];
 };
 
 export type RecruitCrmTaskType = {
@@ -609,6 +658,43 @@ export type SearchJobsResult = {
   jobs: JobSummary[];
 };
 
+export type CompanyOffLimitSummary = {
+  status_id: number | null;
+  status_label: string | null;
+  reason: string | null;
+  end_date: string | null;
+};
+
+export type CompanySummary = {
+  id: number | null;
+  slug: string | null;
+  company_name: string | null;
+  website: string | null;
+  city: string | null;
+  locality: string | null;
+  state: string | null;
+  country: string | null;
+  postal_code: string | null;
+  address: string | null;
+  owner: number | null;
+  contact_slugs: string[];
+  is_child_company: boolean | null;
+  is_parent_company: boolean | null;
+  child_company_slugs: string[];
+  parent_company_slug: string | null;
+  marked_as_off_limit: boolean;
+  off_limit: CompanyOffLimitSummary | null;
+  created_on: string | null;
+  updated_on: string | null;
+};
+
+export type SearchCompaniesResult = {
+  page: number;
+  returned_count: number;
+  has_more: boolean;
+  companies: CompanySummary[];
+};
+
 export type CandidateJobAssignmentHiringStageHistoryItem = {
   job_slug: string | null;
   job_name: string | null;
@@ -662,5 +748,17 @@ export type CandidateDetail = {
   custom_fields?: unknown[];
   work_history?: unknown[];
   education_history?: unknown[];
+  [key: string]: unknown;
+};
+
+export type JobDetail = {
+  id?: number | string;
+  slug?: number | string;
+  job_questions?: unknown[];
+  custom_fields?: unknown[];
+  targetcompanies?: unknown[];
+  collaborator_users?: unknown[];
+  collaborator_teams?: unknown[];
+  xml_feeds?: unknown[];
   [key: string]: unknown;
 };

@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   buildSearchCandidatesRequest,
   buildSearchCallLogsRequest,
+  buildSearchCompaniesRequest,
   buildSearchJobsRequest,
   buildSearchMeetingsRequest,
   buildSearchNotesRequest,
@@ -243,6 +244,71 @@ describe("buildSearchJobsRequest", () => {
     expect(request.query?.get("job_slug")).toBe("job-sample-001");
     expect(request.query?.get("name")).toBeNull();
     expect(request.query?.get("city")).toBeNull();
+    expect(request.query?.get("sort_by")).toBeNull();
+    expect(request.query?.get("sort_order")).toBeNull();
+    expect(request.jsonBody).toBeUndefined();
+  });
+});
+
+describe("buildSearchCompaniesRequest", () => {
+  it("defaults page and sort settings", () => {
+    const request = buildSearchCompaniesRequest({
+      company_name: "Example Holdings",
+    });
+
+    expect(request.query?.get("page")).toBe("1");
+    expect(request.query?.get("company_name")).toBe("Example Holdings");
+    expect(request.query?.get("sort_by")).toBe("updatedon");
+    expect(request.query?.get("sort_order")).toBe("desc");
+    expect(request.jsonBody).toBeUndefined();
+  });
+
+  it("serializes all supported company query params", () => {
+    const request = buildSearchCompaniesRequest({
+      page: 4,
+      company_name: "Example Holdings",
+      created_from: "2026-01-01",
+      created_to: "2026-01-31",
+      marked_as_off_limit: true,
+      owner_email: "owner@example.com",
+      owner_id: 2890,
+      owner_name: "Sample Owner",
+      updated_from: "2026-03-01",
+      updated_to: "2026-03-31",
+      exact_search: false,
+      sort_by: "createdon",
+      sort_order: "asc",
+    });
+
+    expect(request.query?.get("page")).toBe("4");
+    expect(request.query?.get("company_name")).toBe("Example Holdings");
+    expect(request.query?.get("created_from")).toBe("2026-01-01");
+    expect(request.query?.get("created_to")).toBe("2026-01-31");
+    expect(request.query?.get("marked_as_off_limit")).toBe("true");
+    expect(request.query?.get("owner_email")).toBe("owner@example.com");
+    expect(request.query?.get("owner_id")).toBe("2890");
+    expect(request.query?.get("owner_name")).toBe("Sample Owner");
+    expect(request.query?.get("updated_from")).toBe("2026-03-01");
+    expect(request.query?.get("updated_to")).toBe("2026-03-31");
+    expect(request.query?.get("exact_search")).toBe("false");
+    expect(request.query?.get("sort_by")).toBe("createdon");
+    expect(request.query?.get("sort_order")).toBe("asc");
+  });
+
+  it("ignores other filters when company_slug is present", () => {
+    const request = buildSearchCompaniesRequest({
+      page: 2,
+      company_slug: "company-sample-001",
+      company_name: "Example Holdings",
+      marked_as_off_limit: true,
+      sort_by: "createdon",
+      sort_order: "asc",
+    });
+
+    expect(request.query?.get("page")).toBe("2");
+    expect(request.query?.get("company_slug")).toBe("company-sample-001");
+    expect(request.query?.get("company_name")).toBeNull();
+    expect(request.query?.get("marked_as_off_limit")).toBeNull();
     expect(request.query?.get("sort_by")).toBeNull();
     expect(request.query?.get("sort_order")).toBeNull();
     expect(request.jsonBody).toBeUndefined();

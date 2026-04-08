@@ -5,6 +5,8 @@ import type {
   CandidateJobAssignmentHiringStageHistoryItem,
   CandidateJobAssignmentHiringStageHistoryResult,
   CandidateSummary,
+  CompanyOffLimitSummary,
+  CompanySummary,
   JobStatusSummary,
   JobSummary,
   MeetingSummary,
@@ -16,6 +18,8 @@ import type {
   RecruitCrmCallLog,
   RecruitCrmCallLogSearchResponse,
   RecruitCrmCallLogType,
+  RecruitCrmCompany,
+  RecruitCrmCompanySearchResponse,
   RecruitCrmJob,
   RecruitCrmJobSearchResponse,
   RecruitCrmJobStatus,
@@ -33,6 +37,7 @@ import type {
   SearchNotesResult,
   SearchCallLogsResult,
   SearchCandidatesResult,
+  SearchCompaniesResult,
   SearchJobsResult,
   SearchTasksResult,
   NoteSummary,
@@ -58,6 +63,15 @@ export function mapSearchJobsResult(response: RecruitCrmJobSearchResponse): Sear
     returned_count: response.data.length,
     has_more: hasNextPage(response.next_page_url),
     jobs: response.data.map(mapJobSummary),
+  };
+}
+
+export function mapSearchCompaniesResult(response: RecruitCrmCompanySearchResponse): SearchCompaniesResult {
+  return {
+    page: response.current_page ?? 1,
+    returned_count: response.data.length,
+    has_more: hasNextPage(response.next_page_url),
+    companies: response.data.map(mapCompanySummary),
   };
 }
 
@@ -104,6 +118,33 @@ export function mapJobSummary(job: RecruitCrmJob): JobSummary {
     owner: normalizeNumber(job.owner),
     created_on: normalizeString(job.created_on),
     updated_on: normalizeString(job.updated_on),
+  };
+}
+
+export function mapCompanySummary(company: RecruitCrmCompany): CompanySummary {
+  const offLimit = mapCompanyOffLimitSummary(company);
+
+  return {
+    id: normalizeNumber(company.id),
+    slug: normalizeString(company.slug),
+    company_name: normalizeString(company.company_name),
+    website: normalizeString(company.website),
+    city: normalizeString(company.city),
+    locality: normalizeString(company.locality),
+    state: normalizeString(company.state),
+    country: normalizeString(company.country),
+    postal_code: normalizeString(company.postal_code),
+    address: normalizeString(company.address),
+    owner: normalizeNumber(company.owner),
+    contact_slugs: normalizeStringList(company.contact_slug),
+    is_child_company: normalizeYesNoBoolean(company.is_child_company),
+    is_parent_company: normalizeYesNoBoolean(company.is_parent_company),
+    child_company_slugs: normalizeStringArray(company.child_company_slugs),
+    parent_company_slug: normalizeString(company.parent_company_slug),
+    marked_as_off_limit: offLimit !== null,
+    off_limit: offLimit,
+    created_on: normalizeString(company.created_on),
+    updated_on: normalizeString(company.updated_on),
   };
 }
 
@@ -324,6 +365,30 @@ function normalizeBoolean(value: number | string | boolean | null | undefined): 
   return null;
 }
 
+function normalizeYesNoBoolean(value: number | string | boolean | null | undefined): boolean | null {
+  const normalized = normalizeBoolean(value);
+
+  if (normalized !== null) {
+    return normalized;
+  }
+
+  if (typeof value !== "string") {
+    return null;
+  }
+
+  const trimmed = value.trim().toLowerCase();
+
+  if (trimmed === "yes") {
+    return true;
+  }
+
+  if (trimmed === "no") {
+    return false;
+  }
+
+  return null;
+}
+
 function normalizeStringArray(values: Array<string | number | null> | null | undefined): string[] {
   if (!values || values.length === 0) {
     return [];
@@ -332,6 +397,40 @@ function normalizeStringArray(values: Array<string | number | null> | null | und
   return values
     .map((value) => normalizeString(value))
     .filter((value): value is string => value !== null);
+}
+
+function normalizeStringList(
+  values: string | number | Array<string | number | null> | null | undefined,
+): string[] {
+  if (values === undefined || values === null) {
+    return [];
+  }
+
+  if (Array.isArray(values)) {
+    return normalizeStringArray(values);
+  }
+
+  const normalizedValue = normalizeString(values);
+
+  return normalizedValue === null ? [] : [normalizedValue];
+}
+
+function mapCompanyOffLimitSummary(company: RecruitCrmCompany): CompanyOffLimitSummary | null {
+  const statusId = normalizeNumber(company.off_limit_status_id);
+  const statusLabel = normalizeString(company.status_label);
+  const reason = normalizeString(company.off_limit_reason);
+  const endDate = normalizeString(company.off_limit_end_date);
+
+  if (statusId === null && statusLabel === null && reason === null && endDate === null) {
+    return null;
+  }
+
+  return {
+    status_id: statusId,
+    status_label: statusLabel,
+    reason,
+    end_date: endDate,
+  };
 }
 
 function normalizeTaskTypes(

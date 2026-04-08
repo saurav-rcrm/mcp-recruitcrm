@@ -6,6 +6,8 @@ import {
   sampleCallLogSearchResponse,
   sampleCandidateJobAssignmentHiringStageHistoryResponse,
   sampleCandidateDetailResponse,
+  sampleCompanySearchResponse,
+  sampleJobDetailResponse,
   sampleJobSearchResponse,
   sampleMeetingSearchResponse,
   sampleNoteSearchResponse,
@@ -141,6 +143,60 @@ describe("RecruitCrmClient", () => {
     const client = new RecruitCrmClient(baseConfig, transport);
 
     const result = await client.searchJobs({ name: "Operations Analyst" });
+
+    expect(result).toEqual({
+      current_page: 1,
+      next_page_url: null,
+      data: [],
+    });
+  });
+
+  it("parses company search payloads while tolerating large nested payloads", async () => {
+    const transport = vi.fn(async (_request: HttpRequestOptions): Promise<HttpResponse> => ({
+      statusCode: 200,
+      bodyText: JSON.stringify(sampleCompanySearchResponse),
+    }));
+    const client = new RecruitCrmClient(baseConfig, transport);
+
+    const result = await client.searchCompanies({
+      company_slug: "company-sample-001",
+    });
+
+    expect(result.current_page).toBe(1);
+    expect(result.next_page_url).toBe("https://api.recruitcrm.io/v1/companies/search?page=2");
+    expect(result.data[0]).toMatchObject({
+      id: 403,
+      slug: "company-sample-001",
+      company_name: "Example Holdings",
+      owner: 3735,
+      contact_slug: ["contact-sample-001", "", null, "contact-sample-002"],
+      is_child_company: "No",
+      is_parent_company: "Yes",
+      off_limit_status_id: "12",
+      status_label: "Off Limits",
+    });
+    expect(transport).toHaveBeenCalledWith(
+      expect.objectContaining({
+        method: "GET",
+        url: expect.objectContaining({
+          pathname: "/v1/companies/search",
+        }),
+      }),
+    );
+  });
+
+  it("accepts empty paginated company search payloads", async () => {
+    const transport = vi.fn(async (_request: HttpRequestOptions): Promise<HttpResponse> => ({
+      statusCode: 200,
+      bodyText: JSON.stringify({
+        current_page: 1,
+        next_page_url: null,
+        data: [],
+      }),
+    }));
+    const client = new RecruitCrmClient(baseConfig, transport);
+
+    const result = await client.searchCompanies({ company_name: "Example Holdings" });
 
     expect(result).toEqual({
       current_page: 1,
@@ -475,6 +531,38 @@ describe("RecruitCrmClient", () => {
     );
   });
 
+  it("parses direct job detail payloads", async () => {
+    const transport = vi.fn(async (_request: HttpRequestOptions): Promise<HttpResponse> => ({
+      statusCode: 200,
+      bodyText: JSON.stringify(sampleJobDetailResponse),
+    }));
+    const client = new RecruitCrmClient(baseConfig, transport);
+
+    const result = await client.getJobDetails("job-detail-sample-001");
+
+    expect(result.slug).toBe("job-detail-sample-001");
+    expect(result.salary_type).toEqual({
+      id: 2,
+      label: "Annual Salary",
+    });
+    expect(result.custom_fields).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          field_id: 1,
+          field_name: "Region",
+        }),
+      ]),
+    );
+    expect(result.job_questions).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          question: "Why this role?",
+        }),
+      ]),
+    );
+    expect(result.resource_url).toBe("https://app.recruitcrm.io/job/job-detail-sample-001");
+  });
+
   it("maps direct detail 404s to candidate not found", async () => {
     const transport = vi.fn(async (_request: HttpRequestOptions): Promise<HttpResponse> => ({
       statusCode: 404,
@@ -484,6 +572,18 @@ describe("RecruitCrmClient", () => {
 
     await expect(client.getCandidateDetails("missing")).rejects.toMatchObject({
       message: "Candidate not found.",
+    });
+  });
+
+  it("maps direct job detail 404s to job not found", async () => {
+    const transport = vi.fn(async (_request: HttpRequestOptions): Promise<HttpResponse> => ({
+      statusCode: 404,
+      bodyText: JSON.stringify({ message: "Not found" }),
+    }));
+    const client = new RecruitCrmClient(baseConfig, transport);
+
+    await expect(client.getJobDetails("missing-job")).rejects.toMatchObject({
+      message: "Job not found.",
     });
   });
 

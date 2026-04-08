@@ -1,6 +1,6 @@
 import * as z from "zod/v4";
 
-import { invalidApiResponse, mapFetchError, mapHttpError } from "../errors.js";
+import { RecruitCrmApiError, invalidApiResponse, mapFetchError, mapHttpError } from "../errors.js";
 import type { AppConfig } from "../config.js";
 import { nodeHttpTransport, type HttpTransport } from "./http.js";
 import type {
@@ -8,6 +8,8 @@ import type {
   RecruitCrmCandidateJobAssignmentHiringStageHistoryResponse,
   RecruitCrmCallLogSearchResponse,
   CandidateDetail,
+  JobDetail,
+  RecruitCrmCompanySearchResponse,
   RecruitCrmJobSearchResponse,
   RecruitCrmMeetingSearchResponse,
   RecruitCrmNoteSearchResponse,
@@ -15,6 +17,7 @@ import type {
   RecruitCrmTaskSearchResponse,
   SearchCandidatesInput,
   SearchCallLogsInput,
+  SearchCompaniesInput,
   SearchJobsInput,
   SearchMeetingsInput,
   SearchNotesInput,
@@ -98,6 +101,43 @@ const jobSearchResponseSchema = z
     current_page: z.coerce.number().int().positive().optional(),
     next_page_url: z.union([z.string(), z.null()]).optional(),
     data: z.array(jobSchema),
+  })
+  .passthrough();
+
+const companySchema = z
+  .object({
+    id: nullableNumberOrStringSchema,
+    slug: nullableStringLikeSchema,
+    company_name: nullableStringLikeSchema,
+    website: nullableStringLikeSchema,
+    city: nullableStringLikeSchema,
+    locality: nullableStringLikeSchema,
+    state: nullableStringLikeSchema,
+    country: nullableStringLikeSchema,
+    postal_code: nullableStringLikeSchema,
+    address: nullableStringLikeSchema,
+    owner: nullableNumberOrStringSchema,
+    contact_slug: z
+      .union([z.array(z.union([z.string(), z.number(), z.null()])), z.string(), z.number(), z.null()])
+      .optional(),
+    is_child_company: z.union([z.string(), z.number(), z.boolean(), z.null()]).optional(),
+    is_parent_company: z.union([z.string(), z.number(), z.boolean(), z.null()]).optional(),
+    child_company_slugs: z.array(z.union([z.string(), z.number(), z.null()])).nullish(),
+    parent_company_slug: nullableStringLikeSchema,
+    off_limit_status_id: nullableNumberOrStringSchema,
+    status_label: nullableStringLikeSchema,
+    off_limit_reason: nullableStringLikeSchema,
+    off_limit_end_date: nullableStringLikeSchema,
+    created_on: nullableStringLikeSchema,
+    updated_on: nullableStringLikeSchema,
+  })
+  .passthrough();
+
+const companySearchResponseSchema = z
+  .object({
+    current_page: z.coerce.number().int().positive().optional(),
+    next_page_url: z.union([z.string(), z.null()]).optional(),
+    data: z.array(companySchema),
   })
   .passthrough();
 
@@ -322,6 +362,7 @@ const candidateCustomFieldSchema = z
 
 const candidateCustomFieldsResponseSchema = z.array(candidateCustomFieldSchema);
 const candidateDetailSchema: z.ZodType<CandidateDetail> = z.object({}).passthrough();
+const jobDetailSchema: z.ZodType<JobDetail> = z.object({}).passthrough();
 
 export class RecruitCrmClient {
   readonly #apiToken: string;
@@ -348,6 +389,12 @@ export class RecruitCrmClient {
     const request = buildSearchJobsRequest(filters);
 
     return this.#requestJson("/jobs/search", jobSearchResponseSchema, request);
+  }
+
+  async searchCompanies(filters: SearchCompaniesInput): Promise<RecruitCrmCompanySearchResponse> {
+    const request = buildSearchCompaniesRequest(filters);
+
+    return this.#requestJson("/companies/search", companySearchResponseSchema, request);
   }
 
   async searchTasks(filters: SearchTasksInput): Promise<RecruitCrmTaskSearchResponse> {
@@ -385,6 +432,18 @@ export class RecruitCrmClient {
 
   async getCandidateDetails(candidateSlug: string): Promise<CandidateDetail> {
     return this.#requestJson(`/candidates/${encodeURIComponent(candidateSlug)}`, candidateDetailSchema);
+  }
+
+  async getJobDetails(jobSlug: string): Promise<JobDetail> {
+    try {
+      return await this.#requestJson(`/jobs/${encodeURIComponent(jobSlug)}`, jobDetailSchema);
+    } catch (error) {
+      if (error instanceof RecruitCrmApiError && error.statusCode === 404) {
+        throw new RecruitCrmApiError("Job not found.", error.statusCode, error);
+      }
+
+      throw error;
+    }
   }
 
   async getCandidateCustomFields(): Promise<RecruitCrmCandidateCustomField[]> {
@@ -552,6 +611,33 @@ export function buildSearchJobsRequest(filters: SearchJobsInput): GetRequestOpti
   setStringParam(query, "secondary_contact_name", filters.secondary_contact_name);
   setStringParam(query, "secondary_contact_number", filters.secondary_contact_number);
   setStringParam(query, "secondary_contact_slug", filters.secondary_contact_slug);
+  setStringParam(query, "updated_from", filters.updated_from);
+  setStringParam(query, "updated_to", filters.updated_to);
+  setBooleanParam(query, "exact_search", filters.exact_search);
+  query.set("sort_by", filters.sort_by ?? "updatedon");
+  query.set("sort_order", filters.sort_order ?? "desc");
+
+  return { query };
+}
+
+export function buildSearchCompaniesRequest(filters: SearchCompaniesInput): GetRequestOptions {
+  const query = new URLSearchParams();
+  const page = normalizePage(filters.page);
+
+  query.set("page", String(page));
+
+  if (filters.company_slug) {
+    query.set("company_slug", filters.company_slug);
+    return { query };
+  }
+
+  setStringParam(query, "company_name", filters.company_name);
+  setStringParam(query, "created_from", filters.created_from);
+  setStringParam(query, "created_to", filters.created_to);
+  setBooleanParam(query, "marked_as_off_limit", filters.marked_as_off_limit);
+  setStringParam(query, "owner_email", filters.owner_email);
+  setNumberParam(query, "owner_id", filters.owner_id);
+  setStringParam(query, "owner_name", filters.owner_name);
   setStringParam(query, "updated_from", filters.updated_from);
   setStringParam(query, "updated_to", filters.updated_to);
   setBooleanParam(query, "exact_search", filters.exact_search);

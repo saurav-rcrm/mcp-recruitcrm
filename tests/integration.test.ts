@@ -9,6 +9,8 @@ import {
   sampleCandidateCustomFieldsResponse,
   sampleCandidateDetailResponse,
   sampleCandidateJobAssignmentHiringStageHistoryResponse,
+  sampleCompanySearchResponse,
+  sampleJobDetailResponse,
   sampleJobSearchResponse,
   sampleMeetingSearchResponse,
   sampleNoteSearchResponse,
@@ -56,6 +58,13 @@ describe("Recruit CRM MCP tools", () => {
         };
       }
 
+      if (request.url.pathname.endsWith("/jobs/job-detail-sample-001")) {
+        return {
+          statusCode: 200,
+          bodyText: JSON.stringify(sampleJobDetailResponse),
+        };
+      }
+
       if (request.url.pathname.endsWith("/jobs/search")) {
         expect(request.url.searchParams.get("job_slug")).toBe("job-sample-001");
         expect(request.url.searchParams.get("limit")).toBe("10");
@@ -63,6 +72,15 @@ describe("Recruit CRM MCP tools", () => {
         return {
           statusCode: 200,
           bodyText: JSON.stringify(sampleJobSearchResponse),
+        };
+      }
+
+      if (request.url.pathname.endsWith("/companies/search")) {
+        expect(request.url.searchParams.get("company_slug")).toBe("company-sample-001");
+
+        return {
+          statusCode: 200,
+          bodyText: JSON.stringify(sampleCompanySearchResponse),
         };
       }
 
@@ -139,11 +157,13 @@ describe("Recruit CRM MCP tools", () => {
     expect(tools.tools.map((tool) => tool.name)).toEqual([
       "search_candidates",
       "search_jobs",
+      "search_companies",
       "search_tasks",
       "search_meetings",
       "search_notes",
       "search_call_logs",
       "get_candidate_details",
+      "get_job_details",
       "get_candidate_job_assignment_hiring_stage_history",
       "list_candidate_custom_fields",
       "get_candidate_custom_field_details",
@@ -218,6 +238,20 @@ describe("Recruit CRM MCP tools", () => {
       arguments: {
         job_slug: "job-sample-001",
         limit: 10,
+      },
+    });
+
+    const companyResult = await client.callTool({
+      name: "search_companies",
+      arguments: {
+        company_slug: "company-sample-001",
+      },
+    });
+
+    const jobDetailResult = await client.callTool({
+      name: "get_job_details",
+      arguments: {
+        job_slug: "job-detail-sample-001",
       },
     });
 
@@ -343,6 +377,71 @@ describe("Recruit CRM MCP tools", () => {
     );
     expect((jobResult.structuredContent as { jobs: Array<Record<string, unknown>> }).jobs[0]).not.toHaveProperty(
       "custom_fields",
+    );
+    expect(companyResult.structuredContent).toMatchObject({
+      page: 1,
+      returned_count: 1,
+      has_more: true,
+      companies: [
+        {
+          id: 403,
+          slug: "company-sample-001",
+          company_name: "Example Holdings",
+          website: "https://www.example-holdings.test",
+          city: null,
+          locality: null,
+          state: "Example State",
+          country: "Example Country",
+          postal_code: "10001",
+          address: "123 Example Street",
+          owner: 3735,
+          contact_slugs: ["contact-sample-001", "contact-sample-002"],
+          is_child_company: false,
+          is_parent_company: true,
+          child_company_slugs: ["company-sample-child-001"],
+          parent_company_slug: null,
+          marked_as_off_limit: true,
+          off_limit: {
+            status_id: 12,
+            status_label: "Off Limits",
+            reason: "Existing exclusive agreement",
+            end_date: "2026-12-31",
+          },
+          created_on: "2020-06-03T17:05:48.000000Z",
+          updated_on: "2026-04-08T08:18:32.000000Z",
+        },
+      ],
+    });
+    expect(
+      (companyResult.structuredContent as { companies: Array<Record<string, unknown>> }).companies[0],
+    ).not.toHaveProperty("custom_fields");
+    expect(
+      (companyResult.structuredContent as { companies: Array<Record<string, unknown>> }).companies[0],
+    ).not.toHaveProperty("resource_url");
+    expect(
+      (companyResult.structuredContent as { companies: Array<Record<string, unknown>> }).companies[0],
+    ).not.toHaveProperty("logo");
+    expect(jobDetailResult.structuredContent).toMatchObject({
+      slug: "job-detail-sample-001",
+      name: "Operations Analyst",
+      company_slug: "company-sample-001",
+      contact_slug: "contact-sample-001",
+      salary_type: {
+        id: 2,
+        label: "Annual Salary",
+      },
+      resource_url: "https://app.recruitcrm.io/job/job-detail-sample-001",
+      application_form_url: "https://recruitcrm.io/apply/job-detail-sample-001",
+    });
+    expect(
+      (jobDetailResult.structuredContent as { custom_fields: Array<Record<string, unknown>> }).custom_fields,
+    ).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          field_id: 1,
+          field_name: "Region",
+        }),
+      ]),
     );
     expect(historyResult.structuredContent).toMatchObject({
       candidate_slug: "010011",
@@ -523,7 +622,7 @@ describe("Recruit CRM MCP tools", () => {
       (callLogResult.structuredContent as { call_logs: Array<Record<string, unknown>> }).call_logs[0],
     ).not.toHaveProperty("associated_candidates");
 
-    expect(transportMock).toHaveBeenCalledTimes(11);
+    expect(transportMock).toHaveBeenCalledTimes(13);
 
     await client.close();
     await server.close();
@@ -572,6 +671,57 @@ describe("Recruit CRM MCP tools", () => {
       content: [
         {
           text: "Candidate not found.",
+        },
+      ],
+    });
+
+    await client.close();
+    await server.close();
+  });
+
+  it("maps a direct job detail 404 to job not found", async () => {
+    const transportMock = vi.fn(async (request: HttpRequestOptions): Promise<HttpResponse> => {
+      if (request.url.pathname.endsWith("/jobs/missing-job")) {
+        return {
+          statusCode: 404,
+          bodyText: JSON.stringify({ message: "Not found" }),
+        };
+      }
+
+      throw new Error(`Unexpected request: ${request.url.toString()}`);
+    });
+
+    const server = createRecruitCrmServer({
+      config: {
+        apiToken: "test-token",
+        baseUrl: "https://api.recruitcrm.io/v1",
+        timeoutMs: 10_000,
+        debugSchemaErrors: false,
+      },
+      transport: transportMock,
+    });
+
+    const client = new Client({
+      name: "test-client",
+      version: "1.0.0",
+    });
+
+    const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
+    await server.connect(serverTransport);
+    await client.connect(clientTransport);
+
+    await expect(
+      client.callTool({
+        name: "get_job_details",
+        arguments: {
+          job_slug: "missing-job",
+        },
+      }),
+    ).resolves.toMatchObject({
+      isError: true,
+      content: [
+        {
+          text: "Job not found.",
         },
       ],
     });

@@ -15,6 +15,7 @@ import {
   mapCandidateJobAssignmentHiringStageHistoryResult,
   mapSearchCallLogsResult,
   mapSearchCandidatesResult,
+  mapSearchCompaniesResult,
   mapSearchJobsResult,
   mapSearchMeetingsResult,
   mapSearchNotesResult,
@@ -28,7 +29,10 @@ import {
   type CandidateCustomFieldDetail,
   type CandidateCustomFieldListResult,
   type CandidateDetail,
+  type JobDetail,
   type SearchCandidatesInput,
+  type SearchCompaniesInput,
+  type SearchCompaniesResult,
   type SearchJobsInput,
   type SearchJobsResult,
   type SearchMeetingsInput,
@@ -140,6 +144,23 @@ const searchJobsInputSchema = {
   updated_to: textFilterSchema.optional().describe("Updated-on date range end."),
 };
 
+const searchCompaniesInputSchema = {
+  page: z.coerce.number().int().min(1).optional().describe("Page number."),
+  company_name: textFilterSchema.optional().describe("Company name."),
+  created_from: textFilterSchema.optional().describe("Created-on date range start."),
+  created_to: textFilterSchema.optional().describe("Created-on date range end."),
+  marked_as_off_limit: booleanLikeSchema.optional().describe("Filter by off-limit status."),
+  owner_email: textFilterSchema.optional().describe("Company owner email."),
+  owner_id: z.coerce.number().int().optional().describe("Company owner id."),
+  owner_name: textFilterSchema.optional().describe("Company owner name."),
+  updated_from: textFilterSchema.optional().describe("Updated-on date range start."),
+  updated_to: textFilterSchema.optional().describe("Updated-on date range end."),
+  company_slug: textFilterSchema.optional().describe("Company slug. Other filters are ignored when provided."),
+  exact_search: booleanLikeSchema.optional().describe("Use exact search instead of partial match."),
+  sort_by: z.enum(["createdon", "updatedon"]).optional().describe("Sort field."),
+  sort_order: z.enum(["asc", "desc"]).optional().describe("Sort order."),
+};
+
 const searchMeetingsInputSchema = {
   page: z.coerce.number().int().min(1).optional().describe("Page number."),
   created_from: textFilterSchema.optional().describe("Meeting created-on date range start."),
@@ -241,6 +262,43 @@ const searchJobsOutputSchema = {
   returned_count: z.number().int().min(0),
   has_more: z.boolean(),
   jobs: z.array(jobSummarySchema),
+};
+
+const companyOffLimitSummarySchema = z.object({
+  status_id: nullableNumberSchema,
+  status_label: nullableStringSchema,
+  reason: nullableStringSchema,
+  end_date: nullableStringSchema,
+});
+
+const companySummarySchema = z.object({
+  id: nullableNumberSchema,
+  slug: nullableStringSchema,
+  company_name: nullableStringSchema,
+  website: nullableStringSchema,
+  city: nullableStringSchema,
+  locality: nullableStringSchema,
+  state: nullableStringSchema,
+  country: nullableStringSchema,
+  postal_code: nullableStringSchema,
+  address: nullableStringSchema,
+  owner: nullableNumberSchema,
+  contact_slugs: z.array(z.string()),
+  is_child_company: nullableBooleanSchema,
+  is_parent_company: nullableBooleanSchema,
+  child_company_slugs: z.array(z.string()),
+  parent_company_slug: nullableStringSchema,
+  marked_as_off_limit: z.boolean(),
+  off_limit: z.union([companyOffLimitSummarySchema, z.null()]),
+  created_on: nullableStringSchema,
+  updated_on: nullableStringSchema,
+});
+
+const searchCompaniesOutputSchema = {
+  page: z.number().int().min(1),
+  returned_count: z.number().int().min(0),
+  has_more: z.boolean(),
+  companies: z.array(companySummarySchema),
 };
 
 const taskTypeSummarySchema = z.object({
@@ -392,6 +450,7 @@ const candidateJobAssignmentHiringStageHistoryOutputSchema = {
 };
 
 const candidateDetailOutputSchema = z.object({}).passthrough();
+const jobDetailOutputSchema = z.object({}).passthrough();
 
 const candidateCustomFieldSummarySchema = z.object({
   field_id: z.number().int().positive(),
@@ -458,6 +517,20 @@ export function createRecruitCrmServer(dependencies: ServerDependencies = {}): M
       },
     },
     async (args) => formatResult(await executeSearchJobs(client, args)),
+  );
+
+  server.registerTool(
+    "search_companies",
+    {
+      description:
+        "Search Recruit CRM companies and return compact summaries designed for large result sets. Returns company slug values for Recruit CRM company links like https://app.recruitcrm.io/company/{slug} and contact_slugs values for contact links like https://app.recruitcrm.io/contact/{contact_slug}.",
+      inputSchema: searchCompaniesInputSchema,
+      outputSchema: searchCompaniesOutputSchema,
+      annotations: {
+        readOnlyHint: true,
+      },
+    },
+    async (args) => formatResult(await executeSearchCompanies(client, args)),
   );
 
   server.registerTool(
@@ -530,6 +603,22 @@ export function createRecruitCrmServer(dependencies: ServerDependencies = {}): M
       },
     },
     async ({ candidate_slug }) => formatResult(await executeGetCandidateDetails(client, candidate_slug)),
+  );
+
+  server.registerTool(
+    "get_job_details",
+    {
+      description:
+        "Fetch one Recruit CRM job by slug and return the raw Recruit CRM payload. The raw payload may include resource_url and application_form_url for opening the job directly in Recruit CRM.",
+      inputSchema: {
+        job_slug: textFilterSchema.describe("Job slug."),
+      },
+      outputSchema: jobDetailOutputSchema,
+      annotations: {
+        readOnlyHint: true,
+      },
+    },
+    async ({ job_slug }) => formatResult(await executeGetJobDetails(client, job_slug)),
   );
 
   server.registerTool(
@@ -662,6 +751,30 @@ export async function executeSearchJobs(client: RecruitCrmClient, args: SearchJo
   return mapSearchJobsResult(result);
 }
 
+export async function executeSearchCompanies(
+  client: RecruitCrmClient,
+  args: SearchCompaniesInput,
+): Promise<SearchCompaniesResult> {
+  const result = await client.searchCompanies({
+    page: args.page ?? 1,
+    company_name: args.company_name,
+    created_from: args.created_from,
+    created_to: args.created_to,
+    marked_as_off_limit: args.marked_as_off_limit,
+    owner_email: args.owner_email,
+    owner_id: args.owner_id,
+    owner_name: args.owner_name,
+    updated_from: args.updated_from,
+    updated_to: args.updated_to,
+    company_slug: args.company_slug,
+    exact_search: args.exact_search,
+    sort_by: args.sort_by ?? "updatedon",
+    sort_order: args.sort_order ?? "desc",
+  });
+
+  return mapSearchCompaniesResult(result);
+}
+
 export async function executeSearchTasks(client: RecruitCrmClient, args: SearchTasksInput): Promise<SearchTasksResult> {
   validateRelatedFilters(args);
   const normalizedArgs = normalizeTaskDateRanges(args);
@@ -758,6 +871,10 @@ export async function executeGetCandidateDetails(
   candidateSlug: string,
 ): Promise<CandidateDetail> {
   return client.getCandidateDetails(candidateSlug);
+}
+
+export async function executeGetJobDetails(client: RecruitCrmClient, jobSlug: string): Promise<JobDetail> {
+  return client.getJobDetails(jobSlug);
 }
 
 export async function executeGetCandidateJobAssignmentHiringStageHistory(
@@ -872,12 +989,14 @@ function mapTaskSearchError(error: unknown, args: SearchTasksInput): RecruitCrmA
 function formatResult(
   result:
     | SearchCandidatesResult
+    | SearchCompaniesResult
     | SearchJobsResult
     | SearchMeetingsResult
     | SearchNotesResult
     | SearchCallLogsResult
     | SearchTasksResult
     | CandidateDetail
+    | JobDetail
     | CandidateJobAssignmentHiringStageHistoryResult
     | CandidateCustomFieldListResult
     | CandidateCustomFieldDetail,

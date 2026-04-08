@@ -5,12 +5,14 @@ import {
   mapCandidateJobAssignmentHiringStageHistoryItem,
   mapCandidateJobAssignmentHiringStageHistoryResult,
   mapCandidateSummary,
+  mapCompanySummary,
   mapJobSummary,
   mapMeetingSummary,
   mapSearchMeetingsResult,
   mapSearchNotesResult,
   mapSearchCallLogsResult,
   mapSearchCandidatesResult,
+  mapSearchCompaniesResult,
   mapSearchJobsResult,
   mapSearchTasksResult,
   mapNoteSummary,
@@ -19,6 +21,7 @@ import {
 import {
   sampleCallLogSearchResponse,
   sampleCandidateJobAssignmentHiringStageHistoryResponse,
+  sampleCompanySearchResponse,
   sampleJobSearchResponse,
   sampleMeetingSearchResponse,
   sampleNoteSearchResponse,
@@ -199,6 +202,63 @@ describe("job mappers", () => {
     expect(summary.secondary_contact_slugs).toEqual(["contact-sample-002", "4040"]);
     expect(summary.enable_job_application_form).toBe(false);
     expect(summary.salary_type).toBe("Annual Salary");
+  });
+});
+
+describe("company mappers", () => {
+  it("maps company search results into compact structured output", () => {
+    const result = mapSearchCompaniesResult(sampleCompanySearchResponse);
+
+    expect(result.page).toBe(1);
+    expect(result.returned_count).toBe(1);
+    expect(result.has_more).toBe(true);
+    expect(result.companies).toHaveLength(1);
+    expect(result.companies[0]).toEqual({
+      id: 403,
+      slug: "company-sample-001",
+      company_name: "Example Holdings",
+      website: "https://www.example-holdings.test",
+      city: null,
+      locality: null,
+      state: "Example State",
+      country: "Example Country",
+      postal_code: "10001",
+      address: "123 Example Street",
+      owner: 3735,
+      contact_slugs: ["contact-sample-001", "contact-sample-002"],
+      is_child_company: false,
+      is_parent_company: true,
+      child_company_slugs: ["company-sample-child-001"],
+      parent_company_slug: null,
+      marked_as_off_limit: true,
+      off_limit: {
+        status_id: 12,
+        status_label: "Off Limits",
+        reason: "Existing exclusive agreement",
+        end_date: "2026-12-31",
+      },
+      created_on: "2020-06-03T17:05:48.000000Z",
+      updated_on: "2026-04-08T08:18:32.000000Z",
+    });
+  });
+
+  it("normalizes scalar contact_slug values and absent off-limit metadata", () => {
+    const summary = mapCompanySummary({
+      ...sampleCompanySearchResponse.data[0],
+      contact_slug: "contact-sample-009",
+      is_child_company: "Yes",
+      is_parent_company: "No",
+      off_limit_status_id: null,
+      status_label: null,
+      off_limit_reason: null,
+      off_limit_end_date: null,
+    });
+
+    expect(summary.contact_slugs).toEqual(["contact-sample-009"]);
+    expect(summary.is_child_company).toBe(true);
+    expect(summary.is_parent_company).toBe(false);
+    expect(summary.marked_as_off_limit).toBe(false);
+    expect(summary.off_limit).toBeNull();
   });
 });
 
