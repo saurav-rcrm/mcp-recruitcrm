@@ -2,6 +2,7 @@ import type {
   RecruitCrmCandidateCustomField,
   CandidateDetail,
   RecruitCrmSearchResponse,
+  RecruitCrmTaskSearchResponse,
 } from "../src/recruitcrm/types.js";
 
 export const sampleSearchResponse: RecruitCrmSearchResponse = {
@@ -89,6 +90,43 @@ export const sampleCandidateCustomFieldsResponse: RecruitCrmCandidateCustomField
     default_value: "",
   },
 ];
+
+export const sampleTaskSearchResponse: RecruitCrmTaskSearchResponse = {
+  current_page: 1,
+  next_page_url: "https://api.recruitcrm.io/v1/tasks/search?page=2",
+  data: [
+    {
+      id: 2572223,
+      related_to: "16367183842920002890gLG",
+      task_type: null,
+      related_to_type: "candidate",
+      related_to_name: "Aamer Ayoob - NQB is 1 of the Leading Global E",
+      description: "",
+      title: "Follow up",
+      status: 1,
+      start_date: "2021-11-19T08:30:00.000000Z",
+      reminder_date: "2021-11-19T08:00:00.000000Z",
+      reminder: 30,
+      owner: 2890,
+      created_on: "2021-11-12T12:02:45.000000Z",
+      updated_on: "2022-11-16T18:33:57.000000Z",
+      created_by: 2890,
+      updated_by: 453,
+      related: {
+        slug: "16367183842920002890gLG",
+        email: "aamer@nqbrecruit.com",
+      },
+      associated_candidates: ["16367183842920002890gLG"],
+      associated_companies: [],
+      associated_contacts: [],
+      associated_jobs: [],
+      associated_deals: [],
+      collaborators: [],
+      collaborator_users: [],
+      collaborator_teams: [null],
+    },
+  ],
+};
 
 export const sampleCandidateDetailResponse: CandidateDetail = {
   id: 45134,

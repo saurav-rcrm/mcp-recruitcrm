@@ -43,6 +43,22 @@ export type SearchCandidatesInput = {
   custom_fields?: SearchCandidateCustomFieldFilter[];
 };
 
+export type SearchTasksInput = {
+  page?: number;
+  created_from?: string;
+  created_to?: string;
+  owner_email?: string;
+  owner_id?: string;
+  owner_name?: string;
+  related_to?: string;
+  related_to_type?: string;
+  starting_from?: string;
+  starting_to?: string;
+  title?: string;
+  updated_from?: string;
+  updated_to?: string;
+};
+
 export type RecruitCrmCandidate = {
   slug: string;
   first_name?: string | number | null;
@@ -82,6 +98,38 @@ export type RecruitCrmSearchResponse = {
   current_page?: number;
   next_page_url?: string | null;
   data: RecruitCrmCandidate[];
+};
+
+export type RecruitCrmTaskType = {
+  id?: number | string | null;
+  label?: string | number | null;
+  [key: string]: unknown;
+};
+
+export type RecruitCrmTask = {
+  id?: number | string | null;
+  related_to?: string | number | null;
+  task_type?: RecruitCrmTaskType[] | null;
+  related_to_type?: string | number | null;
+  related_to_name?: string | number | null;
+  description?: string | number | null;
+  title?: string | number | null;
+  status?: number | string | null;
+  start_date?: string | number | null;
+  reminder_date?: string | number | null;
+  reminder?: number | string | null;
+  owner?: number | string | null;
+  created_on?: string | number | null;
+  updated_on?: string | number | null;
+  created_by?: number | string | null;
+  updated_by?: number | string | null;
+  [key: string]: unknown;
+};
+
+export type RecruitCrmTaskSearchResponse = {
+  current_page?: number;
+  next_page_url?: string | null;
+  data: RecruitCrmTask[];
 };
 
 export type RecruitCrmCandidateDetailCustomField = {
@@ -144,6 +192,37 @@ export type SearchCandidatesResult = {
   returned_count: number;
   has_more: boolean;
   candidates: CandidateSummary[];
+};
+
+export type TaskTypeSummary = {
+  id: string | number | null;
+  label: string | null;
+};
+
+export type TaskSummary = {
+  id: number | null;
+  related_to: string | null;
+  task_type: TaskTypeSummary[] | null;
+  related_to_type: string | null;
+  related_to_name: string | null;
+  description: string | null;
+  title: string | null;
+  status: number | null;
+  start_date: string | null;
+  reminder_date: string | null;
+  reminder: number | null;
+  owner: number | null;
+  created_on: string | null;
+  updated_on: string | null;
+  created_by: number | null;
+  updated_by: number | null;
+};
+
+export type SearchTasksResult = {
+  page: number;
+  returned_count: number;
+  has_more: boolean;
+  tasks: TaskSummary[];
 };
 
 export type CandidateCustomFieldSummary = {

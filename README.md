@@ -7,6 +7,7 @@ Repository: `https://github.com/saurav-rcrm/mcp-recruitcrm`
 ## What It Does
 
 - `search_candidates`: search candidates and return compact summaries with `slug`, `first_name`, `last_name`, `position`, `current_organization`, `current_status`, `city`, and `updated_on`. This compact shape is intentional because search can return large result sets.
+- `search_tasks`: search tasks and return compact summaries with task metadata such as `id`, `title`, `status`, `related_to`, `related_to_type`, `related_to_name`, reminder fields, owner, and audit timestamps.
 - `get_candidate_details`: fetch one candidate by slug and return the raw Recruit CRM candidate payload
 - `list_candidate_custom_fields`: list curated candidate custom field metadata for search. This stays curated because option metadata can be large.
 - `get_candidate_custom_field_details`: fetch curated candidate custom field details with full options when relevant
@@ -58,6 +59,7 @@ npm test
 - Runs locally on the user's machine over `stdio`
 - No live deployment required
 - Search results exclude email and phone by default
+- `search_tasks` excludes the nested `related` payload plus associated entity and collaborator arrays by default
 - API tokens are read from environment variables only
 
 ## Custom Field Flow

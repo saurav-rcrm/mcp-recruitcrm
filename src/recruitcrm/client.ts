@@ -7,7 +7,9 @@ import type {
   RecruitCrmCandidateCustomField,
   CandidateDetail,
   RecruitCrmSearchResponse,
+  RecruitCrmTaskSearchResponse,
   SearchCandidatesInput,
+  SearchTasksInput,
   SearchCandidateCustomFieldFilter,
 } from "./types.js";
 
@@ -32,6 +34,42 @@ const searchResponseSchema = z
     current_page: z.coerce.number().int().positive().optional(),
     next_page_url: z.union([z.string(), z.null()]).optional(),
     data: z.array(candidateSchema),
+  })
+  .passthrough();
+
+const taskTypeSchema = z
+  .object({
+    id: nullableNumberOrStringSchema,
+    label: nullableStringLikeSchema,
+  })
+  .passthrough();
+
+const taskSchema = z
+  .object({
+    id: nullableNumberOrStringSchema,
+    related_to: nullableStringLikeSchema,
+    task_type: z.union([z.array(taskTypeSchema), z.null()]).optional(),
+    related_to_type: nullableStringLikeSchema,
+    related_to_name: nullableStringLikeSchema,
+    description: nullableStringLikeSchema,
+    title: nullableStringLikeSchema,
+    status: nullableNumberOrStringSchema,
+    start_date: nullableStringLikeSchema,
+    reminder_date: nullableStringLikeSchema,
+    reminder: nullableNumberOrStringSchema,
+    owner: nullableNumberOrStringSchema,
+    created_on: nullableStringLikeSchema,
+    updated_on: nullableStringLikeSchema,
+    created_by: nullableNumberOrStringSchema,
+    updated_by: nullableNumberOrStringSchema,
+  })
+  .passthrough();
+
+const taskSearchResponseSchema = z
+  .object({
+    current_page: z.coerce.number().int().positive().optional(),
+    next_page_url: z.union([z.string(), z.null()]).optional(),
+    data: z.array(taskSchema),
   })
   .passthrough();
 
@@ -68,6 +106,12 @@ export class RecruitCrmClient {
     return this.#requestJson("/candidates/search", searchResponseSchema, request);
   }
 
+  async searchTasks(filters: SearchTasksInput): Promise<RecruitCrmTaskSearchResponse> {
+    const request = buildSearchTasksRequest(filters);
+
+    return this.#requestJson("/tasks/search", taskSearchResponseSchema, request);
+  }
+
   async getCandidateDetails(candidateSlug: string): Promise<CandidateDetail> {
     return this.#requestJson(`/candidates/${encodeURIComponent(candidateSlug)}`, candidateDetailSchema);
   }
@@ -79,7 +123,7 @@ export class RecruitCrmClient {
   async #requestJson<T>(
     path: string,
     schema: z.ZodType<T>,
-    options: SearchCandidatesRequest = {},
+    options: GetRequestOptions = {},
   ): Promise<T> {
     const url = new URL(`${this.#baseUrl}${path}`);
 
@@ -141,7 +185,7 @@ export class RecruitCrmClient {
   }
 }
 
-export type SearchCandidatesRequest = {
+export type GetRequestOptions = {
   query?: URLSearchParams;
   jsonBody?: {
     custom_fields: SearchCandidatesCustomFieldsBody;
@@ -154,7 +198,7 @@ type SearchCandidatesCustomFieldsBody = Array<{
   filter_value?: string | number;
 }>;
 
-export function buildSearchCandidatesRequest(filters: SearchCandidatesInput): SearchCandidatesRequest {
+export function buildSearchCandidatesRequest(filters: SearchCandidatesInput): GetRequestOptions {
   const query = new URLSearchParams();
   const page = normalizePage(filters.page);
 
@@ -196,6 +240,27 @@ export function buildSearchCandidatesRequest(filters: SearchCandidatesInput): Se
       custom_fields: customFields,
     },
   };
+}
+
+export function buildSearchTasksRequest(filters: SearchTasksInput): GetRequestOptions {
+  const query = new URLSearchParams();
+  const page = normalizePage(filters.page);
+
+  query.set("page", String(page));
+  setStringParam(query, "created_from", filters.created_from);
+  setStringParam(query, "created_to", filters.created_to);
+  setStringParam(query, "owner_email", filters.owner_email);
+  setStringParam(query, "owner_id", filters.owner_id);
+  setStringParam(query, "owner_name", filters.owner_name);
+  setStringParam(query, "related_to", filters.related_to);
+  setStringParam(query, "related_to_type", filters.related_to_type);
+  setStringParam(query, "starting_from", filters.starting_from);
+  setStringParam(query, "starting_to", filters.starting_to);
+  setStringParam(query, "title", filters.title);
+  setStringParam(query, "updated_from", filters.updated_from);
+  setStringParam(query, "updated_to", filters.updated_to);
+
+  return { query };
 }
 
 function setStringParam(params: URLSearchParams, key: string, value: string | undefined): void {

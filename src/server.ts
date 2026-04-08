@@ -11,7 +11,7 @@ import {
   validateCustomFieldFilters,
 } from "./recruitcrm/custom-fields.js";
 import type { HttpTransport } from "./recruitcrm/http.js";
-import { mapSearchCandidatesResult } from "./recruitcrm/mappers.js";
+import { mapSearchCandidatesResult, mapSearchTasksResult } from "./recruitcrm/mappers.js";
 import {
   CUSTOM_FIELD_FILTER_TYPES,
   type CandidateCustomFieldDetail,
@@ -19,6 +19,8 @@ import {
   type CandidateDetail,
   type SearchCandidatesInput,
   type SearchCandidatesResult,
+  type SearchTasksInput,
+  type SearchTasksResult,
 } from "./recruitcrm/types.js";
 
 const booleanLikeSchema = z
@@ -62,7 +64,25 @@ const searchCandidatesInputSchema = {
     .describe("Candidate custom field filters. Use field ids from the metadata tools."),
 };
 
+const searchTasksInputSchema = {
+  page: z.coerce.number().int().min(1).optional().describe("Page number."),
+  created_from: textFilterSchema.optional().describe("Created from date."),
+  created_to: textFilterSchema.optional().describe("Created to date."),
+  owner_email: textFilterSchema.optional().describe("Task owner email."),
+  owner_id: textFilterSchema.optional().describe("Task owner id."),
+  owner_name: textFilterSchema.optional().describe("Task owner name."),
+  related_to: textFilterSchema.optional().describe("Related entity slug or id. Must be used with related_to_type."),
+  related_to_type: textFilterSchema.optional().describe("Related entity type. Must be used with related_to."),
+  starting_from: textFilterSchema.optional().describe("Task start date from."),
+  starting_to: textFilterSchema.optional().describe("Task start date to."),
+  title: textFilterSchema.optional().describe("Task title."),
+  updated_from: textFilterSchema.optional().describe("Updated from date."),
+  updated_to: textFilterSchema.optional().describe("Updated to date."),
+};
+
 const nullableStringSchema = z.union([z.string(), z.null()]);
+const nullableNumberSchema = z.union([z.number(), z.null()]);
+const nullableStringOrNumberSchema = z.union([z.string(), z.number(), z.null()]);
 
 const candidateSummarySchema = z.object({
   slug: z.string(),
@@ -80,6 +100,37 @@ const searchCandidatesOutputSchema = {
   returned_count: z.number().int().min(0),
   has_more: z.boolean(),
   candidates: z.array(candidateSummarySchema),
+};
+
+const taskTypeSummarySchema = z.object({
+  id: nullableStringOrNumberSchema,
+  label: nullableStringSchema,
+});
+
+const taskSummarySchema = z.object({
+  id: nullableNumberSchema,
+  related_to: nullableStringSchema,
+  task_type: z.union([z.array(taskTypeSummarySchema), z.null()]),
+  related_to_type: nullableStringSchema,
+  related_to_name: nullableStringSchema,
+  description: nullableStringSchema,
+  title: nullableStringSchema,
+  status: nullableNumberSchema,
+  start_date: nullableStringSchema,
+  reminder_date: nullableStringSchema,
+  reminder: nullableNumberSchema,
+  owner: nullableNumberSchema,
+  created_on: nullableStringSchema,
+  updated_on: nullableStringSchema,
+  created_by: nullableNumberSchema,
+  updated_by: nullableNumberSchema,
+});
+
+const searchTasksOutputSchema = {
+  page: z.number().int().min(1),
+  returned_count: z.number().int().min(0),
+  has_more: z.boolean(),
+  tasks: z.array(taskSummarySchema),
 };
 
 const candidateDetailOutputSchema = z.object({}).passthrough();
@@ -134,6 +185,19 @@ export function createRecruitCrmServer(dependencies: ServerDependencies = {}): M
       },
     },
     async (args) => formatResult(await executeSearchCandidates(client, args)),
+  );
+
+  server.registerTool(
+    "search_tasks",
+    {
+      description: "Search Recruit CRM tasks and return compact summaries designed for large result sets.",
+      inputSchema: searchTasksInputSchema,
+      outputSchema: searchTasksOutputSchema,
+      annotations: {
+        readOnlyHint: true,
+      },
+    },
+    async (args) => formatResult(await executeSearchTasks(client, args)),
   );
 
   server.registerTool(
@@ -223,6 +287,28 @@ export async function executeSearchCandidates(
   return mapSearchCandidatesResult(result);
 }
 
+export async function executeSearchTasks(client: RecruitCrmClient, args: SearchTasksInput): Promise<SearchTasksResult> {
+  validateRelatedFilters(args);
+
+  const result = await client.searchTasks({
+    page: args.page ?? 1,
+    created_from: args.created_from,
+    created_to: args.created_to,
+    owner_email: args.owner_email,
+    owner_id: args.owner_id,
+    owner_name: args.owner_name,
+    related_to: args.related_to,
+    related_to_type: args.related_to_type,
+    starting_from: args.starting_from,
+    starting_to: args.starting_to,
+    title: args.title,
+    updated_from: args.updated_from,
+    updated_to: args.updated_to,
+  });
+
+  return mapSearchTasksResult(result);
+}
+
 export async function executeGetCandidateDetails(
   client: RecruitCrmClient,
   candidateSlug: string,
@@ -257,8 +343,22 @@ export async function executeGetCandidateCustomFieldDetails(
   return mapCandidateCustomFieldDetail(field);
 }
 
+function validateRelatedFilters(args: SearchTasksInput): void {
+  const hasRelatedTo = args.related_to !== undefined;
+  const hasRelatedToType = args.related_to_type !== undefined;
+
+  if (hasRelatedTo !== hasRelatedToType) {
+    throw new RecruitCrmApiError("related_to and related_to_type must be provided together.");
+  }
+}
+
 function formatResult(
-  result: SearchCandidatesResult | CandidateDetail | CandidateCustomFieldListResult | CandidateCustomFieldDetail,
+  result:
+    | SearchCandidatesResult
+    | SearchTasksResult
+    | CandidateDetail
+    | CandidateCustomFieldListResult
+    | CandidateCustomFieldDetail,
 ) {
   return {
     content: [

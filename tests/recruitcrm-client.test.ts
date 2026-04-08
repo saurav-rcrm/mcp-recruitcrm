@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { RecruitCrmClient } from "../src/recruitcrm/client.js";
 import type { HttpRequestOptions, HttpResponse } from "../src/recruitcrm/http.js";
-import { sampleCandidateDetailResponse, sampleSearchResponse } from "./fixtures.js";
+import { sampleCandidateDetailResponse, sampleSearchResponse, sampleTaskSearchResponse } from "./fixtures.js";
 
 const baseConfig = {
   apiToken: "test-token",
@@ -49,6 +49,29 @@ describe("RecruitCrmClient", () => {
       first_name: "Michael",
       last_name: "Scott",
       position: "Software Developer",
+    });
+  });
+
+  it("parses task search payloads while tolerating large nested related objects", async () => {
+    const transport = vi.fn(async (_request: HttpRequestOptions): Promise<HttpResponse> => ({
+      statusCode: 200,
+      bodyText: JSON.stringify(sampleTaskSearchResponse),
+    }));
+    const client = new RecruitCrmClient(baseConfig, transport);
+
+    const result = await client.searchTasks({
+      related_to: "16367183842920002890gLG",
+      related_to_type: "candidate",
+    });
+
+    expect(result.current_page).toBe(1);
+    expect(result.next_page_url).toBe("https://api.recruitcrm.io/v1/tasks/search?page=2");
+    expect(result.data[0]).toMatchObject({
+      id: 2572223,
+      related_to: "16367183842920002890gLG",
+      task_type: null,
+      title: "Follow up",
+      status: 1,
     });
   });
 
