@@ -7,7 +7,7 @@ Repository: `https://github.com/saurav-rcrm/mcp-recruitcrm`
 ## What It Does
 
 - `search_candidates`: search candidates and return compact summaries with `slug`, `first_name`, `last_name`, `position`, `current_organization`, `current_status`, `city`, and `updated_on`
-- `get_candidate_details`: fetch one candidate by slug and return curated details
+- `get_candidate_details`: fetch one candidate by slug and return the direct Recruit CRM candidate payload, including `custom_fields`, `work_history`, and `education_history`
 - `list_candidate_custom_fields`: list candidate custom fields for custom-field search
 - `get_candidate_custom_field_details`: fetch one candidate custom field with full options when relevant
 

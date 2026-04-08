@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { mapCandidateDetail, mapCandidateSummary, mapSearchCandidatesResult } from "../src/recruitcrm/mappers.js";
+import { mapCandidateSummary, mapSearchCandidatesResult } from "../src/recruitcrm/mappers.js";
 import { sampleSearchResponse } from "./fixtures.js";
 
 describe("candidate mappers", () => {
@@ -20,21 +20,6 @@ describe("candidate mappers", () => {
     expect("email" in summary).toBe(false);
     expect("contact_number" in summary).toBe(false);
     expect("full_name" in summary).toBe(false);
-  });
-
-  it("includes contact fields in candidate details", () => {
-    const detail = mapCandidateDetail(sampleSearchResponse.data[0]!);
-
-    expect(detail.email).toBe("mscott@gmail.com");
-    expect(detail.contact_number).toBe("+1123226666");
-    expect(detail.location).toBe("New York, New York, United States");
-    expect(detail.salary).toEqual({
-      current: "150000",
-      expectation: "180000",
-      type: "Monthly Salary",
-      currency_id: 2,
-    });
-    expect(detail.owner).toEqual({ id: 10001 });
   });
 
   it("maps search results into compact structured output", () => {

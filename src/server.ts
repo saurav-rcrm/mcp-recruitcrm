@@ -11,7 +11,7 @@ import {
   validateCustomFieldFilters,
 } from "./recruitcrm/custom-fields.js";
 import type { HttpTransport } from "./recruitcrm/http.js";
-import { mapCandidateDetail, mapSearchCandidatesResult } from "./recruitcrm/mappers.js";
+import { mapSearchCandidatesResult } from "./recruitcrm/mappers.js";
 import {
   CUSTOM_FIELD_FILTER_TYPES,
   type CandidateCustomFieldDetail,
@@ -65,6 +65,9 @@ const searchCandidatesInputSchema = {
 const nullableStringSchema = z.union([z.string(), z.null()]);
 const nullableNumberSchema = z.union([z.number(), z.null()]);
 const nullableBooleanSchema = z.union([z.boolean(), z.null()]);
+const nullableNumberOrStringSchema = z.union([z.number(), z.string(), z.null()]);
+const nullableStringOrNumberSchema = z.union([z.string(), z.number(), z.null()]);
+const nullableBooleanNumberStringSchema = z.union([z.boolean(), z.number(), z.string(), z.null()]);
 
 const candidateSummarySchema = z.object({
   slug: z.string(),
@@ -84,37 +87,121 @@ const searchCandidatesOutputSchema = {
   candidates: z.array(candidateSummarySchema),
 };
 
+const candidateDetailCustomFieldSchema = z
+  .object({
+    field_id: z.number().int().positive(),
+    entity_type: z.string(),
+    field_name: z.string(),
+    field_type: z.string(),
+    value: z.unknown(),
+  })
+  .passthrough();
+
+const candidateWorkHistorySchema = z
+  .object({
+    candidate_id: nullableNumberOrStringSchema,
+    id: z.union([z.number(), z.string()]),
+    title: nullableStringSchema,
+    work_company_name: nullableStringSchema,
+    employment_type: nullableNumberOrStringSchema,
+    industry_id: nullableNumberOrStringSchema,
+    work_location: nullableStringSchema,
+    salary: nullableNumberOrStringSchema,
+    is_currently_working: nullableBooleanNumberStringSchema,
+    work_start_date: nullableNumberOrStringSchema,
+    work_end_date: nullableNumberOrStringSchema,
+    work_description: nullableStringSchema,
+  })
+  .passthrough();
+
+const candidateEducationHistorySchema = z
+  .object({
+    candidate_id: nullableNumberOrStringSchema,
+    id: z.union([z.number(), z.string()]),
+    institute_name: nullableStringSchema,
+    educational_qualification: nullableStringSchema,
+    educational_specialization: nullableStringSchema,
+    grade: nullableStringSchema,
+    education_location: nullableStringSchema,
+    education_start_date: nullableNumberOrStringSchema,
+    education_end_date: nullableNumberOrStringSchema,
+    education_description: nullableStringSchema,
+  })
+  .passthrough();
+
 const candidateDetailOutputSchema = {
-  slug: z.string(),
-  full_name: z.string(),
+  id: z.union([z.number(), z.string()]),
+  first_name: nullableStringSchema,
+  last_name: nullableStringSchema,
   email: nullableStringSchema,
   contact_number: nullableStringSchema,
-  position: nullableStringSchema,
+  gender_id: nullableNumberOrStringSchema,
+  qualification_id: nullableNumberOrStringSchema,
+  specialization: nullableStringSchema,
+  work_ex_year: nullableNumberOrStringSchema,
+  candidate_dob: nullableStringOrNumberSchema,
+  current_salary: nullableNumberOrStringSchema,
+  salary_expectation: nullableNumberOrStringSchema,
+  resume: nullableStringSchema,
+  willing_to_relocate: nullableBooleanNumberStringSchema,
   current_organization: nullableStringSchema,
   current_status: nullableStringSchema,
-  status_label: nullableStringSchema,
-  location: nullableStringSchema,
-  work_ex_year: nullableNumberSchema,
-  relevant_experience: nullableNumberSchema,
-  specialization: nullableStringSchema,
-  skill: nullableStringSchema,
-  language_skills: nullableStringSchema,
-  notice_period: nullableNumberSchema,
-  available_from: nullableStringSchema,
-  willing_to_relocate: nullableBooleanSchema,
-  salary: z.object({
-    current: nullableStringSchema,
-    expectation: nullableStringSchema,
-    type: nullableStringSchema,
-    currency_id: nullableNumberSchema,
-  }),
+  notice_period: nullableNumberOrStringSchema,
+  currency_id: nullableNumberOrStringSchema,
+  slug: z.string(),
+  profile_update_link_status: nullableNumberOrStringSchema,
+  profile_update_requested_on: nullableStringSchema,
+  profile_updated_on: nullableStringSchema,
+  avatar: nullableStringSchema,
+  facebook: nullableStringSchema,
+  twitter: nullableStringSchema,
   linkedin: nullableStringSchema,
   github: nullableStringSchema,
-  candidate_summary: nullableStringSchema,
+  xing: nullableStringSchema,
+  created_on: nullableStringSchema,
   updated_on: nullableStringSchema,
-  owner: z.object({
-    id: nullableNumberSchema,
-  }),
+  city: nullableStringSchema,
+  locality: nullableStringSchema,
+  state: nullableStringSchema,
+  country: nullableStringSchema,
+  address: nullableStringSchema,
+  relevant_experience: nullableNumberOrStringSchema,
+  position: nullableStringSchema,
+  available_from: nullableStringOrNumberSchema,
+  salary_type: z.object({
+    id: nullableNumberOrStringSchema,
+    label: nullableStringSchema,
+  }).nullable(),
+  source: nullableStringSchema,
+  language_skills: nullableStringSchema,
+  skill: nullableStringSchema,
+  custom_fields: z.array(candidateDetailCustomFieldSchema),
+  created_by: nullableNumberOrStringSchema,
+  updated_by: nullableNumberOrStringSchema,
+  owner: nullableNumberOrStringSchema,
+  resource_url: nullableStringSchema,
+  is_email_opted_out: z.union([z.string(), z.boolean(), z.null()]),
+  email_opt_out_source: nullableStringSchema,
+  candidate_summary: nullableStringSchema,
+  work_history: z.array(candidateWorkHistorySchema),
+  education_history: z.array(candidateEducationHistorySchema),
+  current_organization_slug: nullableStringSchema,
+  last_calllog_added_on: nullableStringSchema,
+  last_calllog_added_by: nullableNumberOrStringSchema,
+  last_email_sent_on: nullableStringSchema,
+  last_email_sent_by: nullableNumberOrStringSchema,
+  last_sms_sent_on: nullableStringSchema,
+  last_sms_sent_by: nullableNumberOrStringSchema,
+  last_meeting_created_on: nullableStringSchema,
+  last_meeting_created_by: nullableNumberOrStringSchema,
+  last_linkedin_message_sent_on: nullableStringSchema,
+  last_linkedin_message_sent_by: nullableNumberOrStringSchema,
+  last_communication: nullableStringSchema,
+  postal_code: nullableStringSchema,
+  off_limit_status_id: nullableNumberOrStringSchema,
+  status_label: nullableStringSchema,
+  off_limit_reason: nullableStringSchema,
+  off_limit_end_date: nullableStringSchema,
 };
 
 const candidateCustomFieldSummarySchema = z.object({
@@ -260,18 +347,7 @@ export async function executeGetCandidateDetails(
   client: RecruitCrmClient,
   candidateSlug: string,
 ): Promise<CandidateDetail> {
-  const result = await client.searchCandidates({
-    candidate_slug: candidateSlug,
-    page: 1,
-  });
-
-  const candidate = result.data[0];
-
-  if (!candidate) {
-    throw new RecruitCrmApiError("Candidate not found.", 404);
-  }
-
-  return mapCandidateDetail(candidate);
+  return client.getCandidateDetails(candidateSlug);
 }
 
 export async function executeListCandidateCustomFields(

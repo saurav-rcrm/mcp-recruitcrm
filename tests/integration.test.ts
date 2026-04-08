@@ -4,7 +4,11 @@ import { describe, expect, it, vi } from "vitest";
 
 import { createRecruitCrmServer } from "../src/server.js";
 import type { HttpRequestOptions, HttpResponse } from "../src/recruitcrm/http.js";
-import { sampleCandidateCustomFieldsResponse, sampleSearchResponse } from "./fixtures.js";
+import {
+  sampleCandidateCustomFieldsResponse,
+  sampleCandidateDetailResponse,
+  sampleSearchResponse,
+} from "./fixtures.js";
 
 describe("Recruit CRM MCP tools", () => {
   it("lists tools and returns structured metadata, search, and detail results", async () => {
@@ -33,6 +37,16 @@ describe("Recruit CRM MCP tools", () => {
         return {
           statusCode: 200,
           bodyText: JSON.stringify(sampleSearchResponse),
+        };
+      }
+
+      if (request.url.pathname.endsWith("/candidates/010011")) {
+        return {
+          statusCode: 200,
+          bodyText: JSON.stringify({
+            ...sampleCandidateDetailResponse,
+            slug: "010011",
+          }),
         };
       }
 
@@ -132,12 +146,92 @@ describe("Recruit CRM MCP tools", () => {
 
     expect(detailResult.structuredContent).toMatchObject({
       slug: "010011",
-      email: "mscott@gmail.com",
-      contact_number: "+1123226666",
-      location: "New York, New York, United States",
+      first_name: "Saurav",
+      last_name: "Jordan",
+      current_salary: 0,
+      salary_type: {
+        id: "2",
+        label: "Annual Salary",
+      },
     });
+    expect((detailResult.structuredContent as { custom_fields: Array<Record<string, unknown>> }).custom_fields).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          field_id: 34,
+          field_name: "Tech Stack",
+        }),
+      ]),
+    );
+    expect((detailResult.structuredContent as { work_history: Array<Record<string, unknown>> }).work_history).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          title: "Власник компанії",
+          work_company_name: "TATfood",
+        }),
+      ]),
+    );
+    expect(
+      (detailResult.structuredContent as { education_history: Array<Record<string, unknown>> }).education_history,
+    ).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          institute_name: "National University of Food Technologies",
+        }),
+      ]),
+    );
 
     expect(transportMock).toHaveBeenCalledTimes(5);
+
+    await client.close();
+    await server.close();
+  });
+
+  it("maps a direct detail 404 to candidate not found", async () => {
+    const transportMock = vi.fn(async (request: HttpRequestOptions): Promise<HttpResponse> => {
+      if (request.url.pathname.endsWith("/candidates/missing")) {
+        return {
+          statusCode: 404,
+          bodyText: JSON.stringify({ message: "Not found" }),
+        };
+      }
+
+      throw new Error(`Unexpected request: ${request.url.toString()}`);
+    });
+
+    const server = createRecruitCrmServer({
+      config: {
+        apiToken: "test-token",
+        baseUrl: "https://api.recruitcrm.io/v1",
+        timeoutMs: 10_000,
+        debugSchemaErrors: false,
+      },
+      transport: transportMock,
+    });
+
+    const client = new Client({
+      name: "test-client",
+      version: "1.0.0",
+    });
+
+    const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
+    await server.connect(serverTransport);
+    await client.connect(clientTransport);
+
+    await expect(
+      client.callTool({
+        name: "get_candidate_details",
+        arguments: {
+          candidate_slug: "missing",
+        },
+      }),
+    ).resolves.toMatchObject({
+      isError: true,
+      content: [
+        {
+          text: "Candidate not found.",
+        },
+      ],
+    });
 
     await client.close();
     await server.close();
