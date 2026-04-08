@@ -11,13 +11,15 @@ import {
   validateCustomFieldFilters,
 } from "./recruitcrm/custom-fields.js";
 import type { HttpTransport } from "./recruitcrm/http.js";
-import { mapSearchCandidatesResult, mapSearchTasksResult } from "./recruitcrm/mappers.js";
+import { mapSearchCandidatesResult, mapSearchMeetingsResult, mapSearchTasksResult } from "./recruitcrm/mappers.js";
 import {
   CUSTOM_FIELD_FILTER_TYPES,
   type CandidateCustomFieldDetail,
   type CandidateCustomFieldListResult,
   type CandidateDetail,
   type SearchCandidatesInput,
+  type SearchMeetingsInput,
+  type SearchMeetingsResult,
   type SearchCandidatesResult,
   type SearchTasksInput,
   type SearchTasksResult,
@@ -80,8 +82,25 @@ const searchTasksInputSchema = {
   updated_to: textFilterSchema.optional().describe("Task updated-on date range end."),
 };
 
+const searchMeetingsInputSchema = {
+  page: z.coerce.number().int().min(1).optional().describe("Page number."),
+  created_from: textFilterSchema.optional().describe("Meeting created-on date range start."),
+  created_to: textFilterSchema.optional().describe("Meeting created-on date range end."),
+  owner_email: textFilterSchema.optional().describe("Meeting owner email."),
+  owner_id: textFilterSchema.optional().describe("Meeting owner id."),
+  owner_name: textFilterSchema.optional().describe("Meeting owner name."),
+  related_to: textFilterSchema.optional().describe("Related entity slug or id. Must be used with related_to_type."),
+  related_to_type: textFilterSchema.optional().describe("Related entity type. Must be used with related_to."),
+  starting_from: textFilterSchema.optional().describe("Meeting start date/time range start."),
+  starting_to: textFilterSchema.optional().describe("Meeting start date/time range end."),
+  title: textFilterSchema.optional().describe("Meeting title."),
+  updated_from: textFilterSchema.optional().describe("Meeting updated-on date range start."),
+  updated_to: textFilterSchema.optional().describe("Meeting updated-on date range end."),
+};
+
 const nullableStringSchema = z.union([z.string(), z.null()]);
 const nullableNumberSchema = z.union([z.number(), z.null()]);
+const nullableBooleanSchema = z.union([z.boolean(), z.null()]);
 const nullableStringOrNumberSchema = z.union([z.string(), z.number(), z.null()]);
 
 const candidateSummarySchema = z.object({
@@ -131,6 +150,40 @@ const searchTasksOutputSchema = {
   returned_count: z.number().int().min(0),
   has_more: z.boolean(),
   tasks: z.array(taskSummarySchema),
+};
+
+const meetingTypeSummarySchema = z.object({
+  id: nullableStringOrNumberSchema,
+  label: nullableStringSchema,
+});
+
+const meetingSummarySchema = z.object({
+  id: nullableNumberSchema,
+  title: nullableStringSchema,
+  meeting_type: z.union([z.array(meetingTypeSummarySchema), z.null()]),
+  description: nullableStringSchema,
+  address: nullableStringSchema,
+  reminder: nullableNumberSchema,
+  start_date: nullableStringSchema,
+  end_date: nullableStringSchema,
+  related_to: nullableStringSchema,
+  related_to_type: nullableStringSchema,
+  do_not_send_calendar_invites: nullableBooleanSchema,
+  status: nullableStringOrNumberSchema,
+  reminder_date: nullableStringSchema,
+  all_day: nullableBooleanSchema,
+  owner: nullableNumberSchema,
+  created_on: nullableStringSchema,
+  updated_on: nullableStringSchema,
+  created_by: nullableNumberSchema,
+  updated_by: nullableNumberSchema,
+});
+
+const searchMeetingsOutputSchema = {
+  page: z.number().int().min(1),
+  returned_count: z.number().int().min(0),
+  has_more: z.boolean(),
+  meetings: z.array(meetingSummarySchema),
 };
 
 const candidateDetailOutputSchema = z.object({}).passthrough();
@@ -198,6 +251,19 @@ export function createRecruitCrmServer(dependencies: ServerDependencies = {}): M
       },
     },
     async (args) => formatResult(await executeSearchTasks(client, args)),
+  );
+
+  server.registerTool(
+    "search_meetings",
+    {
+      description: "Search Recruit CRM meetings and return compact summaries designed for large result sets.",
+      inputSchema: searchMeetingsInputSchema,
+      outputSchema: searchMeetingsOutputSchema,
+      annotations: {
+        readOnlyHint: true,
+      },
+    },
+    async (args) => formatResult(await executeSearchMeetings(client, args)),
   );
 
   server.registerTool(
@@ -316,6 +382,31 @@ export async function executeSearchTasks(client: RecruitCrmClient, args: SearchT
   return mapSearchTasksResult(result);
 }
 
+export async function executeSearchMeetings(
+  client: RecruitCrmClient,
+  args: SearchMeetingsInput,
+): Promise<SearchMeetingsResult> {
+  validateRelatedFilters(args);
+
+  const result = await client.searchMeetings({
+    page: args.page ?? 1,
+    created_from: args.created_from,
+    created_to: args.created_to,
+    owner_email: args.owner_email,
+    owner_id: args.owner_id,
+    owner_name: args.owner_name,
+    related_to: args.related_to,
+    related_to_type: args.related_to_type,
+    starting_from: args.starting_from,
+    starting_to: args.starting_to,
+    title: args.title,
+    updated_from: args.updated_from,
+    updated_to: args.updated_to,
+  });
+
+  return mapSearchMeetingsResult(result);
+}
+
 export async function executeGetCandidateDetails(
   client: RecruitCrmClient,
   candidateSlug: string,
@@ -350,7 +441,7 @@ export async function executeGetCandidateCustomFieldDetails(
   return mapCandidateCustomFieldDetail(field);
 }
 
-function validateRelatedFilters(args: SearchTasksInput): void {
+function validateRelatedFilters(args: { related_to?: string; related_to_type?: string }): void {
   const hasRelatedTo = args.related_to !== undefined;
   const hasRelatedToType = args.related_to_type !== undefined;
 
@@ -412,6 +503,7 @@ function mapTaskSearchError(error: unknown, args: SearchTasksInput): RecruitCrmA
 function formatResult(
   result:
     | SearchCandidatesResult
+    | SearchMeetingsResult
     | SearchTasksResult
     | CandidateDetail
     | CandidateCustomFieldListResult

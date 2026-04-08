@@ -1,10 +1,16 @@
 import type {
   CandidateSummary,
+  MeetingSummary,
+  MeetingTypeSummary,
   RecruitCrmCandidate,
+  RecruitCrmMeeting,
+  RecruitCrmMeetingSearchResponse,
+  RecruitCrmMeetingType,
   RecruitCrmTask,
   RecruitCrmTaskSearchResponse,
   RecruitCrmTaskType,
   RecruitCrmSearchResponse,
+  SearchMeetingsResult,
   SearchCandidatesResult,
   SearchTasksResult,
   TaskSummary,
@@ -44,6 +50,15 @@ export function mapSearchTasksResult(response: RecruitCrmTaskSearchResponse): Se
   };
 }
 
+export function mapSearchMeetingsResult(response: RecruitCrmMeetingSearchResponse): SearchMeetingsResult {
+  return {
+    page: response.current_page ?? 1,
+    returned_count: response.data.length,
+    has_more: hasNextPage(response.next_page_url),
+    meetings: response.data.map(mapMeetingSummary),
+  };
+}
+
 export function mapTaskSummary(task: RecruitCrmTask): TaskSummary {
   return {
     id: normalizeNumber(task.id),
@@ -62,6 +77,30 @@ export function mapTaskSummary(task: RecruitCrmTask): TaskSummary {
     updated_on: normalizeString(task.updated_on),
     created_by: normalizeNumber(task.created_by),
     updated_by: normalizeNumber(task.updated_by),
+  };
+}
+
+export function mapMeetingSummary(meeting: RecruitCrmMeeting): MeetingSummary {
+  return {
+    id: normalizeNumber(meeting.id),
+    title: normalizeString(meeting.title),
+    meeting_type: normalizeMeetingTypes(meeting.meeting_type),
+    description: normalizeString(meeting.description),
+    address: normalizeString(meeting.address),
+    reminder: normalizeNumber(meeting.reminder),
+    start_date: normalizeString(meeting.start_date),
+    end_date: normalizeString(meeting.end_date),
+    related_to: normalizeString(meeting.related_to),
+    related_to_type: normalizeString(meeting.related_to_type),
+    do_not_send_calendar_invites: normalizeBoolean(meeting.do_not_send_calendar_invites),
+    status: normalizeScalar(meeting.status),
+    reminder_date: normalizeString(meeting.reminder_date),
+    all_day: normalizeBoolean(meeting.all_day),
+    owner: normalizeNumber(meeting.owner),
+    created_on: normalizeString(meeting.created_on),
+    updated_on: normalizeString(meeting.updated_on),
+    created_by: normalizeNumber(meeting.created_by),
+    updated_by: normalizeNumber(meeting.updated_by),
   };
 }
 
@@ -91,13 +130,27 @@ function normalizeNumber(value: number | string | null | undefined): number | nu
   return Number.isFinite(parsed) ? parsed : null;
 }
 
-function normalizeBoolean(value: number | boolean | null | undefined): boolean | null {
+function normalizeBoolean(value: number | string | boolean | null | undefined): boolean | null {
   if (value === undefined || value === null) {
     return null;
   }
 
   if (typeof value === "boolean") {
     return value;
+  }
+
+  if (typeof value === "string") {
+    const trimmed = value.trim().toLowerCase();
+
+    if (trimmed === "1" || trimmed === "true") {
+      return true;
+    }
+
+    if (trimmed === "0" || trimmed === "false") {
+      return false;
+    }
+
+    return null;
   }
 
   if (value === 1) {
@@ -127,6 +180,34 @@ function normalizeTaskTypes(
 }
 
 function normalizeIdentifier(value: number | string | null | undefined): number | string | null {
+  if (value === undefined || value === null) {
+    return null;
+  }
+
+  if (typeof value === "number") {
+    return Number.isFinite(value) ? value : null;
+  }
+
+  const trimmed = value.trim();
+  return trimmed === "" ? null : trimmed;
+}
+
+function normalizeMeetingTypes(
+  meetingTypes: RecruitCrmMeetingType | RecruitCrmMeetingType[] | null | undefined,
+): MeetingTypeSummary[] | null {
+  if (meetingTypes === undefined || meetingTypes === null) {
+    return null;
+  }
+
+  const normalizedMeetingTypes = Array.isArray(meetingTypes) ? meetingTypes : [meetingTypes];
+
+  return normalizedMeetingTypes.map((meetingType) => ({
+    id: normalizeIdentifier(meetingType.id),
+    label: normalizeString(meetingType.label),
+  }));
+}
+
+function normalizeScalar(value: number | string | null | undefined): string | number | null {
   if (value === undefined || value === null) {
     return null;
   }

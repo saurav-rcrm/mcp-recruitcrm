@@ -6,9 +6,11 @@ import { nodeHttpTransport, type HttpTransport } from "./http.js";
 import type {
   RecruitCrmCandidateCustomField,
   CandidateDetail,
+  RecruitCrmMeetingSearchResponse,
   RecruitCrmSearchResponse,
   RecruitCrmTaskSearchResponse,
   SearchCandidatesInput,
+  SearchMeetingsInput,
   SearchTasksInput,
   SearchCandidateCustomFieldFilter,
 } from "./types.js";
@@ -83,6 +85,55 @@ const taskSearchResponseSchema = z
     ),
   ]);
 
+const meetingTypeSchema = z
+  .object({
+    id: nullableNumberOrStringSchema,
+    label: nullableStringLikeSchema,
+  })
+  .passthrough();
+
+const meetingSchema = z
+  .object({
+    id: nullableNumberOrStringSchema,
+    title: nullableStringLikeSchema,
+    meeting_type: z.union([meetingTypeSchema, z.array(meetingTypeSchema), z.null()]).optional(),
+    description: nullableStringLikeSchema,
+    address: nullableStringLikeSchema,
+    reminder: nullableNumberOrStringSchema,
+    start_date: nullableStringLikeSchema,
+    end_date: nullableStringLikeSchema,
+    related_to: nullableStringLikeSchema,
+    related_to_type: nullableStringLikeSchema,
+    do_not_send_calendar_invites: z.union([z.number(), z.string(), z.boolean(), z.null()]).optional(),
+    status: nullableNumberOrStringSchema,
+    reminder_date: nullableStringLikeSchema,
+    all_day: z.union([z.number(), z.string(), z.boolean(), z.null()]).optional(),
+    owner: nullableNumberOrStringSchema,
+    created_on: nullableStringLikeSchema,
+    updated_on: nullableStringLikeSchema,
+    created_by: nullableNumberOrStringSchema,
+    updated_by: nullableNumberOrStringSchema,
+  })
+  .passthrough();
+
+const meetingSearchResponseSchema = z
+  .union([
+    z
+      .object({
+        current_page: z.coerce.number().int().positive().optional(),
+        next_page_url: z.union([z.string(), z.null()]).optional(),
+        data: z.array(meetingSchema),
+      })
+      .passthrough(),
+    z.array(z.unknown()).length(0).transform(
+      (): RecruitCrmMeetingSearchResponse => ({
+        current_page: 1,
+        next_page_url: null,
+        data: [],
+      }),
+    ),
+  ]);
+
 const candidateCustomFieldSchema = z
   .object({
     field_id: z.coerce.number().int().positive(),
@@ -120,6 +171,12 @@ export class RecruitCrmClient {
     const request = buildSearchTasksRequest(filters);
 
     return this.#requestJson("/tasks/search", taskSearchResponseSchema, request);
+  }
+
+  async searchMeetings(filters: SearchMeetingsInput): Promise<RecruitCrmMeetingSearchResponse> {
+    const request = buildSearchMeetingsRequest(filters);
+
+    return this.#requestJson("/meetings/search", meetingSearchResponseSchema, request);
   }
 
   async getCandidateDetails(candidateSlug: string): Promise<CandidateDetail> {
@@ -253,6 +310,27 @@ export function buildSearchCandidatesRequest(filters: SearchCandidatesInput): Ge
 }
 
 export function buildSearchTasksRequest(filters: SearchTasksInput): GetRequestOptions {
+  const query = new URLSearchParams();
+  const page = normalizePage(filters.page);
+
+  query.set("page", String(page));
+  setStringParam(query, "created_from", filters.created_from);
+  setStringParam(query, "created_to", filters.created_to);
+  setStringParam(query, "owner_email", filters.owner_email);
+  setStringParam(query, "owner_id", filters.owner_id);
+  setStringParam(query, "owner_name", filters.owner_name);
+  setStringParam(query, "related_to", filters.related_to);
+  setStringParam(query, "related_to_type", filters.related_to_type);
+  setStringParam(query, "starting_from", filters.starting_from);
+  setStringParam(query, "starting_to", filters.starting_to);
+  setStringParam(query, "title", filters.title);
+  setStringParam(query, "updated_from", filters.updated_from);
+  setStringParam(query, "updated_to", filters.updated_to);
+
+  return { query };
+}
+
+export function buildSearchMeetingsRequest(filters: SearchMeetingsInput): GetRequestOptions {
   const query = new URLSearchParams();
   const page = normalizePage(filters.page);
 

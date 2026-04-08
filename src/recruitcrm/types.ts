@@ -59,6 +59,22 @@ export type SearchTasksInput = {
   updated_to?: string;
 };
 
+export type SearchMeetingsInput = {
+  page?: number;
+  created_from?: string;
+  created_to?: string;
+  owner_email?: string;
+  owner_id?: string;
+  owner_name?: string;
+  related_to?: string;
+  related_to_type?: string;
+  starting_from?: string;
+  starting_to?: string;
+  title?: string;
+  updated_from?: string;
+  updated_to?: string;
+};
+
 export type RecruitCrmCandidate = {
   slug: string;
   first_name?: string | number | null;
@@ -130,6 +146,41 @@ export type RecruitCrmTaskSearchResponse = {
   current_page?: number;
   next_page_url?: string | null;
   data: RecruitCrmTask[];
+};
+
+export type RecruitCrmMeetingType = {
+  id?: number | string | null;
+  label?: string | number | null;
+  [key: string]: unknown;
+};
+
+export type RecruitCrmMeeting = {
+  id?: number | string | null;
+  title?: string | number | null;
+  meeting_type?: RecruitCrmMeetingType | RecruitCrmMeetingType[] | null;
+  description?: string | number | null;
+  address?: string | number | null;
+  reminder?: number | string | null;
+  start_date?: string | number | null;
+  end_date?: string | number | null;
+  related_to?: string | number | null;
+  related_to_type?: string | number | null;
+  do_not_send_calendar_invites?: number | string | boolean | null;
+  status?: number | string | null;
+  reminder_date?: string | number | null;
+  all_day?: number | string | boolean | null;
+  owner?: number | string | null;
+  created_on?: string | number | null;
+  updated_on?: string | number | null;
+  created_by?: number | string | null;
+  updated_by?: number | string | null;
+  [key: string]: unknown;
+};
+
+export type RecruitCrmMeetingSearchResponse = {
+  current_page?: number;
+  next_page_url?: string | null;
+  data: RecruitCrmMeeting[];
 };
 
 export type RecruitCrmCandidateDetailCustomField = {
@@ -223,6 +274,40 @@ export type SearchTasksResult = {
   returned_count: number;
   has_more: boolean;
   tasks: TaskSummary[];
+};
+
+export type MeetingTypeSummary = {
+  id: string | number | null;
+  label: string | null;
+};
+
+export type MeetingSummary = {
+  id: number | null;
+  title: string | null;
+  meeting_type: MeetingTypeSummary[] | null;
+  description: string | null;
+  address: string | null;
+  reminder: number | null;
+  start_date: string | null;
+  end_date: string | null;
+  related_to: string | null;
+  related_to_type: string | null;
+  do_not_send_calendar_invites: boolean | null;
+  status: string | number | null;
+  reminder_date: string | null;
+  all_day: boolean | null;
+  owner: number | null;
+  created_on: string | null;
+  updated_on: string | null;
+  created_by: number | null;
+  updated_by: number | null;
+};
+
+export type SearchMeetingsResult = {
+  page: number;
+  returned_count: number;
+  has_more: boolean;
+  meetings: MeetingSummary[];
 };
 
 export type CandidateCustomFieldSummary = {

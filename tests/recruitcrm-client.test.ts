@@ -2,7 +2,12 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { RecruitCrmClient } from "../src/recruitcrm/client.js";
 import type { HttpRequestOptions, HttpResponse } from "../src/recruitcrm/http.js";
-import { sampleCandidateDetailResponse, sampleSearchResponse, sampleTaskSearchResponse } from "./fixtures.js";
+import {
+  sampleCandidateDetailResponse,
+  sampleMeetingSearchResponse,
+  sampleSearchResponse,
+  sampleTaskSearchResponse,
+} from "./fixtures.js";
 
 const baseConfig = {
   apiToken: "test-token",
@@ -121,6 +126,47 @@ describe("RecruitCrmClient", () => {
         id: 209961,
         label: "Call Candidate",
       },
+    });
+  });
+
+  it("parses meeting search payloads and tolerates large attendee payloads", async () => {
+    const transport = vi.fn(async (_request: HttpRequestOptions): Promise<HttpResponse> => ({
+      statusCode: 200,
+      bodyText: JSON.stringify(sampleMeetingSearchResponse),
+    }));
+    const client = new RecruitCrmClient(baseConfig, transport);
+
+    const result = await client.searchMeetings({
+      related_to: "16367183842920002890gLG",
+      related_to_type: "candidate",
+    });
+
+    expect(result.current_page).toBe(1);
+    expect(result.next_page_url).toBe("https://api.recruitcrm.io/v1/meetings/search?page=2");
+    expect(result.data[0]).toMatchObject({
+      id: 47202185,
+      title: "Aamer Ayoob - NQB is 1 of the Leading Global E/Customer Success Manager (Netflix)",
+      meeting_type: {
+        id: 20707,
+        label: "Candidate Interview with Client",
+      },
+      all_day: 1,
+    });
+  });
+
+  it("normalizes empty meeting search arrays into an empty paginated response", async () => {
+    const transport = vi.fn(async (_request: HttpRequestOptions): Promise<HttpResponse> => ({
+      statusCode: 200,
+      bodyText: JSON.stringify([]),
+    }));
+    const client = new RecruitCrmClient(baseConfig, transport);
+
+    const result = await client.searchMeetings({});
+
+    expect(result).toEqual({
+      current_page: 1,
+      next_page_url: null,
+      data: [],
     });
   });
 

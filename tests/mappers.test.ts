@@ -2,11 +2,13 @@ import { describe, expect, it } from "vitest";
 
 import {
   mapCandidateSummary,
+  mapMeetingSummary,
+  mapSearchMeetingsResult,
   mapSearchCandidatesResult,
   mapSearchTasksResult,
   mapTaskSummary,
 } from "../src/recruitcrm/mappers.js";
-import { sampleSearchResponse, sampleTaskSearchResponse } from "./fixtures.js";
+import { sampleMeetingSearchResponse, sampleSearchResponse, sampleTaskSearchResponse } from "./fixtures.js";
 
 describe("candidate mappers", () => {
   it("omits contact fields from search summaries", () => {
@@ -101,5 +103,66 @@ describe("task mappers", () => {
         label: "Call Candidate",
       },
     ]);
+  });
+});
+
+describe("meeting mappers", () => {
+  it("maps meeting search results into compact structured output", () => {
+    const result = mapSearchMeetingsResult(sampleMeetingSearchResponse);
+
+    expect(result.page).toBe(1);
+    expect(result.returned_count).toBe(1);
+    expect(result.has_more).toBe(true);
+    expect(result.meetings).toHaveLength(1);
+    expect(result.meetings[0]).toEqual({
+      id: 47202185,
+      title: "Aamer Ayoob - NQB is 1 of the Leading Global E/Customer Success Manager (Netflix)",
+      meeting_type: [
+        {
+          id: 20707,
+          label: "Candidate Interview with Client",
+        },
+      ],
+      description: "<p>Test</p>",
+      address: "https://us04web.zoom.us/j/75090638594?pwd=U06ZW6PX4hTukaYGNRGv6YphA7nj9a.1",
+      reminder: 30,
+      start_date: "2025-10-31T09:30:00.000000Z",
+      end_date: "2025-10-31T10:00:00.000000Z",
+      related_to: "16367183842920002890gLG",
+      related_to_type: "candidate",
+      do_not_send_calendar_invites: true,
+      status: 0,
+      reminder_date: "2025-10-31T09:00:00.000000Z",
+      all_day: true,
+      owner: 69232,
+      created_on: "2025-10-24T07:45:45.000000Z",
+      updated_on: "2025-10-31T08:50:30.000000Z",
+      created_by: 69232,
+      updated_by: 69232,
+    });
+  });
+
+  it("accepts array meeting_type payloads and keeps only id and label", () => {
+    const summary = mapMeetingSummary({
+      ...sampleMeetingSearchResponse.data[0],
+      meeting_type: [
+        {
+          id: "12",
+          label: "Client Meeting",
+          color: "blue",
+        },
+      ],
+      do_not_send_calendar_invites: "0",
+      all_day: "1",
+    });
+
+    expect(summary.meeting_type).toEqual([
+      {
+        id: "12",
+        label: "Client Meeting",
+      },
+    ]);
+    expect(summary.do_not_send_calendar_invites).toBe(false);
+    expect(summary.all_day).toBe(true);
   });
 });

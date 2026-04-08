@@ -7,6 +7,7 @@ import type { HttpRequestOptions, HttpResponse } from "../src/recruitcrm/http.js
 import {
   sampleCandidateCustomFieldsResponse,
   sampleCandidateDetailResponse,
+  sampleMeetingSearchResponse,
   sampleSearchResponse,
   sampleTaskSearchResponse,
 } from "./fixtures.js";
@@ -61,6 +62,16 @@ describe("Recruit CRM MCP tools", () => {
         };
       }
 
+      if (request.url.pathname.endsWith("/meetings/search")) {
+        expect(request.url.searchParams.get("related_to")).toBe("16367183842920002890gLG");
+        expect(request.url.searchParams.get("related_to_type")).toBe("candidate");
+
+        return {
+          statusCode: 200,
+          bodyText: JSON.stringify(sampleMeetingSearchResponse),
+        };
+      }
+
       throw new Error(`Unexpected request: ${request.url.toString()}`);
     });
 
@@ -87,6 +98,7 @@ describe("Recruit CRM MCP tools", () => {
     expect(tools.tools.map((tool) => tool.name)).toEqual([
       "search_candidates",
       "search_tasks",
+      "search_meetings",
       "get_candidate_details",
       "list_candidate_custom_fields",
       "get_candidate_custom_field_details",
@@ -164,6 +176,14 @@ describe("Recruit CRM MCP tools", () => {
       },
     });
 
+    const meetingResult = await client.callTool({
+      name: "search_meetings",
+      arguments: {
+        related_to: "16367183842920002890gLG",
+        related_to_type: "candidate",
+      },
+    });
+
     expect(detailResult.structuredContent).toMatchObject({
       slug: "010011",
       first_name: "Saurav",
@@ -233,8 +253,50 @@ describe("Recruit CRM MCP tools", () => {
     expect((taskResult.structuredContent as { tasks: Array<Record<string, unknown>> }).tasks[0]).not.toHaveProperty(
       "collaborators",
     );
+    expect(meetingResult.structuredContent).toMatchObject({
+      page: 1,
+      returned_count: 1,
+      has_more: true,
+      meetings: [
+        {
+          id: 47202185,
+          title: "Aamer Ayoob - NQB is 1 of the Leading Global E/Customer Success Manager (Netflix)",
+          meeting_type: [
+            {
+              id: 20707,
+              label: "Candidate Interview with Client",
+            },
+          ],
+          description: "<p>Test</p>",
+          address: "https://us04web.zoom.us/j/75090638594?pwd=U06ZW6PX4hTukaYGNRGv6YphA7nj9a.1",
+          reminder: 30,
+          start_date: "2025-10-31T09:30:00.000000Z",
+          end_date: "2025-10-31T10:00:00.000000Z",
+          related_to: "16367183842920002890gLG",
+          related_to_type: "candidate",
+          do_not_send_calendar_invites: true,
+          status: 0,
+          reminder_date: "2025-10-31T09:00:00.000000Z",
+          all_day: true,
+          owner: 69232,
+          created_on: "2025-10-24T07:45:45.000000Z",
+          updated_on: "2025-10-31T08:50:30.000000Z",
+          created_by: 69232,
+          updated_by: 69232,
+        },
+      ],
+    });
+    expect(
+      (meetingResult.structuredContent as { meetings: Array<Record<string, unknown>> }).meetings[0],
+    ).not.toHaveProperty("attendees");
+    expect(
+      (meetingResult.structuredContent as { meetings: Array<Record<string, unknown>> }).meetings[0],
+    ).not.toHaveProperty("related");
+    expect(
+      (meetingResult.structuredContent as { meetings: Array<Record<string, unknown>> }).meetings[0],
+    ).not.toHaveProperty("associated_candidates");
 
-    expect(transportMock).toHaveBeenCalledTimes(6);
+    expect(transportMock).toHaveBeenCalledTimes(7);
 
     await client.close();
     await server.close();
@@ -318,6 +380,52 @@ describe("Recruit CRM MCP tools", () => {
     await expect(
       client.callTool({
         name: "search_tasks",
+        arguments: {
+          related_to: "16367183842920002890gLG",
+        },
+      }),
+    ).resolves.toMatchObject({
+      isError: true,
+      content: [
+        {
+          text: "related_to and related_to_type must be provided together.",
+        },
+      ],
+    });
+
+    expect(transportMock).not.toHaveBeenCalled();
+
+    await client.close();
+    await server.close();
+  });
+
+  it("validates related_to and related_to_type together for meeting search", async () => {
+    const transportMock = vi.fn(async (_request: HttpRequestOptions): Promise<HttpResponse> => {
+      throw new Error("Meeting search should fail before making an API request.");
+    });
+
+    const server = createRecruitCrmServer({
+      config: {
+        apiToken: "test-token",
+        baseUrl: "https://api.recruitcrm.io/v1",
+        timeoutMs: 10_000,
+        debugSchemaErrors: false,
+      },
+      transport: transportMock,
+    });
+
+    const client = new Client({
+      name: "test-client",
+      version: "1.0.0",
+    });
+
+    const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
+    await server.connect(serverTransport);
+    await client.connect(clientTransport);
+
+    await expect(
+      client.callTool({
+        name: "search_meetings",
         arguments: {
           related_to: "16367183842920002890gLG",
         },

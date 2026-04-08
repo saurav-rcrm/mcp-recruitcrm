@@ -33,6 +33,7 @@ describe("stdio smoke test", () => {
     expect(tools.tools.map((tool) => tool.name)).toEqual([
       "search_candidates",
       "search_tasks",
+      "search_meetings",
       "get_candidate_details",
       "list_candidate_custom_fields",
       "get_candidate_custom_field_details",

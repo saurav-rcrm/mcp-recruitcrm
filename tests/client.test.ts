@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { buildSearchCandidatesRequest, buildSearchTasksRequest } from "../src/recruitcrm/client.js";
+import { buildSearchCandidatesRequest, buildSearchMeetingsRequest, buildSearchTasksRequest } from "../src/recruitcrm/client.js";
 
 describe("buildSearchCandidatesRequest", () => {
   it("builds query-only search requests by default", () => {
@@ -131,5 +131,49 @@ describe("buildSearchTasksRequest", () => {
 
     expect(request.query?.get("related_to")).toBe("16367183842920002890gLG");
     expect(request.query?.get("related_to_type")).toBe("candidate");
+  });
+});
+
+describe("buildSearchMeetingsRequest", () => {
+  it("defaults page to 1 and keeps the request query-only", () => {
+    const request = buildSearchMeetingsRequest({
+      title: "Demo",
+    });
+
+    expect(request.query?.get("page")).toBe("1");
+    expect(request.query?.get("title")).toBe("Demo");
+    expect(request.jsonBody).toBeUndefined();
+  });
+
+  it("serializes all supported meeting query params", () => {
+    const request = buildSearchMeetingsRequest({
+      page: 2,
+      created_from: "2026-01-01",
+      created_to: "2026-01-31",
+      owner_email: "owner@example.com",
+      owner_id: "2890",
+      owner_name: "Jane Scott",
+      related_to: "16367183842920002890gLG",
+      related_to_type: "candidate",
+      starting_from: "2026-02-01",
+      starting_to: "2026-02-28",
+      title: "Demo",
+      updated_from: "2026-03-01",
+      updated_to: "2026-03-31",
+    });
+
+    expect(request.query?.get("page")).toBe("2");
+    expect(request.query?.get("created_from")).toBe("2026-01-01");
+    expect(request.query?.get("created_to")).toBe("2026-01-31");
+    expect(request.query?.get("owner_email")).toBe("owner@example.com");
+    expect(request.query?.get("owner_id")).toBe("2890");
+    expect(request.query?.get("owner_name")).toBe("Jane Scott");
+    expect(request.query?.get("related_to")).toBe("16367183842920002890gLG");
+    expect(request.query?.get("related_to_type")).toBe("candidate");
+    expect(request.query?.get("starting_from")).toBe("2026-02-01");
+    expect(request.query?.get("starting_to")).toBe("2026-02-28");
+    expect(request.query?.get("title")).toBe("Demo");
+    expect(request.query?.get("updated_from")).toBe("2026-03-01");
+    expect(request.query?.get("updated_to")).toBe("2026-03-31");
   });
 });

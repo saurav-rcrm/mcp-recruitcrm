@@ -1,6 +1,7 @@
 import type {
   RecruitCrmCandidateCustomField,
   CandidateDetail,
+  RecruitCrmMeetingSearchResponse,
   RecruitCrmSearchResponse,
   RecruitCrmTaskSearchResponse,
 } from "../src/recruitcrm/types.js";
@@ -124,6 +125,54 @@ export const sampleTaskSearchResponse: RecruitCrmTaskSearchResponse = {
       collaborators: [],
       collaborator_users: [],
       collaborator_teams: [null],
+    },
+  ],
+};
+
+export const sampleMeetingSearchResponse: RecruitCrmMeetingSearchResponse = {
+  current_page: 1,
+  next_page_url: "https://api.recruitcrm.io/v1/meetings/search?page=2",
+  data: [
+    {
+      id: 47202185,
+      title: "Aamer Ayoob - NQB is 1 of the Leading Global E/Customer Success Manager (Netflix)",
+      meeting_type: {
+        id: 20707,
+        label: "Candidate Interview with Client",
+      },
+      description: "<p>Test</p>",
+      address: "https://us04web.zoom.us/j/75090638594?pwd=U06ZW6PX4hTukaYGNRGv6YphA7nj9a.1",
+      reminder: 30,
+      start_date: "2025-10-31T09:30:00.000000Z",
+      end_date: "2025-10-31T10:00:00.000000Z",
+      related_to: "16367183842920002890gLG",
+      related_to_type: "candidate",
+      do_not_send_calendar_invites: 1,
+      status: 0,
+      reminder_date: "2025-10-31T09:00:00.000000Z",
+      all_day: 1,
+      owner: 69232,
+      created_on: "2025-10-24T07:45:45.000000Z",
+      updated_on: "2025-10-31T08:50:30.000000Z",
+      created_by: 69232,
+      updated_by: 69232,
+      attendees: [
+        {
+          attendee_id: "16367183842920002890gLG",
+          attendee_type: "Candidate",
+          display_name: "Aamer Ayoob - NQB is 1 of the Leading Global E",
+        },
+      ],
+      related: {
+        slug: "16367183842920002890gLG",
+      },
+      associated_candidates: ["16367183842920002890gLG"],
+      associated_companies: [],
+      associated_contacts: [],
+      associated_jobs: [],
+      associated_deals: [],
+      collaborator_users: [],
+      collaborator_teams: [],
     },
   ],
 };
