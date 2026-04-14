@@ -150,6 +150,12 @@ export type SearchCompaniesInput = {
   sort_order?: "asc" | "desc";
 };
 
+export type GetJobAssignedCandidatesInput = {
+  page?: number;
+  limit?: number;
+  status_id?: string;
+};
+
 export type RecruitCrmCandidate = {
   slug: string;
   first_name?: string | number | null;
@@ -160,7 +166,7 @@ export type RecruitCrmCandidate = {
   current_status?: string | number | null;
   city?: string | number | null;
   state?: string | null;
-  country?: string | null;
+  country?: string | number | null;
   work_ex_year?: number | string | null;
   updated_on?: string | number | null;
   position?: string | number | null;
@@ -183,6 +189,7 @@ export type RecruitCrmCandidate = {
   github?: string | null;
   candidate_summary?: string | null;
   owner?: number | string | null;
+  [key: string]: unknown;
 };
 
 export type RecruitCrmSearchResponse = {
@@ -190,6 +197,35 @@ export type RecruitCrmSearchResponse = {
   next_page_url?: string | null;
   data: RecruitCrmCandidate[];
 };
+
+export type RecruitCrmAssignedCandidateStatus = {
+  status_id?: number | string | null;
+  label?: string | number | null;
+  [key: string]: unknown;
+};
+
+export type RecruitCrmJobAssignedCandidate = {
+  candidate: RecruitCrmCandidate;
+  stage_date?: string | number | null;
+  status?: RecruitCrmAssignedCandidateStatus | null;
+  [key: string]: unknown;
+};
+
+export type RecruitCrmJobAssignedCandidatesResponse = {
+  current_page?: number;
+  next_page_url?: string | null;
+  data: RecruitCrmJobAssignedCandidate[];
+  [key: string]: unknown;
+};
+
+export type RecruitCrmHiringStage = {
+  stage_id?: number | string | null;
+  status_id?: number | string | null;
+  label?: string | number | null;
+  [key: string]: unknown;
+};
+
+export type RecruitCrmHiringPipelineResponse = RecruitCrmHiringStage[];
 
 export type RecruitCrmJobStatus = {
   id?: number | string | null;
@@ -693,6 +729,39 @@ export type SearchCompaniesResult = {
   returned_count: number;
   has_more: boolean;
   companies: CompanySummary[];
+};
+
+export type AssignedCandidateSummary = {
+  candidate_slug: string;
+  first_name: string | null;
+  last_name: string | null;
+  position: string | null;
+  current_organization: string | null;
+  current_status: string | null;
+  city: string | null;
+  country: string | null;
+  updated_on: string | null;
+  stage_date: string | null;
+  status_id: number | null;
+  status_label: string | null;
+};
+
+export type JobAssignedCandidatesResult = {
+  job_slug: string;
+  page: number;
+  returned_count: number;
+  has_more: boolean;
+  assigned_candidates: AssignedCandidateSummary[];
+};
+
+export type HiringStageSummary = {
+  stage_id: number | null;
+  label: string | null;
+};
+
+export type CandidateHiringStagesResult = {
+  returned_count: number;
+  stages: HiringStageSummary[];
 };
 
 export type CandidateJobAssignmentHiringStageHistoryItem = {

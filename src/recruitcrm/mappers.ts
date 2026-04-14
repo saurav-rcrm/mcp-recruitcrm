@@ -1,5 +1,7 @@
 import type {
   ActivityRelatedSummary,
+  AssignedCandidateSummary,
+  CandidateHiringStagesResult,
   CallLogSummary,
   CallLogTypeSummary,
   CandidateJobAssignmentHiringStageHistoryItem,
@@ -20,12 +22,18 @@ import type {
   RecruitCrmCallLogType,
   RecruitCrmCompany,
   RecruitCrmCompanySearchResponse,
+  RecruitCrmHiringPipelineResponse,
+  RecruitCrmHiringStage,
   RecruitCrmJob,
+  RecruitCrmJobAssignedCandidate,
+  RecruitCrmJobAssignedCandidatesResponse,
   RecruitCrmJobSearchResponse,
   RecruitCrmJobStatus,
   RecruitCrmMeeting,
   RecruitCrmMeetingSearchResponse,
   RecruitCrmMeetingType,
+  HiringStageSummary,
+  JobAssignedCandidatesResult,
   RecruitCrmNote,
   RecruitCrmNoteSearchResponse,
   RecruitCrmNoteType,
@@ -184,6 +192,28 @@ export function mapSearchCallLogsResult(response: RecruitCrmCallLogSearchRespons
   };
 }
 
+export function mapJobAssignedCandidatesResult(
+  jobSlug: string,
+  response: RecruitCrmJobAssignedCandidatesResponse,
+): JobAssignedCandidatesResult {
+  return {
+    job_slug: jobSlug,
+    page: response.current_page ?? 1,
+    returned_count: response.data.length,
+    has_more: hasNextPage(response.next_page_url),
+    assigned_candidates: response.data.map(mapAssignedCandidateSummary),
+  };
+}
+
+export function mapCandidateHiringStagesResult(
+  response: RecruitCrmHiringPipelineResponse,
+): CandidateHiringStagesResult {
+  return {
+    returned_count: response.length,
+    stages: response.map(mapHiringStageSummary),
+  };
+}
+
 export function mapCandidateJobAssignmentHiringStageHistoryResult(
   candidateSlug: string,
   response: RecruitCrmCandidateJobAssignmentHiringStageHistoryResponse,
@@ -273,6 +303,30 @@ export function mapCallLogSummary(callLog: RecruitCrmCallLog): CallLogSummary {
     updated_on: normalizeString(callLog.updated_on),
     created_by: normalizeNumber(callLog.created_by),
     updated_by: normalizeNumber(callLog.updated_by),
+  };
+}
+
+export function mapAssignedCandidateSummary(item: RecruitCrmJobAssignedCandidate): AssignedCandidateSummary {
+  return {
+    candidate_slug: item.candidate.slug,
+    first_name: normalizeString(item.candidate.first_name),
+    last_name: normalizeString(item.candidate.last_name),
+    position: normalizeString(item.candidate.position),
+    current_organization: normalizeString(item.candidate.current_organization),
+    current_status: normalizeString(item.candidate.current_status),
+    city: normalizeString(item.candidate.city),
+    country: normalizeString(item.candidate.country),
+    updated_on: normalizeString(item.candidate.updated_on),
+    stage_date: normalizeString(item.stage_date),
+    status_id: normalizeNumber(item.status?.status_id),
+    status_label: normalizeString(item.status?.label),
+  };
+}
+
+export function mapHiringStageSummary(stage: RecruitCrmHiringStage): HiringStageSummary {
+  return {
+    stage_id: normalizeNumber(stage.stage_id ?? stage.status_id),
+    label: normalizeString(stage.label),
   };
 }
 

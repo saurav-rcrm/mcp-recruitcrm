@@ -4,6 +4,8 @@ import type {
   RecruitCrmCallLogSearchResponse,
   CandidateDetail,
   JobDetail,
+  RecruitCrmHiringPipelineResponse,
+  RecruitCrmJobAssignedCandidatesResponse,
   RecruitCrmCompanySearchResponse,
   RecruitCrmJobSearchResponse,
   RecruitCrmMeetingSearchResponse,
@@ -52,6 +54,64 @@ export const sampleSearchResponse: RecruitCrmSearchResponse = {
     },
   ],
 };
+
+export const sampleJobAssignedCandidatesResponse: RecruitCrmJobAssignedCandidatesResponse = {
+  current_page: 1,
+  next_page_url: "https://api.recruitcrm.io/v1/jobs/job-sample-001/assigned-candidates?page=2",
+  data: [
+    {
+      stage_date: "2026-02-20T09:08:45.000000Z",
+      status: {
+        status_id: "8",
+        label: "Placed",
+      },
+      candidate: {
+        slug: "candidate-assigned-sample-001",
+        first_name: "Michael",
+        last_name: "Scott",
+        email: "mscott@example.com",
+        contact_number: "+1-555-0105",
+        avatar: "https://api.recruitcrm.io/v1/candidates/candidate-assigned-sample-001/avatar/sample",
+        current_organization: "Dunder Mifflin",
+        current_status: "Employed",
+        city: "Scranton",
+        country: "United States",
+        updated_on: "2026-02-21T10:00:00.000000Z",
+        position: "Regional Manager",
+        current_salary: 150000,
+        salary_expectation: 180000,
+        linkedin: "https://www.linkedin.com/in/michael-scott",
+        custom_fields: [
+          {
+            field_id: 1,
+            value: "Region 1",
+            entity_type: "candidate",
+            field_name: "Region",
+            field_type: "text",
+          },
+        ],
+        resource_url: "https://app.recruitcrm.io/candidate/candidate-assigned-sample-001",
+        is_email_opted_out: true,
+        email_opt_out_source: "Manually opted out",
+      },
+    },
+  ],
+};
+
+export const sampleHiringPipelineResponse: RecruitCrmHiringPipelineResponse = [
+  {
+    status_id: 1,
+    label: "Assigned",
+  },
+  {
+    status_id: "8",
+    label: "Placed",
+  },
+  {
+    stage_id: 10,
+    label: "Applied",
+  },
+];
 
 export const sampleCandidateCustomFieldsResponse: RecruitCrmCandidateCustomField[] = [
   {

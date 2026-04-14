@@ -10,6 +10,8 @@ import {
   sampleCandidateDetailResponse,
   sampleCandidateJobAssignmentHiringStageHistoryResponse,
   sampleCompanySearchResponse,
+  sampleHiringPipelineResponse,
+  sampleJobAssignedCandidatesResponse,
   sampleJobDetailResponse,
   sampleJobSearchResponse,
   sampleMeetingSearchResponse,
@@ -65,6 +67,17 @@ describe("Recruit CRM MCP tools", () => {
         };
       }
 
+      if (request.url.pathname.endsWith("/jobs/job-sample-001/assigned-candidates")) {
+        expect(request.url.searchParams.get("page")).toBe("1");
+        expect(request.url.searchParams.get("limit")).toBe("100");
+        expect(request.url.searchParams.get("status_id")).toBe("8");
+
+        return {
+          statusCode: 200,
+          bodyText: JSON.stringify(sampleJobAssignedCandidatesResponse),
+        };
+      }
+
       if (request.url.pathname.endsWith("/jobs/search")) {
         expect(request.url.searchParams.get("job_slug")).toBe("job-sample-001");
         expect(request.url.searchParams.get("limit")).toBe("10");
@@ -72,6 +85,13 @@ describe("Recruit CRM MCP tools", () => {
         return {
           statusCode: 200,
           bodyText: JSON.stringify(sampleJobSearchResponse),
+        };
+      }
+
+      if (request.url.pathname.endsWith("/hiring-pipeline")) {
+        return {
+          statusCode: 200,
+          bodyText: JSON.stringify(sampleHiringPipelineResponse),
         };
       }
 
@@ -164,6 +184,8 @@ describe("Recruit CRM MCP tools", () => {
       "search_call_logs",
       "get_candidate_details",
       "get_job_details",
+      "get_job_assigned_candidates",
+      "list_candidate_hiring_stages",
       "get_candidate_job_assignment_hiring_stage_history",
       "list_candidate_custom_fields",
       "get_candidate_custom_field_details",
@@ -252,6 +274,26 @@ describe("Recruit CRM MCP tools", () => {
       name: "get_job_details",
       arguments: {
         job_slug: "job-detail-sample-001",
+      },
+    });
+
+    const hiringStagesResult = await client.callTool({
+      name: "list_candidate_hiring_stages",
+      arguments: {},
+    });
+
+    const placedStageId = (
+      (hiringStagesResult.structuredContent as { stages: Array<{ stage_id: number | null; label: string | null }> }).stages
+        .find((stage) => stage.label === "Placed")
+    )?.stage_id;
+
+    expect(placedStageId).toBe(8);
+
+    const assignedCandidatesResult = await client.callTool({
+      name: "get_job_assigned_candidates",
+      arguments: {
+        job_slug: "job-sample-001",
+        status_id: String(placedStageId),
       },
     });
 
@@ -443,6 +485,60 @@ describe("Recruit CRM MCP tools", () => {
         }),
       ]),
     );
+    expect(hiringStagesResult.structuredContent).toEqual({
+      returned_count: 3,
+      stages: [
+        {
+          stage_id: 1,
+          label: "Assigned",
+        },
+        {
+          stage_id: 8,
+          label: "Placed",
+        },
+        {
+          stage_id: 10,
+          label: "Applied",
+        },
+      ],
+    });
+    expect(
+      (hiringStagesResult.structuredContent as { stages: Array<Record<string, unknown>> }).stages[0],
+    ).not.toHaveProperty("status_id");
+    expect(assignedCandidatesResult.structuredContent).toEqual({
+      job_slug: "job-sample-001",
+      page: 1,
+      returned_count: 1,
+      has_more: true,
+      assigned_candidates: [
+        {
+          candidate_slug: "candidate-assigned-sample-001",
+          first_name: "Michael",
+          last_name: "Scott",
+          position: "Regional Manager",
+          current_organization: "Dunder Mifflin",
+          current_status: "Employed",
+          city: "Scranton",
+          country: "United States",
+          updated_on: "2026-02-21T10:00:00.000000Z",
+          stage_date: "2026-02-20T09:08:45.000000Z",
+          status_id: 8,
+          status_label: "Placed",
+        },
+      ],
+    });
+    expect(
+      (assignedCandidatesResult.structuredContent as { assigned_candidates: Array<Record<string, unknown>> })
+        .assigned_candidates[0],
+    ).not.toHaveProperty("email");
+    expect(
+      (assignedCandidatesResult.structuredContent as { assigned_candidates: Array<Record<string, unknown>> })
+        .assigned_candidates[0],
+    ).not.toHaveProperty("contact_number");
+    expect(
+      (assignedCandidatesResult.structuredContent as { assigned_candidates: Array<Record<string, unknown>> })
+        .assigned_candidates[0],
+    ).not.toHaveProperty("resource_url");
     expect(historyResult.structuredContent).toMatchObject({
       candidate_slug: "010011",
       returned_count: 3,
@@ -622,7 +718,7 @@ describe("Recruit CRM MCP tools", () => {
       (callLogResult.structuredContent as { call_logs: Array<Record<string, unknown>> }).call_logs[0],
     ).not.toHaveProperty("associated_candidates");
 
-    expect(transportMock).toHaveBeenCalledTimes(13);
+    expect(transportMock).toHaveBeenCalledTimes(15);
 
     await client.close();
     await server.close();

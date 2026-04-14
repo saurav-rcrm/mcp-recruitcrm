@@ -4,9 +4,11 @@ import { RecruitCrmClient } from "../src/recruitcrm/client.js";
 import type { HttpRequestOptions, HttpResponse } from "../src/recruitcrm/http.js";
 import {
   sampleCallLogSearchResponse,
+  sampleHiringPipelineResponse,
   sampleCandidateJobAssignmentHiringStageHistoryResponse,
   sampleCandidateDetailResponse,
   sampleCompanySearchResponse,
+  sampleJobAssignedCandidatesResponse,
   sampleJobDetailResponse,
   sampleJobSearchResponse,
   sampleMeetingSearchResponse,
@@ -61,6 +63,83 @@ describe("RecruitCrmClient", () => {
       last_name: "Candidate",
       position: "Software Developer",
     });
+  });
+
+  it("parses assigned candidates payloads while capping limit and preserving status_id filters", async () => {
+    const transport = vi.fn(async (request: HttpRequestOptions): Promise<HttpResponse> => {
+      expect(request.url.pathname).toBe("/v1/jobs/job-sample-001/assigned-candidates");
+      expect(request.url.searchParams.get("page")).toBe("2");
+      expect(request.url.searchParams.get("limit")).toBe("100");
+      expect(request.url.searchParams.get("status_id")).toBe("8,12");
+
+      return {
+        statusCode: 200,
+        bodyText: JSON.stringify(sampleJobAssignedCandidatesResponse),
+      };
+    });
+    const client = new RecruitCrmClient(baseConfig, transport);
+
+    const result = await client.getJobAssignedCandidates("job-sample-001", {
+      page: 2,
+      limit: 250,
+      status_id: "8,12",
+    });
+
+    expect(result.current_page).toBe(1);
+    expect(result.next_page_url).toBe("https://api.recruitcrm.io/v1/jobs/job-sample-001/assigned-candidates?page=2");
+    expect(result.data[0]).toMatchObject({
+      stage_date: "2026-02-20T09:08:45.000000Z",
+      status: {
+        status_id: "8",
+        label: "Placed",
+      },
+      candidate: {
+        slug: "candidate-assigned-sample-001",
+        first_name: "Michael",
+        last_name: "Scott",
+        position: "Regional Manager",
+        current_organization: "Dunder Mifflin",
+        current_status: "Employed",
+        city: "Scranton",
+        country: "United States",
+      },
+    });
+  });
+
+  it("accepts empty assigned candidate pages", async () => {
+    const transport = vi.fn(async (_request: HttpRequestOptions): Promise<HttpResponse> => ({
+      statusCode: 200,
+      bodyText: JSON.stringify({
+        current_page: 1,
+        next_page_url: null,
+        data: [],
+      }),
+    }));
+    const client = new RecruitCrmClient(baseConfig, transport);
+
+    const result = await client.getJobAssignedCandidates("job-sample-001", {});
+
+    expect(result).toEqual({
+      current_page: 1,
+      next_page_url: null,
+      data: [],
+    });
+  });
+
+  it("parses hiring pipeline payloads and tolerates status_id-backed rows", async () => {
+    const transport = vi.fn(async (request: HttpRequestOptions): Promise<HttpResponse> => {
+      expect(request.url.pathname).toBe("/v1/hiring-pipeline");
+
+      return {
+        statusCode: 200,
+        bodyText: JSON.stringify(sampleHiringPipelineResponse),
+      };
+    });
+    const client = new RecruitCrmClient(baseConfig, transport);
+
+    const result = await client.listCandidateHiringStages();
+
+    expect(result).toEqual(sampleHiringPipelineResponse);
   });
 
   it("parses task search payloads while tolerating large nested related objects", async () => {

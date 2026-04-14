@@ -12,7 +12,9 @@ import {
 } from "./recruitcrm/custom-fields.js";
 import type { HttpTransport } from "./recruitcrm/http.js";
 import {
+  mapCandidateHiringStagesResult,
   mapCandidateJobAssignmentHiringStageHistoryResult,
+  mapJobAssignedCandidatesResult,
   mapSearchCallLogsResult,
   mapSearchCandidatesResult,
   mapSearchCompaniesResult,
@@ -22,6 +24,7 @@ import {
   mapSearchTasksResult,
 } from "./recruitcrm/mappers.js";
 import {
+  type CandidateHiringStagesResult,
   type SearchCallLogsInput,
   type SearchCallLogsResult,
   type CandidateJobAssignmentHiringStageHistoryResult,
@@ -29,6 +32,8 @@ import {
   type CandidateCustomFieldDetail,
   type CandidateCustomFieldListResult,
   type CandidateDetail,
+  type GetJobAssignedCandidatesInput,
+  type JobAssignedCandidatesResult,
   type JobDetail,
   type SearchCandidatesInput,
   type SearchCompaniesInput,
@@ -49,6 +54,9 @@ const booleanLikeSchema = z
   .transform((value) => value === true || value === "true" || value === "1" || value === 1);
 
 const textFilterSchema = z.string().trim().min(1);
+const statusIdFilterSchema = z
+  .union([z.coerce.number().int().positive(), textFilterSchema])
+  .transform((value) => String(value));
 const customFieldFilterValueSchema = z.union([z.string().trim().min(1), z.number()]);
 const customFieldFilterTypeSchema = z.enum(CUSTOM_FIELD_FILTER_TYPES);
 const binaryNumberSchema = z
@@ -142,6 +150,15 @@ const searchJobsInputSchema = {
   sort_order: z.enum(["asc", "desc"]).optional().describe("Sort order."),
   updated_from: textFilterSchema.optional().describe("Updated-on date range start."),
   updated_to: textFilterSchema.optional().describe("Updated-on date range end."),
+};
+
+const getJobAssignedCandidatesInputSchema = {
+  job_slug: textFilterSchema.describe("Job slug."),
+  page: z.coerce.number().int().min(1).optional().describe("Page number."),
+  limit: z.coerce.number().int().min(1).optional().describe("Results per page. Max 100."),
+  status_id: statusIdFilterSchema
+    .optional()
+    .describe("Hiring stage id filter. Accepts a single id or comma-separated ids like 8 or 8,12."),
 };
 
 const searchCompaniesInputSchema = {
@@ -449,6 +466,39 @@ const candidateJobAssignmentHiringStageHistoryOutputSchema = {
   history: z.array(candidateJobAssignmentHiringStageHistoryItemSchema),
 };
 
+const assignedCandidateSummarySchema = z.object({
+  candidate_slug: z.string(),
+  first_name: nullableStringSchema,
+  last_name: nullableStringSchema,
+  position: nullableStringSchema,
+  current_organization: nullableStringSchema,
+  current_status: nullableStringSchema,
+  city: nullableStringSchema,
+  country: nullableStringSchema,
+  updated_on: nullableStringSchema,
+  stage_date: nullableStringSchema,
+  status_id: nullableNumberSchema,
+  status_label: nullableStringSchema,
+});
+
+const getJobAssignedCandidatesOutputSchema = {
+  job_slug: z.string(),
+  page: z.number().int().min(1),
+  returned_count: z.number().int().min(0),
+  has_more: z.boolean(),
+  assigned_candidates: z.array(assignedCandidateSummarySchema),
+};
+
+const hiringStageSummarySchema = z.object({
+  stage_id: nullableNumberSchema,
+  label: nullableStringSchema,
+});
+
+const listCandidateHiringStagesOutputSchema = {
+  returned_count: z.number().int().min(0),
+  stages: z.array(hiringStageSummarySchema),
+};
+
 const candidateDetailOutputSchema = z.object({}).passthrough();
 const jobDetailOutputSchema = z.object({}).passthrough();
 
@@ -619,6 +669,35 @@ export function createRecruitCrmServer(dependencies: ServerDependencies = {}): M
       },
     },
     async ({ job_slug }) => formatResult(await executeGetJobDetails(client, job_slug)),
+  );
+
+  server.registerTool(
+    "get_job_assigned_candidates",
+    {
+      description:
+        "Fetch assigned candidates for one Recruit CRM job and return compact assignment summaries. Use list_candidate_hiring_stages to resolve labels like Placed to stage ids for the status_id filter. Returns candidate_slug values that can be used to open Recruit CRM candidate URLs like https://app.recruitcrm.io/candidate/{candidate_slug}.",
+      inputSchema: getJobAssignedCandidatesInputSchema,
+      outputSchema: getJobAssignedCandidatesOutputSchema,
+      annotations: {
+        readOnlyHint: true,
+      },
+    },
+    async ({ job_slug, page, limit, status_id }) =>
+      formatResult(await executeGetJobAssignedCandidates(client, job_slug, { page, limit, status_id })),
+  );
+
+  server.registerTool(
+    "list_candidate_hiring_stages",
+    {
+      description:
+        "List Recruit CRM candidate hiring stages and return compact stage rows for resolving labels to stage ids used by get_job_assigned_candidates.status_id.",
+      inputSchema: {},
+      outputSchema: listCandidateHiringStagesOutputSchema,
+      annotations: {
+        readOnlyHint: true,
+      },
+    },
+    async () => formatResult(await executeListCandidateHiringStages(client)),
   );
 
   server.registerTool(
@@ -875,6 +954,28 @@ export async function executeGetCandidateDetails(
 
 export async function executeGetJobDetails(client: RecruitCrmClient, jobSlug: string): Promise<JobDetail> {
   return client.getJobDetails(jobSlug);
+}
+
+export async function executeGetJobAssignedCandidates(
+  client: RecruitCrmClient,
+  jobSlug: string,
+  args: GetJobAssignedCandidatesInput,
+): Promise<JobAssignedCandidatesResult> {
+  const result = await client.getJobAssignedCandidates(jobSlug, {
+    page: args.page ?? 1,
+    limit: args.limit ?? 100,
+    status_id: args.status_id,
+  });
+
+  return mapJobAssignedCandidatesResult(jobSlug, result);
+}
+
+export async function executeListCandidateHiringStages(
+  client: RecruitCrmClient,
+): Promise<CandidateHiringStagesResult> {
+  const result = await client.listCandidateHiringStages();
+
+  return mapCandidateHiringStagesResult(result);
 }
 
 export async function executeGetCandidateJobAssignmentHiringStageHistory(

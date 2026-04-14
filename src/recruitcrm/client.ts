@@ -5,9 +5,12 @@ import type { AppConfig } from "../config.js";
 import { nodeHttpTransport, type HttpTransport } from "./http.js";
 import type {
   RecruitCrmCandidateCustomField,
+  RecruitCrmHiringPipelineResponse,
   RecruitCrmCandidateJobAssignmentHiringStageHistoryResponse,
+  RecruitCrmJobAssignedCandidatesResponse,
   RecruitCrmCallLogSearchResponse,
   CandidateDetail,
+  GetJobAssignedCandidatesInput,
   JobDetail,
   RecruitCrmCompanySearchResponse,
   RecruitCrmJobSearchResponse,
@@ -36,6 +39,7 @@ const candidateSchema = z
     current_organization: nullableStringLikeSchema,
     current_status: nullableStringLikeSchema,
     city: nullableStringLikeSchema,
+    country: nullableStringLikeSchema,
     updated_on: nullableStringLikeSchema,
     position: nullableStringLikeSchema,
   })
@@ -48,6 +52,39 @@ const searchResponseSchema = z
     data: z.array(candidateSchema),
   })
   .passthrough();
+
+const assignedCandidateStatusSchema = z
+  .object({
+    status_id: nullableNumberOrStringSchema,
+    label: nullableStringLikeSchema,
+  })
+  .passthrough();
+
+const assignedCandidateSchema = z
+  .object({
+    candidate: candidateSchema,
+    stage_date: nullableStringLikeSchema,
+    status: z.union([assignedCandidateStatusSchema, z.null()]).optional(),
+  })
+  .passthrough();
+
+const jobAssignedCandidatesResponseSchema = z
+  .object({
+    current_page: z.coerce.number().int().positive().optional(),
+    next_page_url: z.union([z.string(), z.null()]).optional(),
+    data: z.array(assignedCandidateSchema),
+  })
+  .passthrough();
+
+const hiringStageSchema = z
+  .object({
+    stage_id: nullableNumberOrStringSchema,
+    status_id: nullableNumberOrStringSchema,
+    label: nullableStringLikeSchema,
+  })
+  .passthrough();
+
+const hiringPipelineResponseSchema = z.array(hiringStageSchema);
 
 const jobStatusSchema = z
   .object({
@@ -385,6 +422,27 @@ export class RecruitCrmClient {
     return this.#requestJson("/candidates/search", searchResponseSchema, request);
   }
 
+  async getJobAssignedCandidates(
+    jobSlug: string,
+    filters: GetJobAssignedCandidatesInput,
+  ): Promise<RecruitCrmJobAssignedCandidatesResponse> {
+    const request = buildGetJobAssignedCandidatesRequest(filters);
+
+    try {
+      return await this.#requestJson(
+        `/jobs/${encodeURIComponent(jobSlug)}/assigned-candidates`,
+        jobAssignedCandidatesResponseSchema,
+        request,
+      );
+    } catch (error) {
+      if (error instanceof RecruitCrmApiError && error.statusCode === 404) {
+        throw new RecruitCrmApiError("Job not found.", error.statusCode, error);
+      }
+
+      throw error;
+    }
+  }
+
   async searchJobs(filters: SearchJobsInput): Promise<RecruitCrmJobSearchResponse> {
     const request = buildSearchJobsRequest(filters);
 
@@ -448,6 +506,10 @@ export class RecruitCrmClient {
 
   async getCandidateCustomFields(): Promise<RecruitCrmCandidateCustomField[]> {
     return this.#requestJson("/custom-fields/candidates", candidateCustomFieldsResponseSchema);
+  }
+
+  async listCandidateHiringStages(): Promise<RecruitCrmHiringPipelineResponse> {
+    return this.#requestJson("/hiring-pipeline", hiringPipelineResponseSchema);
   }
 
   async #requestJson<T>(
@@ -620,6 +682,18 @@ export function buildSearchJobsRequest(filters: SearchJobsInput): GetRequestOpti
   return { query };
 }
 
+export function buildGetJobAssignedCandidatesRequest(filters: GetJobAssignedCandidatesInput): GetRequestOptions {
+  const query = new URLSearchParams();
+  const page = normalizePage(filters.page);
+  const limit = normalizeAssignedCandidatesLimit(filters.limit);
+
+  query.set("page", String(page));
+  query.set("limit", String(limit));
+  setStringParam(query, "status_id", filters.status_id);
+
+  return { query };
+}
+
 export function buildSearchCompaniesRequest(filters: SearchCompaniesInput): GetRequestOptions {
   const query = new URLSearchParams();
   const page = normalizePage(filters.page);
@@ -775,6 +849,10 @@ function normalizeLimit(value: number | undefined): number {
   }
 
   return Math.floor(value);
+}
+
+function normalizeAssignedCandidatesLimit(value: number | undefined): number {
+  return Math.min(normalizeLimit(value), 100);
 }
 
 function formatIssuePath(path: PropertyKey[]): string {

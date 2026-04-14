@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  buildGetJobAssignedCandidatesRequest,
   buildSearchCandidatesRequest,
   buildSearchCallLogsRequest,
   buildSearchCompaniesRequest,
@@ -85,6 +86,31 @@ describe("buildSearchCandidatesRequest", () => {
         },
       ],
     });
+  });
+});
+
+describe("buildGetJobAssignedCandidatesRequest", () => {
+  it("defaults page and caps limit at 100", () => {
+    const request = buildGetJobAssignedCandidatesRequest({
+      limit: 250,
+    });
+
+    expect(request.query?.get("page")).toBe("1");
+    expect(request.query?.get("limit")).toBe("100");
+    expect(request.query?.get("status_id")).toBeNull();
+    expect(request.jsonBody).toBeUndefined();
+  });
+
+  it("serializes page, limit, and comma-separated status ids", () => {
+    const request = buildGetJobAssignedCandidatesRequest({
+      page: 3,
+      limit: 25,
+      status_id: "8,12",
+    });
+
+    expect(request.query?.get("page")).toBe("3");
+    expect(request.query?.get("limit")).toBe("25");
+    expect(request.query?.get("status_id")).toBe("8,12");
   });
 });
 

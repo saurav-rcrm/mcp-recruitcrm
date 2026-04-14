@@ -2,11 +2,15 @@ import { describe, expect, it } from "vitest";
 
 import {
   mapCallLogSummary,
+  mapCandidateHiringStagesResult,
   mapCandidateJobAssignmentHiringStageHistoryItem,
   mapCandidateJobAssignmentHiringStageHistoryResult,
   mapCandidateSummary,
   mapCompanySummary,
+  mapHiringStageSummary,
+  mapAssignedCandidateSummary,
   mapJobSummary,
+  mapJobAssignedCandidatesResult,
   mapMeetingSummary,
   mapSearchMeetingsResult,
   mapSearchNotesResult,
@@ -22,7 +26,9 @@ import {
   sampleCallLogSearchResponse,
   sampleCandidateJobAssignmentHiringStageHistoryResponse,
   sampleCompanySearchResponse,
+  sampleHiringPipelineResponse,
   sampleJobSearchResponse,
+  sampleJobAssignedCandidatesResponse,
   sampleMeetingSearchResponse,
   sampleNoteSearchResponse,
   sampleSearchResponse,
@@ -55,6 +61,79 @@ describe("candidate mappers", () => {
     expect(result.returned_count).toBe(1);
     expect(result.has_more).toBe(true);
     expect(result.candidates).toHaveLength(1);
+  });
+});
+
+describe("job assigned candidate mappers", () => {
+  it("maps assigned candidate results into compact structured output", () => {
+    const result = mapJobAssignedCandidatesResult("job-sample-001", sampleJobAssignedCandidatesResponse);
+
+    expect(result).toEqual({
+      job_slug: "job-sample-001",
+      page: 1,
+      returned_count: 1,
+      has_more: true,
+      assigned_candidates: [
+        {
+          candidate_slug: "candidate-assigned-sample-001",
+          first_name: "Michael",
+          last_name: "Scott",
+          position: "Regional Manager",
+          current_organization: "Dunder Mifflin",
+          current_status: "Employed",
+          city: "Scranton",
+          country: "United States",
+          updated_on: "2026-02-21T10:00:00.000000Z",
+          stage_date: "2026-02-20T09:08:45.000000Z",
+          status_id: 8,
+          status_label: "Placed",
+        },
+      ],
+    });
+  });
+
+  it("omits raw candidate contact fields from assigned candidate summaries", () => {
+    const summary = mapAssignedCandidateSummary(sampleJobAssignedCandidatesResponse.data[0]!);
+
+    expect(summary).not.toHaveProperty("email");
+    expect(summary).not.toHaveProperty("contact_number");
+    expect(summary).not.toHaveProperty("resource_url");
+    expect(summary).not.toHaveProperty("custom_fields");
+  });
+});
+
+describe("candidate hiring stage mappers", () => {
+  it("maps hiring pipeline results into compact stage rows", () => {
+    const result = mapCandidateHiringStagesResult(sampleHiringPipelineResponse);
+
+    expect(result).toEqual({
+      returned_count: 3,
+      stages: [
+        {
+          stage_id: 1,
+          label: "Assigned",
+        },
+        {
+          stage_id: 8,
+          label: "Placed",
+        },
+        {
+          stage_id: 10,
+          label: "Applied",
+        },
+      ],
+    });
+  });
+
+  it("accepts upstream status_id or stage_id fields", () => {
+    expect(mapHiringStageSummary(sampleHiringPipelineResponse[0]!)).toEqual({
+      stage_id: 1,
+      label: "Assigned",
+    });
+    expect(mapHiringStageSummary(sampleHiringPipelineResponse[2]!)).toEqual({
+      stage_id: 10,
+      label: "Applied",
+    });
   });
 });
 
