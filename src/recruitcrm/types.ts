@@ -43,6 +43,27 @@ export type SearchCandidatesInput = {
   custom_fields?: SearchCandidateCustomFieldFilter[];
 };
 
+export type ListCandidatesInput = {
+  limit?: number;
+  page?: number;
+  sort_by?: "createdon" | "updatedon";
+  sort_order?: "asc" | "desc";
+};
+
+export type ListJobsInput = {
+  limit?: number;
+  page?: number;
+  sort_by?: "createdon" | "updatedon";
+  sort_order?: "asc" | "desc";
+};
+
+export type ListCompaniesInput = {
+  limit?: number;
+  page?: number;
+  sort_by?: "createdon" | "updatedon";
+  sort_order?: "asc" | "desc";
+};
+
 export type SearchTasksInput = {
   page?: number;
   created_from?: string;

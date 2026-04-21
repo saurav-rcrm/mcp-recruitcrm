@@ -12,6 +12,9 @@ import type {
   CandidateDetail,
   GetJobAssignedCandidatesInput,
   JobDetail,
+  ListCandidatesInput,
+  ListCompaniesInput,
+  ListJobsInput,
   RecruitCrmCompanySearchResponse,
   RecruitCrmJobSearchResponse,
   RecruitCrmMeetingSearchResponse,
@@ -458,6 +461,12 @@ export class RecruitCrmClient {
     return this.#requestJson("/candidates/search", searchResponseSchema, request, "Candidate");
   }
 
+  async listCandidates(filters: ListCandidatesInput): Promise<RecruitCrmSearchResponse> {
+    const request = buildListPaginationRequest(filters);
+
+    return this.#requestJson("/candidates", searchResponseSchema, request, "Candidate");
+  }
+
   async getJobAssignedCandidates(
     jobSlug: string,
     filters: GetJobAssignedCandidatesInput,
@@ -478,10 +487,22 @@ export class RecruitCrmClient {
     return this.#requestJson("/jobs/search", jobSearchResponseSchema, request, "Job");
   }
 
+  async listJobs(filters: ListJobsInput): Promise<RecruitCrmJobSearchResponse> {
+    const request = buildListPaginationRequest(filters);
+
+    return this.#requestJson("/jobs", jobSearchResponseSchema, request, "Job");
+  }
+
   async searchCompanies(filters: SearchCompaniesInput): Promise<RecruitCrmCompanySearchResponse> {
     const request = buildSearchCompaniesRequest(filters);
 
     return this.#requestJson("/companies/search", companySearchResponseSchema, request, "Company");
+  }
+
+  async listCompanies(filters: ListCompaniesInput): Promise<RecruitCrmCompanySearchResponse> {
+    const request = buildListPaginationRequest(filters);
+
+    return this.#requestJson("/companies", companySearchResponseSchema, request, "Company");
   }
 
   async searchTasks(filters: SearchTasksInput): Promise<RecruitCrmTaskSearchResponse> {
@@ -667,6 +688,23 @@ export function buildSearchCandidatesRequest(filters: SearchCandidatesInput): Ge
     },
   };
 }
+
+export function buildListPaginationRequest(
+  filters: { limit?: number; page?: number; sort_by?: "createdon" | "updatedon"; sort_order?: "asc" | "desc" },
+): GetRequestOptions {
+  const query = new URLSearchParams();
+  const page = normalizePage(filters.page);
+  const limit = normalizeLimit(filters.limit);
+
+  query.set("page", String(page));
+  query.set("limit", String(limit));
+  query.set("sort_by", filters.sort_by ?? "updatedon");
+  query.set("sort_order", filters.sort_order ?? "desc");
+
+  return { query };
+}
+
+export const buildListCandidatesRequest = buildListPaginationRequest;
 
 export function buildSearchJobsRequest(filters: SearchJobsInput): GetRequestOptions {
   const query = new URLSearchParams();

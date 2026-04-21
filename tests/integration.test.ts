@@ -176,8 +176,11 @@ describe("Recruit CRM MCP tools", () => {
     const tools = await client.listTools();
     expect(tools.tools.map((tool) => tool.name)).toEqual([
       "search_candidates",
+      "list_candidates",
       "search_jobs",
+      "list_jobs",
       "search_companies",
+      "list_companies",
       "search_tasks",
       "search_meetings",
       "search_notes",

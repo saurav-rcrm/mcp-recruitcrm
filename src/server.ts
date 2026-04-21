@@ -35,6 +35,9 @@ import {
   type GetJobAssignedCandidatesInput,
   type JobAssignedCandidatesResult,
   type JobDetail,
+  type ListCandidatesInput,
+  type ListCompaniesInput,
+  type ListJobsInput,
   type SearchCandidatesInput,
   type SearchCompaniesInput,
   type SearchCompaniesResult,
@@ -97,6 +100,27 @@ const searchCandidatesInputSchema = {
     )
     .optional()
     .describe("Candidate custom field filters. Use field ids from the metadata tools."),
+};
+
+const listCandidatesInputSchema = {
+  limit: z.coerce.number().int().min(1).max(100).optional().describe("Records per page (max 100, default 100)."),
+  page: z.coerce.number().int().min(1).optional().describe("Page number (default 1)."),
+  sort_by: z.enum(["createdon", "updatedon"]).optional().describe("Sort field (default updatedon)."),
+  sort_order: z.enum(["asc", "desc"]).optional().describe("Sort order (default desc)."),
+};
+
+const listJobsInputSchema = {
+  limit: z.coerce.number().int().min(1).max(100).optional().describe("Records per page (max 100, default 100)."),
+  page: z.coerce.number().int().min(1).optional().describe("Page number (default 1)."),
+  sort_by: z.enum(["createdon", "updatedon"]).optional().describe("Sort field (default updatedon)."),
+  sort_order: z.enum(["asc", "desc"]).optional().describe("Sort order (default desc)."),
+};
+
+const listCompaniesInputSchema = {
+  limit: z.coerce.number().int().min(1).max(100).optional().describe("Records per page (max 100, default 100)."),
+  page: z.coerce.number().int().min(1).optional().describe("Page number (default 1)."),
+  sort_by: z.enum(["createdon", "updatedon"]).optional().describe("Sort field (default updatedon)."),
+  sort_order: z.enum(["asc", "desc"]).optional().describe("Sort order (default desc)."),
 };
 
 const searchTasksInputSchema = {
@@ -556,6 +580,20 @@ export function createRecruitCrmServer(dependencies: ServerDependencies = {}): M
   );
 
   server.registerTool(
+    "list_candidates",
+    {
+      description:
+        "List all candidates in the account, most-recently updated first. Use this for unfiltered 'show recent candidates' requests; use search_candidates when you have filter criteria like name, owner, or date. Returns compact summaries with slug values for candidate detail lookup or app links like https://app.recruitcrm.io/candidate/{slug}.",
+      inputSchema: listCandidatesInputSchema,
+      outputSchema: searchCandidatesOutputSchema,
+      annotations: {
+        readOnlyHint: true,
+      },
+    },
+    async (args) => formatResult(await executeListCandidates(client, args)),
+  );
+
+  server.registerTool(
     "search_jobs",
     {
       description:
@@ -570,6 +608,20 @@ export function createRecruitCrmServer(dependencies: ServerDependencies = {}): M
   );
 
   server.registerTool(
+    "list_jobs",
+    {
+      description:
+        "List all jobs in the account, most-recently updated first. Use this for unfiltered 'show recent jobs' or 'show all jobs' requests; use search_jobs when you have filter criteria like company, status, name, or owner. Returns compact summaries with slug, company_slug, and contact_slug values for app links.",
+      inputSchema: listJobsInputSchema,
+      outputSchema: searchJobsOutputSchema,
+      annotations: {
+        readOnlyHint: true,
+      },
+    },
+    async (args) => formatResult(await executeListJobs(client, args)),
+  );
+
+  server.registerTool(
     "search_companies",
     {
       description:
@@ -581,6 +633,20 @@ export function createRecruitCrmServer(dependencies: ServerDependencies = {}): M
       },
     },
     async (args) => formatResult(await executeSearchCompanies(client, args)),
+  );
+
+  server.registerTool(
+    "list_companies",
+    {
+      description:
+        "List all companies in the account, most-recently updated first. Use this for unfiltered 'show recent companies' or 'show all companies' requests; use search_companies when you have filter criteria like name or owner. Returns compact summaries with slug and contact_slugs values for app links.",
+      inputSchema: listCompaniesInputSchema,
+      outputSchema: searchCompaniesOutputSchema,
+      annotations: {
+        readOnlyHint: true,
+      },
+    },
+    async (args) => formatResult(await executeListCompanies(client, args)),
   );
 
   server.registerTool(
@@ -787,6 +853,45 @@ export async function executeSearchCandidates(
   });
 
   return mapSearchCandidatesResult(result);
+}
+
+export async function executeListCandidates(
+  client: RecruitCrmClient,
+  args: ListCandidatesInput,
+): Promise<SearchCandidatesResult> {
+  const result = await client.listCandidates({
+    limit: args.limit ?? 100,
+    page: args.page ?? 1,
+    sort_by: args.sort_by ?? "updatedon",
+    sort_order: args.sort_order ?? "desc",
+  });
+
+  return mapSearchCandidatesResult(result);
+}
+
+export async function executeListJobs(client: RecruitCrmClient, args: ListJobsInput): Promise<SearchJobsResult> {
+  const result = await client.listJobs({
+    limit: args.limit ?? 100,
+    page: args.page ?? 1,
+    sort_by: args.sort_by ?? "updatedon",
+    sort_order: args.sort_order ?? "desc",
+  });
+
+  return mapSearchJobsResult(result);
+}
+
+export async function executeListCompanies(
+  client: RecruitCrmClient,
+  args: ListCompaniesInput,
+): Promise<SearchCompaniesResult> {
+  const result = await client.listCompanies({
+    limit: args.limit ?? 100,
+    page: args.page ?? 1,
+    sort_by: args.sort_by ?? "updatedon",
+    sort_order: args.sort_order ?? "desc",
+  });
+
+  return mapSearchCompaniesResult(result);
 }
 
 export async function executeSearchJobs(client: RecruitCrmClient, args: SearchJobsInput): Promise<SearchJobsResult> {
