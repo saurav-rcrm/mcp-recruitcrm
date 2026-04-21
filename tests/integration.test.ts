@@ -766,7 +766,7 @@ describe("Recruit CRM MCP tools", () => {
       isError: true,
       content: [
         {
-          text: "Candidate not found.",
+          text: expect.stringMatching(/^Candidate not found\./),
         },
       ],
     });
@@ -817,7 +817,7 @@ describe("Recruit CRM MCP tools", () => {
       isError: true,
       content: [
         {
-          text: "Job not found.",
+          text: expect.stringMatching(/^Job not found\./),
         },
       ],
     });

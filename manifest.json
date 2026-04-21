@@ -1,0 +1,65 @@
+{
+  "manifest_version": "0.2",
+  "name": "recruitcrm-mcp-server",
+  "display_name": "Recruit CRM",
+  "version": "0.2.0",
+  "description": "Recruit CRM MCP Server - access candidates, jobs, companies, and more from Recruit CRM",
+  "icon": "icon.png",
+  "long_description": "A Model Context Protocol server for Recruit CRM. Search and retrieve candidates, jobs, companies, call logs, meetings, tasks, notes, and hiring stage history from your Recruit CRM account.",
+  "author": {
+    "name": "Recruit CRM",
+    "email": "saurav@recruitcrm.io",
+    "url": "https://recruitcrm.io"
+  },
+  "homepage": "https://recruitcrm.io",
+  "documentation": "https://github.com/saurav-rcrm/mcp-recruitcrm#readme",
+  "support": "mailto:support@recruitcrm.io",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/saurav-rcrm/mcp-recruitcrm"
+  },
+  "license": "MIT",
+  "server": {
+    "type": "node",
+    "entry_point": "dist/index.js",
+    "mcp_config": {
+      "command": "node",
+      "args": ["${__dirname}/dist/index.js"],
+      "env": {
+        "RECRUITCRM_API_TOKEN": "${user_config.api_token}"
+      }
+    }
+  },
+  "user_config": {
+    "api_token": {
+      "type": "string",
+      "title": "Recruit CRM API Token",
+      "description": "Your Recruit CRM API token (found in Settings → API & Integrations)",
+      "sensitive": true,
+      "required": true
+    }
+  },
+  "tools": [
+    { "name": "search_candidates", "description": "Search candidates with filters and return compact summaries." },
+    { "name": "search_jobs", "description": "Search jobs with filters and return compact summaries." },
+    { "name": "search_companies", "description": "Search companies with filters and return compact summaries." },
+    { "name": "search_tasks", "description": "Search tasks and return compact summaries with related entity context." },
+    { "name": "search_meetings", "description": "Search meetings and return compact summaries with scheduling metadata." },
+    { "name": "search_notes", "description": "Search notes and return compact summaries with related entity context." },
+    { "name": "search_call_logs", "description": "Search call logs and return compact summaries with related entity context." },
+    { "name": "get_candidate_details", "description": "Fetch one candidate by slug and return the raw Recruit CRM payload." },
+    { "name": "get_job_details", "description": "Fetch one job by slug and return the raw Recruit CRM payload." },
+    { "name": "get_job_assigned_candidates", "description": "Fetch candidates assigned to a job with compact assignment summaries." },
+    { "name": "list_candidate_hiring_stages", "description": "List candidate hiring stage labels and ids." },
+    { "name": "get_candidate_job_assignment_hiring_stage_history", "description": "Fetch a candidate's job assignment hiring stage history." },
+    { "name": "list_candidate_custom_fields", "description": "List searchable candidate custom field metadata." },
+    { "name": "get_candidate_custom_field_details", "description": "Fetch details for one candidate custom field." }
+  ],
+  "keywords": ["mcp", "recruitcrm", "recruit-crm", "ats", "crm", "recruiting", "hiring"],
+  "compatibility": {
+    "platforms": ["darwin", "win32", "linux"],
+    "runtimes": {
+      "node": ">=20.0.0"
+    }
+  }
+}

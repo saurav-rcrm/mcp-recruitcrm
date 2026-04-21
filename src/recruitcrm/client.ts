@@ -45,13 +45,22 @@ const candidateSchema = z
   })
   .passthrough();
 
-const searchResponseSchema = z
-  .object({
-    current_page: z.coerce.number().int().positive().optional(),
-    next_page_url: z.union([z.string(), z.null()]).optional(),
-    data: z.array(candidateSchema),
-  })
-  .passthrough();
+const searchResponseSchema = z.union([
+  z
+    .object({
+      current_page: z.coerce.number().int().positive().optional(),
+      next_page_url: z.union([z.string(), z.null()]).optional(),
+      data: z.array(candidateSchema),
+    })
+    .passthrough(),
+  z.array(z.unknown()).length(0).transform(
+    (): RecruitCrmSearchResponse => ({
+      current_page: 1,
+      next_page_url: null,
+      data: [],
+    }),
+  ),
+]);
 
 const assignedCandidateStatusSchema = z
   .object({
@@ -68,13 +77,22 @@ const assignedCandidateSchema = z
   })
   .passthrough();
 
-const jobAssignedCandidatesResponseSchema = z
-  .object({
-    current_page: z.coerce.number().int().positive().optional(),
-    next_page_url: z.union([z.string(), z.null()]).optional(),
-    data: z.array(assignedCandidateSchema),
-  })
-  .passthrough();
+const jobAssignedCandidatesResponseSchema = z.union([
+  z
+    .object({
+      current_page: z.coerce.number().int().positive().optional(),
+      next_page_url: z.union([z.string(), z.null()]).optional(),
+      data: z.array(assignedCandidateSchema),
+    })
+    .passthrough(),
+  z.array(z.unknown()).length(0).transform(
+    (): RecruitCrmJobAssignedCandidatesResponse => ({
+      current_page: 1,
+      next_page_url: null,
+      data: [],
+    }),
+  ),
+]);
 
 const hiringStageSchema = z
   .object({
@@ -133,13 +151,22 @@ const jobSchema = z
   })
   .passthrough();
 
-const jobSearchResponseSchema = z
-  .object({
-    current_page: z.coerce.number().int().positive().optional(),
-    next_page_url: z.union([z.string(), z.null()]).optional(),
-    data: z.array(jobSchema),
-  })
-  .passthrough();
+const jobSearchResponseSchema = z.union([
+  z
+    .object({
+      current_page: z.coerce.number().int().positive().optional(),
+      next_page_url: z.union([z.string(), z.null()]).optional(),
+      data: z.array(jobSchema),
+    })
+    .passthrough(),
+  z.array(z.unknown()).length(0).transform(
+    (): RecruitCrmJobSearchResponse => ({
+      current_page: 1,
+      next_page_url: null,
+      data: [],
+    }),
+  ),
+]);
 
 const companySchema = z
   .object({
@@ -170,13 +197,22 @@ const companySchema = z
   })
   .passthrough();
 
-const companySearchResponseSchema = z
-  .object({
-    current_page: z.coerce.number().int().positive().optional(),
-    next_page_url: z.union([z.string(), z.null()]).optional(),
-    data: z.array(companySchema),
-  })
-  .passthrough();
+const companySearchResponseSchema = z.union([
+  z
+    .object({
+      current_page: z.coerce.number().int().positive().optional(),
+      next_page_url: z.union([z.string(), z.null()]).optional(),
+      data: z.array(companySchema),
+    })
+    .passthrough(),
+  z.array(z.unknown()).length(0).transform(
+    (): RecruitCrmCompanySearchResponse => ({
+      current_page: 1,
+      next_page_url: null,
+      data: [],
+    }),
+  ),
+]);
 
 const taskTypeSchema = z
   .object({
@@ -419,7 +455,7 @@ export class RecruitCrmClient {
   async searchCandidates(filters: SearchCandidatesInput): Promise<RecruitCrmSearchResponse> {
     const request = buildSearchCandidatesRequest(filters);
 
-    return this.#requestJson("/candidates/search", searchResponseSchema, request);
+    return this.#requestJson("/candidates/search", searchResponseSchema, request, "Candidate");
   }
 
   async getJobAssignedCandidates(
@@ -428,55 +464,48 @@ export class RecruitCrmClient {
   ): Promise<RecruitCrmJobAssignedCandidatesResponse> {
     const request = buildGetJobAssignedCandidatesRequest(filters);
 
-    try {
-      return await this.#requestJson(
-        `/jobs/${encodeURIComponent(jobSlug)}/assigned-candidates`,
-        jobAssignedCandidatesResponseSchema,
-        request,
-      );
-    } catch (error) {
-      if (error instanceof RecruitCrmApiError && error.statusCode === 404) {
-        throw new RecruitCrmApiError("Job not found.", error.statusCode, error);
-      }
-
-      throw error;
-    }
+    return this.#requestJson(
+      `/jobs/${encodeURIComponent(jobSlug)}/assigned-candidates`,
+      jobAssignedCandidatesResponseSchema,
+      request,
+      "Job",
+    );
   }
 
   async searchJobs(filters: SearchJobsInput): Promise<RecruitCrmJobSearchResponse> {
     const request = buildSearchJobsRequest(filters);
 
-    return this.#requestJson("/jobs/search", jobSearchResponseSchema, request);
+    return this.#requestJson("/jobs/search", jobSearchResponseSchema, request, "Job");
   }
 
   async searchCompanies(filters: SearchCompaniesInput): Promise<RecruitCrmCompanySearchResponse> {
     const request = buildSearchCompaniesRequest(filters);
 
-    return this.#requestJson("/companies/search", companySearchResponseSchema, request);
+    return this.#requestJson("/companies/search", companySearchResponseSchema, request, "Company");
   }
 
   async searchTasks(filters: SearchTasksInput): Promise<RecruitCrmTaskSearchResponse> {
     const request = buildSearchTasksRequest(filters);
 
-    return this.#requestJson("/tasks/search", taskSearchResponseSchema, request);
+    return this.#requestJson("/tasks/search", taskSearchResponseSchema, request, "Task");
   }
 
   async searchMeetings(filters: SearchMeetingsInput): Promise<RecruitCrmMeetingSearchResponse> {
     const request = buildSearchMeetingsRequest(filters);
 
-    return this.#requestJson("/meetings/search", meetingSearchResponseSchema, request);
+    return this.#requestJson("/meetings/search", meetingSearchResponseSchema, request, "Meeting");
   }
 
   async searchNotes(filters: SearchNotesInput): Promise<RecruitCrmNoteSearchResponse> {
     const request = buildSearchNotesRequest(filters);
 
-    return this.#requestJson("/notes/search", noteSearchResponseSchema, request);
+    return this.#requestJson("/notes/search", noteSearchResponseSchema, request, "Note");
   }
 
   async searchCallLogs(filters: SearchCallLogsInput): Promise<RecruitCrmCallLogSearchResponse> {
     const request = buildSearchCallLogsRequest(filters);
 
-    return this.#requestJson("/call-logs/search", callLogSearchResponseSchema, request);
+    return this.#requestJson("/call-logs/search", callLogSearchResponseSchema, request, "Call log");
   }
 
   async getCandidateJobAssignmentHiringStageHistory(
@@ -485,37 +514,42 @@ export class RecruitCrmClient {
     return this.#requestJson(
       `/candidates/${encodeURIComponent(candidateSlug)}/history`,
       candidateJobAssignmentHiringStageHistoryResponseSchema,
+      {},
+      "Candidate",
     );
   }
 
   async getCandidateDetails(candidateSlug: string): Promise<CandidateDetail> {
-    return this.#requestJson(`/candidates/${encodeURIComponent(candidateSlug)}`, candidateDetailSchema);
+    return this.#requestJson(
+      `/candidates/${encodeURIComponent(candidateSlug)}`,
+      candidateDetailSchema,
+      {},
+      "Candidate",
+    );
   }
 
   async getJobDetails(jobSlug: string): Promise<JobDetail> {
-    try {
-      return await this.#requestJson(`/jobs/${encodeURIComponent(jobSlug)}`, jobDetailSchema);
-    } catch (error) {
-      if (error instanceof RecruitCrmApiError && error.statusCode === 404) {
-        throw new RecruitCrmApiError("Job not found.", error.statusCode, error);
-      }
-
-      throw error;
-    }
+    return this.#requestJson(`/jobs/${encodeURIComponent(jobSlug)}`, jobDetailSchema, {}, "Job");
   }
 
   async getCandidateCustomFields(): Promise<RecruitCrmCandidateCustomField[]> {
-    return this.#requestJson("/custom-fields/candidates", candidateCustomFieldsResponseSchema);
+    return this.#requestJson(
+      "/custom-fields/candidates",
+      candidateCustomFieldsResponseSchema,
+      {},
+      "Candidate custom field",
+    );
   }
 
   async listCandidateHiringStages(): Promise<RecruitCrmHiringPipelineResponse> {
-    return this.#requestJson("/hiring-pipeline", hiringPipelineResponseSchema);
+    return this.#requestJson("/hiring-pipeline", hiringPipelineResponseSchema, {}, "Hiring pipeline");
   }
 
   async #requestJson<T>(
     path: string,
     schema: z.ZodType<T>,
     options: GetRequestOptions = {},
+    entity?: string,
   ): Promise<T> {
     const url = new URL(`${this.#baseUrl}${path}`);
 
@@ -541,22 +575,22 @@ export class RecruitCrmClient {
     }
 
     if (response.statusCode < 200 || response.statusCode >= 300) {
-      throw mapHttpError(response.statusCode);
+      throw mapHttpError(response.statusCode, response.bodyText, entity);
     }
 
     let payload: unknown;
 
     try {
       payload = JSON.parse(response.bodyText);
-    } catch (error) {
-      throw invalidApiResponse();
+    } catch {
+      throw invalidApiResponse(path);
     }
 
     const parsed = schema.safeParse(payload);
 
     if (!parsed.success) {
       this.#logSchemaIssues(path, parsed.error.issues);
-      throw invalidApiResponse();
+      throw invalidApiResponse(path, parsed.error.issues);
     }
 
     return parsed.data;

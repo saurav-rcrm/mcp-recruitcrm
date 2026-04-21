@@ -504,7 +504,7 @@ describe("RecruitCrmClient", () => {
     const client = new RecruitCrmClient(baseConfig, transport);
 
     await expect(client.searchCandidates({ first_name: "Sample" })).rejects.toMatchObject({
-      message: "Recruit CRM API returned an invalid response.",
+      message: expect.stringContaining("Recruit CRM API returned an unexpected response shape"),
     });
     expect(consoleErrorSpy).not.toHaveBeenCalled();
   });
@@ -526,11 +526,11 @@ describe("RecruitCrmClient", () => {
     const client = new RecruitCrmClient({ ...baseConfig, debugSchemaErrors: true }, transport);
 
     await expect(client.searchCandidates({ first_name: "Sample" })).rejects.toMatchObject({
-      message: "Recruit CRM API returned an invalid response.",
+      message: expect.stringContaining("Recruit CRM API returned an unexpected response shape"),
     });
     expect(consoleErrorSpy).toHaveBeenCalledTimes(1);
     expect(consoleErrorSpy).toHaveBeenCalledWith(
-      expect.stringContaining("Recruit CRM schema mismatch for /candidates/search: data.0.position"),
+      expect.stringContaining("Recruit CRM schema mismatch for /candidates/search"),
     );
   });
 
@@ -650,7 +650,7 @@ describe("RecruitCrmClient", () => {
     const client = new RecruitCrmClient(baseConfig, transport);
 
     await expect(client.getCandidateDetails("missing")).rejects.toMatchObject({
-      message: "Candidate not found.",
+      message: expect.stringMatching(/^Candidate not found\./),
     });
   });
 
@@ -662,7 +662,7 @@ describe("RecruitCrmClient", () => {
     const client = new RecruitCrmClient(baseConfig, transport);
 
     await expect(client.getJobDetails("missing-job")).rejects.toMatchObject({
-      message: "Job not found.",
+      message: expect.stringMatching(/^Job not found\./),
     });
   });
 
@@ -675,7 +675,7 @@ describe("RecruitCrmClient", () => {
     const client = new RecruitCrmClient({ ...baseConfig, debugSchemaErrors: true }, transport);
 
     await expect(client.getCandidateDetails("candidate-detail-sample-001")).rejects.toMatchObject({
-      message: "Recruit CRM API returned an invalid response.",
+      message: expect.stringContaining("Recruit CRM API returned an unexpected response shape"),
     });
     expect(consoleErrorSpy).toHaveBeenCalledTimes(1);
     expect(consoleErrorSpy).toHaveBeenCalledWith(
