@@ -7,6 +7,10 @@ import type {
   CandidateJobAssignmentHiringStageHistoryItem,
   CandidateJobAssignmentHiringStageHistoryResult,
   CandidateSummary,
+  ContactSummary,
+  CreatedHotlist,
+  CreateHotlistResult,
+  HotlistSummary,
   CompanyOffLimitSummary,
   CompanySummary,
   JobStatusSummary,
@@ -22,6 +26,10 @@ import type {
   RecruitCrmCallLogType,
   RecruitCrmCompany,
   RecruitCrmCompanySearchResponse,
+  RecruitCrmContact,
+  RecruitCrmContactSearchResponse,
+  RecruitCrmHotlist,
+  RecruitCrmHotlistSearchResponse,
   RecruitCrmHiringPipelineResponse,
   RecruitCrmHiringStage,
   RecruitCrmJob,
@@ -40,28 +48,39 @@ import type {
   RecruitCrmTask,
   RecruitCrmTaskSearchResponse,
   RecruitCrmTaskType,
+  RecruitCrmUser,
+  RecruitCrmUserListResponse,
+  RecruitCrmUserTeam,
   RecruitCrmSearchResponse,
+  ListUsersResult,
   SearchMeetingsResult,
   SearchNotesResult,
   SearchCallLogsResult,
   SearchCandidatesResult,
+  SearchContactsResult,
   SearchCompaniesResult,
+  SearchHotlistsResult,
   SearchJobsResult,
   SearchTasksResult,
   NoteSummary,
   NoteTypeSummary,
   TaskSummary,
   TaskTypeSummary,
+  UserSummary,
+  UserTeamSummary,
 } from "./types.js";
 
 export function mapSearchCandidatesResult(
   response: RecruitCrmSearchResponse,
+  options: { includeContactInfo?: boolean } = {},
 ): SearchCandidatesResult {
   return {
     page: response.current_page ?? 1,
     returned_count: response.data.length,
     has_more: hasNextPage(response.next_page_url),
-    candidates: response.data.map(mapCandidateSummary),
+    candidates: response.data.map((candidate) =>
+      mapCandidateSummary(candidate, options),
+    ),
   };
 }
 
@@ -83,8 +102,55 @@ export function mapSearchCompaniesResult(response: RecruitCrmCompanySearchRespon
   };
 }
 
-export function mapCandidateSummary(candidate: RecruitCrmCandidate): CandidateSummary {
+export function mapSearchContactsResult(
+  response: RecruitCrmContactSearchResponse,
+  options: { includeContactInfo?: boolean } = {},
+): SearchContactsResult {
   return {
+    page: response.current_page ?? 1,
+    returned_count: response.data.length,
+    has_more: hasNextPage(response.next_page_url),
+    contacts: response.data.map((contact) => mapContactSummary(contact, options)),
+  };
+}
+
+export function mapSearchHotlistsResult(
+  response: RecruitCrmHotlistSearchResponse,
+  options: { includeRelatedSlugs?: boolean } = {},
+): SearchHotlistsResult {
+  return {
+    page: response.current_page ?? 1,
+    returned_count: response.data.length,
+    has_more: hasNextPage(response.next_page_url),
+    hotlists: response.data.map((hotlist) => mapHotlistSummary(hotlist, options)),
+  };
+}
+
+export function mapListUsersResult(
+  response: RecruitCrmUserListResponse,
+  options: { includeTeams?: boolean; includeContactInfo?: boolean } = {},
+): ListUsersResult {
+  return {
+    returned_count: response.length,
+    users: response.map((user) => mapUserSummary(user, options)),
+  };
+}
+
+export function mapCreateHotlistResult(hotlist: CreatedHotlist): CreateHotlistResult {
+  return {
+    hotlist_id: normalizeNumber(hotlist.id),
+    name: normalizeString(hotlist.name),
+    related_to_type: normalizeString(hotlist.related_to_type),
+    shared: normalizeBoolean(hotlist.shared),
+    created_by: normalizeNumber(hotlist.created_by),
+  };
+}
+
+export function mapCandidateSummary(
+  candidate: RecruitCrmCandidate,
+  options: { includeContactInfo?: boolean } = {},
+): CandidateSummary {
+  const summary: CandidateSummary = {
     slug: candidate.slug,
     first_name: normalizeString(candidate.first_name),
     last_name: normalizeString(candidate.last_name),
@@ -94,6 +160,14 @@ export function mapCandidateSummary(candidate: RecruitCrmCandidate): CandidateSu
     city: normalizeString(candidate.city),
     updated_on: normalizeString(candidate.updated_on),
   };
+
+  if (options.includeContactInfo) {
+    summary.email = normalizeString(candidate.email);
+    summary.contact_number = normalizeString(candidate.contact_number);
+    summary.linkedin = normalizeString(candidate.linkedin);
+  }
+
+  return summary;
 }
 
 export function mapJobSummary(job: RecruitCrmJob): JobSummary {
@@ -154,6 +228,76 @@ export function mapCompanySummary(company: RecruitCrmCompany): CompanySummary {
     created_on: normalizeString(company.created_on),
     updated_on: normalizeString(company.updated_on),
   };
+}
+
+export function mapContactSummary(
+  contact: RecruitCrmContact,
+  options: { includeContactInfo?: boolean } = {},
+): ContactSummary {
+  const summary: ContactSummary = {
+    slug: normalizeString(contact.slug) ?? "",
+    first_name: normalizeString(contact.first_name),
+    last_name: normalizeString(contact.last_name),
+    designation: normalizeString(contact.designation),
+    company_slug: normalizeString(contact.company_slug),
+    additional_company_slugs: normalizeStringArray(contact.additional_company_slugs),
+    city: normalizeString(contact.city),
+    locality: normalizeString(contact.locality),
+    updated_on: normalizeString(contact.updated_on),
+  };
+
+  if (options.includeContactInfo) {
+    summary.email = normalizeString(contact.email);
+    summary.contact_number = normalizeString(contact.contact_number);
+    summary.linkedin = normalizeString(contact.linkedin);
+  }
+
+  return summary;
+}
+
+export function mapHotlistSummary(
+  hotlist: RecruitCrmHotlist,
+  options: { includeRelatedSlugs?: boolean } = {},
+): HotlistSummary {
+  const relatedSlugs = normalizeCommaSeparatedStringList(hotlist.related);
+
+  const summary: HotlistSummary = {
+    id: normalizeNumber(hotlist.id),
+    name: normalizeString(hotlist.name),
+    related_to_type: normalizeString(hotlist.related_to_type),
+    shared: normalizeBoolean(hotlist.shared),
+    created_by: normalizeNumber(hotlist.created_by),
+    related_count: relatedSlugs.length,
+  };
+
+  if (options.includeRelatedSlugs) {
+    summary.related_slugs = relatedSlugs;
+  }
+
+  return summary;
+}
+
+export function mapUserSummary(
+  user: RecruitCrmUser,
+  options: { includeTeams?: boolean; includeContactInfo?: boolean } = {},
+): UserSummary {
+  const summary: UserSummary = {
+    id: normalizeNumber(user.id),
+    first_name: normalizeString(user.first_name),
+    last_name: normalizeString(user.last_name),
+    status: normalizeString(user.status),
+  };
+
+  if (options.includeTeams) {
+    summary.teams = normalizeUserTeams(user.teams);
+  }
+
+  if (options.includeContactInfo) {
+    summary.email = normalizeString(user.email);
+    summary.contact_number = normalizeString(user.contact_number);
+  }
+
+  return summary;
 }
 
 export function mapSearchTasksResult(response: RecruitCrmTaskSearchResponse): SearchTasksResult {
@@ -453,6 +597,17 @@ function normalizeStringArray(values: Array<string | number | null> | null | und
     .filter((value): value is string => value !== null);
 }
 
+function normalizeUserTeams(teams: RecruitCrmUserTeam[] | null | undefined): UserTeamSummary[] {
+  if (!teams || teams.length === 0) {
+    return [];
+  }
+
+  return teams.map((team) => ({
+    team_id: normalizeNumber(team.team_id),
+    team_name: normalizeString(team.team_name),
+  }));
+}
+
 function normalizeStringList(
   values: string | number | Array<string | number | null> | null | undefined,
 ): string[] {
@@ -467,6 +622,19 @@ function normalizeStringList(
   const normalizedValue = normalizeString(values);
 
   return normalizedValue === null ? [] : [normalizedValue];
+}
+
+function normalizeCommaSeparatedStringList(value: string | number | null | undefined): string[] {
+  const normalizedValue = normalizeString(value);
+
+  if (normalizedValue === null) {
+    return [];
+  }
+
+  return normalizedValue
+    .split(",")
+    .map((entry) => entry.trim())
+    .filter((entry) => entry !== "");
 }
 
 function mapCompanyOffLimitSummary(company: RecruitCrmCompany): CompanyOffLimitSummary | null {

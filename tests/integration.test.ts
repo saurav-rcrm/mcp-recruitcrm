@@ -9,8 +9,13 @@ import {
   sampleCandidateCustomFieldsResponse,
   sampleCandidateDetailResponse,
   sampleCandidateJobAssignmentHiringStageHistoryResponse,
+  sampleCompanyDetailResponse,
   sampleCompanySearchResponse,
+  sampleContactDetailResponse,
+  sampleContactSearchResponse,
+  sampleCreatedHotlistResponse,
   sampleHiringPipelineResponse,
+  sampleHotlistSearchResponse,
   sampleJobAssignedCandidatesResponse,
   sampleJobDetailResponse,
   sampleJobSearchResponse,
@@ -18,10 +23,12 @@ import {
   sampleNoteSearchResponse,
   sampleSearchResponse,
   sampleTaskSearchResponse,
+  sampleUserListResponse,
 } from "./fixtures.js";
 
 describe("Recruit CRM MCP tools", () => {
   it("lists tools and returns structured metadata, search, and detail results", async () => {
+    const addedHotlistSlugs: string[] = [];
     const transportMock = vi.fn(async (request: HttpRequestOptions): Promise<HttpResponse> => {
       if (request.url.pathname.endsWith("/custom-fields/candidates")) {
         return {
@@ -67,6 +74,13 @@ describe("Recruit CRM MCP tools", () => {
         };
       }
 
+      if (request.url.pathname.endsWith("/companies/company-detail-sample-001")) {
+        return {
+          statusCode: 200,
+          bodyText: JSON.stringify(sampleCompanyDetailResponse),
+        };
+      }
+
       if (request.url.pathname.endsWith("/jobs/job-sample-001/assigned-candidates")) {
         expect(request.url.searchParams.get("page")).toBe("1");
         expect(request.url.searchParams.get("limit")).toBe("100");
@@ -101,6 +115,88 @@ describe("Recruit CRM MCP tools", () => {
         return {
           statusCode: 200,
           bodyText: JSON.stringify(sampleCompanySearchResponse),
+        };
+      }
+
+      if (request.url.pathname.endsWith("/contacts/search")) {
+        expect(request.url.searchParams.get("first_name")).toBe("Pam");
+        expect(request.url.searchParams.get("sort_by")).toBe("updatedon");
+        expect(request.url.searchParams.get("sort_order")).toBe("desc");
+
+        return {
+          statusCode: 200,
+          bodyText: JSON.stringify(sampleContactSearchResponse),
+        };
+      }
+
+      if (request.url.pathname.endsWith("/contacts") && !request.url.pathname.endsWith("/contacts/search")) {
+        expect(request.url.searchParams.get("page")).toBe("1");
+        expect(request.url.searchParams.get("limit")).toBe("100");
+        expect(request.url.searchParams.get("sort_by")).toBe("updatedon");
+        expect(request.url.searchParams.get("sort_order")).toBe("desc");
+
+        return {
+          statusCode: 200,
+          bodyText: JSON.stringify(sampleContactSearchResponse),
+        };
+      }
+
+      if (request.url.pathname.endsWith("/contacts/contact-detail-sample-001")) {
+        return {
+          statusCode: 200,
+          bodyText: JSON.stringify(sampleContactDetailResponse),
+        };
+      }
+
+      if (request.url.pathname.endsWith("/hotlists/search")) {
+        expect(request.url.searchParams.get("page")).toBe("1");
+        expect(request.url.searchParams.get("related_to_type")).toBe("candidate");
+        expect(request.url.searchParams.get("name")).toBe("Product");
+        expect(request.url.searchParams.get("shared")).toBe("1");
+
+        return {
+          statusCode: 200,
+          bodyText: JSON.stringify(sampleHotlistSearchResponse),
+        };
+      }
+
+      if (request.url.pathname.endsWith("/hotlists")) {
+        expect(request.method).toBe("POST");
+        expect(request.jsonBody).toEqual({
+          name: "Product Leaders",
+          related_to_type: "candidate",
+          shared: 0,
+          created_by: 453,
+        });
+
+        return {
+          statusCode: 200,
+          bodyText: JSON.stringify(sampleCreatedHotlistResponse),
+        };
+      }
+
+      if (request.url.pathname.endsWith("/hotlists/702/add-record")) {
+        expect(request.method).toBe("POST");
+        expect(request.jsonBody).toEqual({
+          related: expect.any(String),
+        });
+        addedHotlistSlugs.push(String((request.jsonBody as { related: string }).related));
+
+        return {
+          statusCode: 204,
+          bodyText: "",
+        };
+      }
+
+      if (request.url.pathname.endsWith("/users")) {
+        const expand = request.url.searchParams.get("expand");
+        if (expand !== null) {
+          expect(expand).toBe("team");
+        }
+
+        return {
+          statusCode: 200,
+          bodyText: JSON.stringify(sampleUserListResponse),
         };
       }
 
@@ -181,18 +277,47 @@ describe("Recruit CRM MCP tools", () => {
       "list_jobs",
       "search_companies",
       "list_companies",
+      "search_contacts",
+      "list_contacts",
+      "list_users",
+      "search_hotlists",
+      "create_hotlist",
+      "add_records_to_hotlist",
       "search_tasks",
       "search_meetings",
       "search_notes",
       "search_call_logs",
       "get_candidate_details",
       "get_job_details",
+      "get_company_details",
+      "get_contact_details",
       "get_job_assigned_candidates",
       "list_candidate_hiring_stages",
       "get_candidate_job_assignment_hiring_stage_history",
       "list_candidate_custom_fields",
       "get_candidate_custom_field_details",
     ]);
+    expect(tools.tools.find((tool) => tool.name === "create_hotlist")).toMatchObject({
+      annotations: {
+        readOnlyHint: false,
+        destructiveHint: false,
+        idempotentHint: false,
+        openWorldHint: false,
+      },
+    });
+    expect(tools.tools.find((tool) => tool.name === "add_records_to_hotlist")).toMatchObject({
+      annotations: {
+        readOnlyHint: false,
+        destructiveHint: false,
+        idempotentHint: false,
+        openWorldHint: false,
+      },
+    });
+    expect(tools.tools.find((tool) => tool.name === "list_users")).toMatchObject({
+      annotations: {
+        readOnlyHint: true,
+      },
+    });
 
     const fieldsResult = await client.callTool({
       name: "list_candidate_custom_fields",
@@ -254,7 +379,7 @@ describe("Recruit CRM MCP tools", () => {
     const detailResult = await client.callTool({
       name: "get_candidate_details",
       arguments: {
-        candidate_slug: "010011",
+        candidate_slugs: ["010011"],
       },
     });
 
@@ -277,6 +402,77 @@ describe("Recruit CRM MCP tools", () => {
       name: "get_job_details",
       arguments: {
         job_slug: "job-detail-sample-001",
+      },
+    });
+
+    const companyDetailResult = await client.callTool({
+      name: "get_company_details",
+      arguments: {
+        company_slugs: ["company-detail-sample-001"],
+      },
+    });
+
+    const searchContactsResult = await client.callTool({
+      name: "search_contacts",
+      arguments: {
+        first_name: "Pam",
+        include_contact_info: true,
+      },
+    });
+
+    const listContactsResult = await client.callTool({
+      name: "list_contacts",
+      arguments: {},
+    });
+
+    const contactDetailResult = await client.callTool({
+      name: "get_contact_details",
+      arguments: {
+        contact_slugs: ["contact-detail-sample-001"],
+      },
+    });
+
+    const listUsersResult = await client.callTool({
+      name: "list_users",
+      arguments: {},
+    });
+
+    const listUsersExpandedResult = await client.callTool({
+      name: "list_users",
+      arguments: {
+        include_teams: true,
+        include_contact_info: true,
+      },
+    });
+
+    const searchHotlistsResult = await client.callTool({
+      name: "search_hotlists",
+      arguments: {
+        related_to_type: "candidate",
+        name: "Product",
+        shared: 1,
+      },
+    });
+
+    const createHotlistResult = await client.callTool({
+      name: "create_hotlist",
+      arguments: {
+        name: "Product Leaders",
+        related_to_type: "candidate",
+        shared: 0,
+        created_by: 453,
+      },
+    });
+
+    const addRecordsToHotlistResult = await client.callTool({
+      name: "add_records_to_hotlist",
+      arguments: {
+        hotlist_id: 702,
+        related_slugs: [
+          "candidate-related-sample-001",
+          "candidate-related-sample-002",
+          "candidate-related-sample-001",
+        ],
       },
     });
 
@@ -340,16 +536,26 @@ describe("Recruit CRM MCP tools", () => {
     });
 
     expect(detailResult.structuredContent).toMatchObject({
-      slug: "010011",
-      first_name: "Sample",
-      last_name: "Profile",
-      current_salary: 0,
-      salary_type: {
-        id: "2",
-        label: "Annual Salary",
-      },
+      requested_count: 1,
+      successful_count: 1,
+      failed_count: 0,
+      errors: [],
+      candidates: [
+        expect.objectContaining({
+          slug: "010011",
+          first_name: "Sample",
+          last_name: "Profile",
+          current_salary: 0,
+          salary_type: {
+            id: "2",
+            label: "Annual Salary",
+          },
+        }),
+      ],
     });
-    expect((detailResult.structuredContent as { custom_fields: Array<Record<string, unknown>> }).custom_fields).toEqual(
+    expect(
+      (detailResult.structuredContent as { candidates: Array<Record<string, unknown>> }).candidates[0]?.custom_fields,
+    ).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
           field_id: 34,
@@ -357,7 +563,9 @@ describe("Recruit CRM MCP tools", () => {
         }),
       ]),
     );
-    expect((detailResult.structuredContent as { work_history: Array<Record<string, unknown>> }).work_history).toEqual(
+    expect(
+      (detailResult.structuredContent as { candidates: Array<Record<string, unknown>> }).candidates[0]?.work_history,
+    ).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
           title: "Founder",
@@ -366,7 +574,8 @@ describe("Recruit CRM MCP tools", () => {
       ]),
     );
     expect(
-      (detailResult.structuredContent as { education_history: Array<Record<string, unknown>> }).education_history,
+      (detailResult.structuredContent as { candidates: Array<Record<string, unknown>> }).candidates[0]
+        ?.education_history,
     ).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
@@ -488,6 +697,199 @@ describe("Recruit CRM MCP tools", () => {
         }),
       ]),
     );
+    expect(companyDetailResult.structuredContent).toMatchObject({
+      requested_count: 1,
+      successful_count: 1,
+      failed_count: 0,
+      errors: [],
+      companies: [
+        expect.objectContaining({
+          slug: "company-detail-sample-001",
+          company_name: "Example Holdings",
+          website: "https://www.example-holdings.test",
+          owner: 3735,
+          resource_url: "https://app.recruitcrm.io/company/company-detail-sample-001",
+          contact_slug: ["contact-sample-001", "", null, "contact-sample-002"],
+          is_child_company: "No",
+          is_parent_company: "Yes",
+        }),
+      ],
+    });
+    expect(
+      (companyDetailResult.structuredContent as { companies: Array<Record<string, unknown>> }).companies[0]
+        ?.custom_fields,
+    ).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          field_id: 1,
+          field_name: "Parent Organization",
+        }),
+      ]),
+    );
+    expect(searchContactsResult.structuredContent).toMatchObject({
+      page: 1,
+      returned_count: 1,
+      has_more: true,
+      contacts: [
+        {
+          slug: "contact-sample-001",
+          first_name: "Pam",
+          last_name: "Beesly",
+          designation: "Office Manager",
+          company_slug: "company-sample-001",
+          additional_company_slugs: ["company-sample-aux-001"],
+          city: "Scranton",
+          locality: "Downtown",
+          updated_on: "2026-04-09T11:30:00.000000Z",
+          email: "pam.beesly@example.com",
+          contact_number: "+1-555-0142",
+          linkedin: "https://www.linkedin.com/in/pam-beesly",
+        },
+      ],
+    });
+    expect(
+      (searchContactsResult.structuredContent as { contacts: Array<Record<string, unknown>> }).contacts[0],
+    ).not.toHaveProperty("custom_fields");
+    expect(listContactsResult.structuredContent).toMatchObject({
+      page: 1,
+      returned_count: 1,
+      has_more: true,
+      contacts: [
+        {
+          slug: "contact-sample-001",
+          first_name: "Pam",
+          last_name: "Beesly",
+          designation: "Office Manager",
+          company_slug: "company-sample-001",
+          additional_company_slugs: ["company-sample-aux-001"],
+          city: "Scranton",
+          locality: "Downtown",
+          updated_on: "2026-04-09T11:30:00.000000Z",
+        },
+      ],
+    });
+    expect(
+      (listContactsResult.structuredContent as { contacts: Array<Record<string, unknown>> }).contacts[0],
+    ).not.toHaveProperty("email");
+    expect(contactDetailResult.structuredContent).toMatchObject({
+      requested_count: 1,
+      successful_count: 1,
+      failed_count: 0,
+      errors: [],
+      contacts: [
+        expect.objectContaining({
+          slug: "contact-detail-sample-001",
+          first_name: "Pam",
+          last_name: "Beesly",
+          company_name: "Example Holdings",
+          resource_url: "https://app.recruitcrm.io/contact/contact-detail-sample-001",
+        }),
+      ],
+    });
+    expect(listUsersResult.structuredContent).toMatchObject({
+      returned_count: 3,
+      users: [
+        {
+          id: 453,
+          first_name: "Sean",
+          last_name: "Mallapurkar",
+          status: "Active",
+        },
+        {
+          id: 999,
+          first_name: "Brandon",
+          last_name: "McArthur",
+          status: "Deactivated",
+        },
+        {
+          id: 3557,
+          first_name: "Sarvesh",
+          last_name: null,
+          status: "Deactivated",
+        },
+      ],
+    });
+    expect((listUsersResult.structuredContent as { users: Array<Record<string, unknown>> }).users[0]).not.toHaveProperty(
+      "teams",
+    );
+    expect((listUsersResult.structuredContent as { users: Array<Record<string, unknown>> }).users[0]).not.toHaveProperty(
+      "email",
+    );
+    expect(listUsersExpandedResult.structuredContent).toMatchObject({
+      returned_count: 3,
+      users: expect.arrayContaining([
+        expect.objectContaining({
+          id: 453,
+          email: "sean@example.com",
+          contact_number: "+1-555-0191",
+          teams: [
+            {
+              team_id: 1435,
+              team_name: "Legal Recruitment Team",
+            },
+            {
+              team_id: 2253,
+              team_name: "US Team",
+            },
+          ],
+        }),
+        expect.objectContaining({
+          id: 999,
+          email: null,
+          contact_number: "+1-555-0199",
+          teams: [],
+        }),
+      ]),
+    });
+
+    expect(searchHotlistsResult.structuredContent).toMatchObject({
+      page: 1,
+      returned_count: 2,
+      has_more: true,
+      hotlists: [
+        {
+          id: 702,
+          name: "Product Leaders",
+          related_to_type: "candidate",
+          shared: true,
+          created_by: 66960,
+          related_count: 3,
+          related_slugs: ["candidate-sample-001", "candidate-sample-002", "candidate-sample-003"],
+        },
+        {
+          id: 703,
+          name: "Private shortlist",
+          related_to_type: "candidate",
+          shared: false,
+          created_by: 68596,
+          related_count: 0,
+          related_slugs: [],
+        },
+      ],
+    });
+    expect(createHotlistResult.structuredContent).toEqual({
+      hotlist_id: 307309,
+      name: "Product Leaders",
+      related_to_type: "candidate",
+      shared: false,
+      created_by: 453,
+    });
+    expect(addRecordsToHotlistResult.structuredContent).toMatchObject({
+      hotlist_id: 702,
+      requested_count: 2,
+      successful_count: 2,
+      failed_count: 0,
+      added_slugs: ["candidate-related-sample-001", "candidate-related-sample-002"],
+      errors: [],
+    });
+    expect(addedHotlistSlugs).toEqual([
+      "candidate-related-sample-001",
+      "candidate-related-sample-002",
+    ]);
+    expect(
+      (contactDetailResult.structuredContent as { contacts: Array<Record<string, unknown>> }).contacts[0]
+        ?.additional_company_slugs,
+    ).toEqual(["company-sample-aux-001", "", null]);
     expect(hiringStagesResult.structuredContent).toEqual({
       returned_count: 3,
       stages: [
@@ -721,15 +1123,25 @@ describe("Recruit CRM MCP tools", () => {
       (callLogResult.structuredContent as { call_logs: Array<Record<string, unknown>> }).call_logs[0],
     ).not.toHaveProperty("associated_candidates");
 
-    expect(transportMock).toHaveBeenCalledTimes(15);
+    expect(transportMock).toHaveBeenCalledTimes(25);
 
     await client.close();
     await server.close();
   });
 
-  it("maps a direct detail 404 to candidate not found", async () => {
+  it("returns partial failures for get_candidate_details without failing the whole tool call", async () => {
     const transportMock = vi.fn(async (request: HttpRequestOptions): Promise<HttpResponse> => {
-      if (request.url.pathname.endsWith("/candidates/missing")) {
+      if (request.url.pathname.endsWith("/candidates/candidate-good")) {
+        return {
+          statusCode: 200,
+          bodyText: JSON.stringify({
+            ...sampleCandidateDetailResponse,
+            slug: "candidate-good",
+          }),
+        };
+      }
+
+      if (request.url.pathname.endsWith("/candidates/candidate-missing")) {
         return {
           statusCode: 404,
           bodyText: JSON.stringify({ message: "Not found" }),
@@ -762,16 +1174,23 @@ describe("Recruit CRM MCP tools", () => {
       client.callTool({
         name: "get_candidate_details",
         arguments: {
-          candidate_slug: "missing",
+          candidate_slugs: ["candidate-good", "candidate-missing"],
         },
       }),
     ).resolves.toMatchObject({
-      isError: true,
-      content: [
-        {
-          text: expect.stringMatching(/^Candidate not found\./),
-        },
-      ],
+      structuredContent: {
+        requested_count: 2,
+        successful_count: 1,
+        failed_count: 1,
+        candidates: [expect.objectContaining({ slug: "candidate-good" })],
+        errors: [
+          expect.objectContaining({
+            slug: "candidate-missing",
+            status_code: 404,
+            error: expect.stringMatching(/^Candidate not found\./),
+          }),
+        ],
+      },
     });
 
     await client.close();
@@ -824,6 +1243,534 @@ describe("Recruit CRM MCP tools", () => {
         },
       ],
     });
+
+    await client.close();
+    await server.close();
+  });
+
+  it("returns partial failures for get_company_details without failing the whole tool call", async () => {
+    const transportMock = vi.fn(async (request: HttpRequestOptions): Promise<HttpResponse> => {
+      if (request.url.pathname.endsWith("/companies/company-good")) {
+        return {
+          statusCode: 200,
+          bodyText: JSON.stringify({
+            ...sampleCompanyDetailResponse,
+            slug: "company-good",
+          }),
+        };
+      }
+
+      if (request.url.pathname.endsWith("/companies/company-missing")) {
+        return {
+          statusCode: 404,
+          bodyText: JSON.stringify({ message: "Not found" }),
+        };
+      }
+
+      throw new Error(`Unexpected request: ${request.url.toString()}`);
+    });
+
+    const server = createRecruitCrmServer({
+      config: {
+        apiToken: "test-token",
+        baseUrl: "https://api.recruitcrm.io/v1",
+        timeoutMs: 10_000,
+        debugSchemaErrors: false,
+      },
+      transport: transportMock,
+    });
+
+    const client = new Client({
+      name: "test-client",
+      version: "1.0.0",
+    });
+
+    const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
+    await server.connect(serverTransport);
+    await client.connect(clientTransport);
+
+    await expect(
+      client.callTool({
+        name: "get_company_details",
+        arguments: {
+          company_slugs: ["company-good", "company-missing"],
+        },
+      }),
+    ).resolves.toMatchObject({
+      structuredContent: {
+        requested_count: 2,
+        successful_count: 1,
+        failed_count: 1,
+        companies: [expect.objectContaining({ slug: "company-good" })],
+        errors: [
+          expect.objectContaining({
+            slug: "company-missing",
+            status_code: 404,
+            error: expect.stringMatching(/^Company not found\./),
+          }),
+        ],
+      },
+    });
+
+    await client.close();
+    await server.close();
+  });
+
+  it("returns partial failures for get_contact_details without failing the whole tool call", async () => {
+    const transportMock = vi.fn(async (request: HttpRequestOptions): Promise<HttpResponse> => {
+      if (request.url.pathname.endsWith("/contacts/contact-good")) {
+        return {
+          statusCode: 200,
+          bodyText: JSON.stringify({
+            ...sampleContactDetailResponse,
+            slug: "contact-good",
+          }),
+        };
+      }
+
+      if (request.url.pathname.endsWith("/contacts/contact-missing")) {
+        return {
+          statusCode: 404,
+          bodyText: JSON.stringify({ message: "Not found" }),
+        };
+      }
+
+      throw new Error(`Unexpected request: ${request.url.toString()}`);
+    });
+
+    const server = createRecruitCrmServer({
+      config: {
+        apiToken: "test-token",
+        baseUrl: "https://api.recruitcrm.io/v1",
+        timeoutMs: 10_000,
+        debugSchemaErrors: false,
+      },
+      transport: transportMock,
+    });
+
+    const client = new Client({
+      name: "test-client",
+      version: "1.0.0",
+    });
+
+    const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
+    await server.connect(serverTransport);
+    await client.connect(clientTransport);
+
+    await expect(
+      client.callTool({
+        name: "get_contact_details",
+        arguments: {
+          contact_slugs: ["contact-good", "contact-missing"],
+        },
+      }),
+    ).resolves.toMatchObject({
+      structuredContent: {
+        requested_count: 2,
+        successful_count: 1,
+        failed_count: 1,
+        contacts: [expect.objectContaining({ slug: "contact-good" })],
+        errors: [
+          expect.objectContaining({
+            slug: "contact-missing",
+            status_code: 404,
+            error: expect.stringMatching(/^Contact not found\./),
+          }),
+        ],
+      },
+    });
+
+    await client.close();
+    await server.close();
+  });
+
+  it("rejects sort-only search_contacts requests before making an API request", async () => {
+    const transportMock = vi.fn(async (_request: HttpRequestOptions): Promise<HttpResponse> => {
+      throw new Error("Contact search should fail before making an API request.");
+    });
+
+    const server = createRecruitCrmServer({
+      config: {
+        apiToken: "test-token",
+        baseUrl: "https://api.recruitcrm.io/v1",
+        timeoutMs: 10_000,
+        debugSchemaErrors: false,
+      },
+      transport: transportMock,
+    });
+
+    const client = new Client({
+      name: "test-client",
+      version: "1.0.0",
+    });
+
+    const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
+    await server.connect(serverTransport);
+    await client.connect(clientTransport);
+
+    await expect(
+      client.callTool({
+        name: "search_contacts",
+        arguments: {
+          sort_by: "updatedon",
+          sort_order: "desc",
+          page: 1,
+          exact_search: true,
+          include_contact_info: true,
+        },
+      }),
+    ).resolves.toMatchObject({
+      isError: true,
+      content: [
+        {
+          text:
+            "search_contacts requires at least one filter. sort_by, sort_order, page, exact_search, and include_contact_info do not count by themselves.",
+        },
+      ],
+    });
+
+    expect(transportMock).not.toHaveBeenCalled();
+
+    await client.close();
+    await server.close();
+  });
+
+  it("searches hotlists with related_to_type only", async () => {
+    const transportMock = vi.fn(async (request: HttpRequestOptions): Promise<HttpResponse> => {
+      if (request.url.pathname.endsWith("/hotlists/search")) {
+        expect(request.url.searchParams.get("page")).toBe("1");
+        expect(request.url.searchParams.get("related_to_type")).toBe("candidate");
+        expect(request.url.searchParams.get("name")).toBeNull();
+        expect(request.url.searchParams.get("shared")).toBeNull();
+
+        return {
+          statusCode: 200,
+          bodyText: JSON.stringify(sampleHotlistSearchResponse),
+        };
+      }
+
+      throw new Error(`Unexpected request: ${request.url.toString()}`);
+    });
+
+    const server = createRecruitCrmServer({
+      config: {
+        apiToken: "test-token",
+        baseUrl: "https://api.recruitcrm.io/v1",
+        timeoutMs: 10_000,
+        debugSchemaErrors: false,
+      },
+      transport: transportMock,
+    });
+
+    const client = new Client({
+      name: "test-client",
+      version: "1.0.0",
+    });
+
+    const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
+    await server.connect(serverTransport);
+    await client.connect(clientTransport);
+
+    const compactHotlists = (
+      await client.callTool({
+        name: "search_hotlists",
+        arguments: {
+          related_to_type: "candidate",
+        },
+      })
+    ).structuredContent as { page: number; returned_count: number; has_more: boolean; hotlists: Array<Record<string, unknown>> };
+    expect(compactHotlists).toMatchObject({
+      page: 1,
+      returned_count: 2,
+      has_more: true,
+      hotlists: expect.arrayContaining([
+        expect.objectContaining({
+          id: 702,
+          name: "Product Leaders",
+          related_count: 3,
+        }),
+        expect.objectContaining({
+          id: 703,
+          name: "Private shortlist",
+          related_count: 0,
+        }),
+      ]),
+    });
+    expect(compactHotlists.hotlists[0]).not.toHaveProperty("related_slugs");
+    expect(compactHotlists.hotlists[1]).not.toHaveProperty("related_slugs");
+
+    await client.close();
+    await server.close();
+  });
+
+  it("keeps search_hotlists compact when only shared is used as a narrowing filter", async () => {
+    const transportMock = vi.fn(async (request: HttpRequestOptions): Promise<HttpResponse> => {
+      if (request.url.pathname.endsWith("/hotlists/search")) {
+        expect(request.url.searchParams.get("page")).toBe("1");
+        expect(request.url.searchParams.get("related_to_type")).toBe("candidate");
+        expect(request.url.searchParams.get("name")).toBeNull();
+        expect(request.url.searchParams.get("shared")).toBe("1");
+
+        return {
+          statusCode: 200,
+          bodyText: JSON.stringify(sampleHotlistSearchResponse),
+        };
+      }
+
+      throw new Error(`Unexpected request: ${request.url.toString()}`);
+    });
+
+    const server = createRecruitCrmServer({
+      config: {
+        apiToken: "test-token",
+        baseUrl: "https://api.recruitcrm.io/v1",
+        timeoutMs: 10_000,
+        debugSchemaErrors: false,
+      },
+      transport: transportMock,
+    });
+
+    const client = new Client({
+      name: "test-client",
+      version: "1.0.0",
+    });
+
+    const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
+    await server.connect(serverTransport);
+    await client.connect(clientTransport);
+
+    const compactHotlists = (
+      await client.callTool({
+        name: "search_hotlists",
+        arguments: {
+          related_to_type: "candidate",
+          shared: 1,
+        },
+      })
+    ).structuredContent as { hotlists: Array<Record<string, unknown>> };
+
+    expect(compactHotlists.hotlists[0]).not.toHaveProperty("related_slugs");
+    expect(compactHotlists.hotlists[1]).not.toHaveProperty("related_slugs");
+
+    await client.close();
+    await server.close();
+  });
+
+  it("normalizes empty hotlist search results", async () => {
+    const transportMock = vi.fn(async (request: HttpRequestOptions): Promise<HttpResponse> => {
+      if (request.url.pathname.endsWith("/hotlists/search")) {
+        return {
+          statusCode: 200,
+          bodyText: JSON.stringify([]),
+        };
+      }
+
+      throw new Error(`Unexpected request: ${request.url.toString()}`);
+    });
+
+    const server = createRecruitCrmServer({
+      config: {
+        apiToken: "test-token",
+        baseUrl: "https://api.recruitcrm.io/v1",
+        timeoutMs: 10_000,
+        debugSchemaErrors: false,
+      },
+      transport: transportMock,
+    });
+
+    const client = new Client({
+      name: "test-client",
+      version: "1.0.0",
+    });
+
+    const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
+    await server.connect(serverTransport);
+    await client.connect(clientTransport);
+
+    await expect(
+      client.callTool({
+        name: "search_hotlists",
+        arguments: {
+          related_to_type: "candidate",
+        },
+      }),
+    ).resolves.toMatchObject({
+      structuredContent: {
+        page: 1,
+        returned_count: 0,
+        has_more: false,
+        hotlists: [],
+      },
+    });
+
+    await client.close();
+    await server.close();
+  });
+
+  it("rejects boolean-style shared search_hotlists requests before making an API request", async () => {
+    const transportMock = vi.fn(async (_request: HttpRequestOptions): Promise<HttpResponse> => {
+      throw new Error("Hotlist search should fail before making an API request.");
+    });
+
+    const server = createRecruitCrmServer({
+      config: {
+        apiToken: "test-token",
+        baseUrl: "https://api.recruitcrm.io/v1",
+        timeoutMs: 10_000,
+        debugSchemaErrors: false,
+      },
+      transport: transportMock,
+    });
+
+    const client = new Client({
+      name: "test-client",
+      version: "1.0.0",
+    });
+
+    const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
+    await server.connect(serverTransport);
+    await client.connect(clientTransport);
+
+    await expect(
+      client.callTool({
+        name: "search_hotlists",
+        arguments: {
+          related_to_type: "candidate",
+          shared: "true",
+        },
+      }),
+    ).resolves.toMatchObject({
+      isError: true,
+      content: [
+        {
+          text: expect.stringContaining("shared"),
+        },
+      ],
+    });
+
+    expect(transportMock).not.toHaveBeenCalled();
+
+    await client.close();
+    await server.close();
+  });
+
+  it("rejects boolean-style shared create_hotlist requests before making an API request", async () => {
+    const transportMock = vi.fn(async (_request: HttpRequestOptions): Promise<HttpResponse> => {
+      throw new Error("Hotlist creation should fail before making an API request.");
+    });
+
+    const server = createRecruitCrmServer({
+      config: {
+        apiToken: "test-token",
+        baseUrl: "https://api.recruitcrm.io/v1",
+        timeoutMs: 10_000,
+        debugSchemaErrors: false,
+      },
+      transport: transportMock,
+    });
+
+    const client = new Client({
+      name: "test-client",
+      version: "1.0.0",
+    });
+
+    const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
+    await server.connect(serverTransport);
+    await client.connect(clientTransport);
+
+    await expect(
+      client.callTool({
+        name: "create_hotlist",
+        arguments: {
+          name: "Product Leaders",
+          related_to_type: "candidate",
+          shared: "true",
+          created_by: 453,
+        },
+      }),
+    ).resolves.toMatchObject({
+      isError: true,
+      content: [
+        {
+          text: expect.stringContaining("shared"),
+        },
+      ],
+    });
+
+    expect(transportMock).not.toHaveBeenCalled();
+
+    await client.close();
+    await server.close();
+  });
+
+  it("adds records to hotlists sequentially and returns partial failures", async () => {
+    const callOrder: string[] = [];
+    const transportMock = vi.fn(async (request: HttpRequestOptions): Promise<HttpResponse> => {
+      if (request.url.pathname.endsWith("/hotlists/702/add-record")) {
+        expect(request.method).toBe("POST");
+        const slug = String((request.jsonBody as { related: string }).related);
+        callOrder.push(slug);
+
+        if (slug === "bad-slug") {
+          return {
+            statusCode: 422,
+            bodyText: JSON.stringify({ message: "Slug rejected" }),
+          };
+        }
+
+        return {
+          statusCode: 200,
+          bodyText: JSON.stringify({ ok: true }),
+        };
+      }
+
+      throw new Error(`Unexpected request: ${request.url.toString()}`);
+    });
+
+    const server = createRecruitCrmServer({
+      config: {
+        apiToken: "test-token",
+        baseUrl: "https://api.recruitcrm.io/v1",
+        timeoutMs: 10_000,
+        debugSchemaErrors: false,
+      },
+      transport: transportMock,
+    });
+
+    const client = new Client({
+      name: "test-client",
+      version: "1.0.0",
+    });
+
+    const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
+    await server.connect(serverTransport);
+    await client.connect(clientTransport);
+
+    const result = await client.callTool({
+      name: "add_records_to_hotlist",
+      arguments: {
+        hotlist_id: 702,
+        related_slugs: ["slug-a", "slug-a", "bad-slug", "slug-b"],
+      },
+    });
+
+    expect(result.structuredContent).toMatchObject({
+      hotlist_id: 702,
+      requested_count: 3,
+      successful_count: 2,
+      failed_count: 1,
+      added_slugs: ["slug-a", "slug-b"],
+      errors: [
+        expect.objectContaining({
+          slug: "bad-slug",
+          status_code: 422,
+        }),
+      ],
+    });
+    expect((result.structuredContent as { errors: Array<{ error: string }> }).errors[0]?.error).toContain(
+      "validation error",
+    );
+    expect(callOrder).toEqual(["slug-a", "bad-slug", "slug-b"]);
 
     await client.close();
     await server.close();

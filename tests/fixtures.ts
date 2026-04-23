@@ -3,15 +3,21 @@ import type {
   RecruitCrmCandidateJobAssignmentHiringStageHistoryResponse,
   RecruitCrmCallLogSearchResponse,
   CandidateDetail,
+  CompanyDetail,
+  ContactDetail,
+  CreatedHotlist,
   JobDetail,
   RecruitCrmHiringPipelineResponse,
   RecruitCrmJobAssignedCandidatesResponse,
   RecruitCrmCompanySearchResponse,
+  RecruitCrmContactSearchResponse,
+  RecruitCrmHotlistSearchResponse,
   RecruitCrmJobSearchResponse,
   RecruitCrmMeetingSearchResponse,
   RecruitCrmNoteSearchResponse,
   RecruitCrmSearchResponse,
   RecruitCrmTaskSearchResponse,
+  RecruitCrmUserListResponse,
 } from "../src/recruitcrm/types.js";
 
 export const sampleSearchResponse: RecruitCrmSearchResponse = {
@@ -290,6 +296,162 @@ export const sampleCompanySearchResponse: RecruitCrmCompanySearchResponse = {
     },
   ],
 };
+
+export const sampleCompanyDetailResponse: CompanyDetail = {
+  ...sampleCompanySearchResponse.data[0],
+  slug: "company-detail-sample-001",
+  logo: "https://api.recruitcrm.io/v1/companies/company-detail-sample-001/logo/example",
+  resource_url: "https://app.recruitcrm.io/company/company-detail-sample-001",
+};
+
+export const sampleContactSearchResponse: RecruitCrmContactSearchResponse = {
+  current_page: 1,
+  next_page_url: "https://api.recruitcrm.io/v1/contacts/search?page=2",
+  data: [
+    {
+      id: 501,
+      slug: "contact-sample-001",
+      first_name: "Pam",
+      last_name: "Beesly",
+      email: "pam.beesly@example.com",
+      contact_number: "+1-555-0142",
+      linkedin: "https://www.linkedin.com/in/pam-beesly",
+      company_slug: "company-sample-001",
+      additional_company_slugs: ["company-sample-aux-001", "", null],
+      designation: "Office Manager",
+      city: "Scranton",
+      locality: "Downtown",
+      address: "1725 Slough Avenue",
+      created_on: "2026-02-01T09:00:00.000000Z",
+      updated_on: "2026-04-09T11:30:00.000000Z",
+      custom_fields: [
+        {
+          field_id: 1,
+          field_name: "Department",
+          field_type: "dropdown",
+          value: "Operations",
+        },
+      ],
+      resource_url: "https://app.recruitcrm.io/contact/contact-sample-001",
+      last_email_sent_on: "2026-04-10T09:15:00.000000Z",
+      off_limit_status_id: null,
+      status_label: null,
+      off_limit_reason: null,
+      off_limit_end_date: null,
+    },
+  ],
+};
+
+export const sampleContactDetailResponse: ContactDetail = {
+  ...sampleContactSearchResponse.data[0],
+  slug: "contact-detail-sample-001",
+  owner: 3735,
+  owner_name: "Sample Owner",
+  company_name: "Example Holdings",
+  facebook: null,
+  twitter: null,
+  xing: null,
+  state: "Pennsylvania",
+  country: "United States",
+  postal_code: "18503",
+  is_email_opted_out: false,
+  email_opt_out_source: null,
+  contact_stage_remarks: null,
+  last_calllog_added_on: null,
+  last_calllog_added_by: null,
+  last_email_sent_by: 3735,
+  last_sms_sent_on: null,
+  last_sms_sent_by: null,
+  last_meeting_created_on: "2026-04-08T12:00:00.000000Z",
+  last_meeting_created_by: 3735,
+  last_linkedin_message_sent_on: null,
+  last_linkedin_message_sent_by: null,
+  last_communication: "2026-04-10T09:15:00.000000Z",
+  custom_fields: [
+    {
+      field_id: 1,
+      entity_type: "contact",
+      field_name: "Department",
+      field_type: "dropdown",
+      value: "Operations",
+    },
+  ],
+  resource_url: "https://app.recruitcrm.io/contact/contact-detail-sample-001",
+};
+
+export const sampleHotlistSearchResponse: RecruitCrmHotlistSearchResponse = {
+  current_page: 1,
+  next_page_url: "https://api.recruitcrm.io/v1/hotlists/search?page=2",
+  data: [
+    {
+      id: 702,
+      name: "Product Leaders",
+      related_to_type: "candidate",
+      shared: 1,
+      created_by: 66960,
+      related: "candidate-sample-001, candidate-sample-002 , ,candidate-sample-003",
+      ignored_field: "ignored",
+    },
+    {
+      id: 703,
+      name: "Private shortlist",
+      related_to_type: "candidate",
+      shared: 0,
+      created_by: 68596,
+      related: null,
+    },
+  ],
+};
+
+export const sampleCreatedHotlistResponse: CreatedHotlist = {
+  id: 307309,
+  name: "Product Leaders",
+  related_to_type: "candidate",
+  related: "",
+  shared: 0,
+  created_by: 453,
+};
+
+export const sampleUserListResponse: RecruitCrmUserListResponse = [
+  {
+    id: 453,
+    first_name: "Sean",
+    last_name: "Mallapurkar",
+    email: "sean@example.com",
+    contact_number: "+1-555-0191",
+    status: "Active",
+    role: "Account Owner",
+    teams: [
+      {
+        team_id: 1435,
+        team_name: "Legal Recruitment Team",
+      },
+      {
+        team_id: "2253",
+        team_name: "US Team",
+      },
+    ],
+  },
+  {
+    id: "999",
+    first_name: "Brandon",
+    last_name: "McArthur",
+    email: null,
+    contact_number: "+1-555-0199",
+    status: "Deactivated",
+    role: null,
+    teams: [],
+  },
+  {
+    id: 3557,
+    first_name: "Sarvesh",
+    last_name: null,
+    email: null,
+    contact_number: null,
+    status: "Deactivated",
+    teams: null,
+  },
+];
 
 export const sampleJobDetailResponse: JobDetail = {
   id: 313,

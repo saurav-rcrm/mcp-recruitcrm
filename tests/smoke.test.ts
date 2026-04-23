@@ -37,12 +37,20 @@ describe("stdio smoke test", () => {
       "list_jobs",
       "search_companies",
       "list_companies",
+      "search_contacts",
+      "list_contacts",
+      "list_users",
+      "search_hotlists",
+      "create_hotlist",
+      "add_records_to_hotlist",
       "search_tasks",
       "search_meetings",
       "search_notes",
       "search_call_logs",
       "get_candidate_details",
       "get_job_details",
+      "get_company_details",
+      "get_contact_details",
       "get_job_assigned_candidates",
       "list_candidate_hiring_stages",
       "get_candidate_job_assignment_hiring_stage_history",
@@ -51,5 +59,5 @@ describe("stdio smoke test", () => {
     ]);
 
     await client.close();
-  });
+  }, 15000);
 });

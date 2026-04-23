@@ -7,7 +7,12 @@ import {
   sampleHiringPipelineResponse,
   sampleCandidateJobAssignmentHiringStageHistoryResponse,
   sampleCandidateDetailResponse,
+  sampleCompanyDetailResponse,
   sampleCompanySearchResponse,
+  sampleContactDetailResponse,
+  sampleContactSearchResponse,
+  sampleCreatedHotlistResponse,
+  sampleHotlistSearchResponse,
   sampleJobAssignedCandidatesResponse,
   sampleJobDetailResponse,
   sampleJobSearchResponse,
@@ -15,6 +20,7 @@ import {
   sampleNoteSearchResponse,
   sampleSearchResponse,
   sampleTaskSearchResponse,
+  sampleUserListResponse,
 } from "./fixtures.js";
 
 const baseConfig = {
@@ -282,6 +288,271 @@ describe("RecruitCrmClient", () => {
       next_page_url: null,
       data: [],
     });
+  });
+
+  it("parses contact search payloads while tolerating large nested payloads", async () => {
+    const transport = vi.fn(async (_request: HttpRequestOptions): Promise<HttpResponse> => ({
+      statusCode: 200,
+      bodyText: JSON.stringify(sampleContactSearchResponse),
+    }));
+    const client = new RecruitCrmClient(baseConfig, transport);
+
+    const result = await client.searchContacts({
+      contact_slug: "contact-sample-001",
+    });
+
+    expect(result.current_page).toBe(1);
+    expect(result.next_page_url).toBe("https://api.recruitcrm.io/v1/contacts/search?page=2");
+    expect(result.data[0]).toMatchObject({
+      id: 501,
+      slug: "contact-sample-001",
+      first_name: "Pam",
+      last_name: "Beesly",
+      email: "pam.beesly@example.com",
+      contact_number: "+1-555-0142",
+      linkedin: "https://www.linkedin.com/in/pam-beesly",
+      company_slug: "company-sample-001",
+      additional_company_slugs: ["company-sample-aux-001", "", null],
+      designation: "Office Manager",
+      city: "Scranton",
+      locality: "Downtown",
+    });
+    expect(transport).toHaveBeenCalledWith(
+      expect.objectContaining({
+        method: "GET",
+        url: expect.objectContaining({
+          pathname: "/v1/contacts/search",
+        }),
+      }),
+    );
+  });
+
+  it("normalizes empty contact search arrays into an empty paginated response", async () => {
+    const transport = vi.fn(async (_request: HttpRequestOptions): Promise<HttpResponse> => ({
+      statusCode: 200,
+      bodyText: JSON.stringify([]),
+    }));
+    const client = new RecruitCrmClient(baseConfig, transport);
+
+    const result = await client.searchContacts({ first_name: "Pam" });
+
+    expect(result).toEqual({
+      current_page: 1,
+      next_page_url: null,
+      data: [],
+    });
+  });
+
+  it("parses contact list payloads", async () => {
+    const transport = vi.fn(async (request: HttpRequestOptions): Promise<HttpResponse> => {
+      expect(request.url.pathname).toBe("/v1/contacts");
+      expect(request.url.searchParams.get("page")).toBe("2");
+      expect(request.url.searchParams.get("limit")).toBe("25");
+      expect(request.url.searchParams.get("sort_by")).toBe("createdon");
+      expect(request.url.searchParams.get("sort_order")).toBe("asc");
+
+      return {
+        statusCode: 200,
+        bodyText: JSON.stringify(sampleContactSearchResponse),
+      };
+    });
+    const client = new RecruitCrmClient(baseConfig, transport);
+
+    const result = await client.listContacts({
+      page: 2,
+      limit: 25,
+      sort_by: "createdon",
+      sort_order: "asc",
+    });
+
+    expect(result.current_page).toBe(1);
+    expect(result.data[0]).toMatchObject({
+      slug: "contact-sample-001",
+      company_slug: "company-sample-001",
+    });
+  });
+
+  it("parses hotlist search payloads and preserves large related strings", async () => {
+    const longRelated = Array.from({ length: 200 }, (_, index) => `candidate-hotlist-${index + 1}`).join(",");
+    const transport = vi.fn(async (request: HttpRequestOptions): Promise<HttpResponse> => {
+      expect(request.url.pathname).toBe("/v1/hotlists/search");
+      expect(request.url.searchParams.get("page")).toBe("2");
+      expect(request.url.searchParams.get("related_to_type")).toBe("candidate");
+      expect(request.url.searchParams.get("name")).toBe("Product");
+      expect(request.url.searchParams.get("shared")).toBe("1");
+
+      return {
+        statusCode: 200,
+        bodyText: JSON.stringify({
+          ...sampleHotlistSearchResponse,
+          data: [
+            {
+              ...sampleHotlistSearchResponse.data[0],
+              related: longRelated,
+            },
+            sampleHotlistSearchResponse.data[1],
+          ],
+        }),
+      };
+    });
+    const client = new RecruitCrmClient(baseConfig, transport);
+
+    const result = await client.searchHotlists({
+      page: 2,
+      related_to_type: "candidate",
+      name: "Product",
+      shared: 1,
+    });
+
+    expect(result.current_page).toBe(1);
+    expect(result.next_page_url).toBe("https://api.recruitcrm.io/v1/hotlists/search?page=2");
+    expect(result.data[0]).toMatchObject({
+      id: 702,
+      name: "Product Leaders",
+      related_to_type: "candidate",
+      shared: 1,
+      created_by: 66960,
+      related: longRelated,
+    });
+    expect(result.data[1]?.related).toBeNull();
+  });
+
+  it("normalizes empty hotlist search arrays into an empty paginated response", async () => {
+    const transport = vi.fn(async (_request: HttpRequestOptions): Promise<HttpResponse> => ({
+      statusCode: 200,
+      bodyText: JSON.stringify([]),
+    }));
+    const client = new RecruitCrmClient(baseConfig, transport);
+
+    const result = await client.searchHotlists({ related_to_type: "candidate" });
+
+    expect(result).toEqual({
+      current_page: 1,
+      next_page_url: null,
+      data: [],
+    });
+  });
+
+  it("posts createHotlist requests and parses the created hotlist response", async () => {
+    const transport = vi.fn(async (request: HttpRequestOptions): Promise<HttpResponse> => {
+      expect(request.url.pathname).toBe("/v1/hotlists");
+      expect(request.method).toBe("POST");
+      expect(request.jsonBody).toEqual({
+        name: "Product Leaders",
+        related_to_type: "candidate",
+        shared: 0,
+        created_by: 453,
+      });
+
+      return {
+        statusCode: 200,
+        bodyText: JSON.stringify(sampleCreatedHotlistResponse),
+      };
+    });
+    const client = new RecruitCrmClient(baseConfig, transport);
+
+    const result = await client.createHotlist({
+      name: "Product Leaders",
+      related_to_type: "candidate",
+      shared: 0,
+      created_by: 453,
+    });
+
+    expect(result).toMatchObject({
+      id: 307309,
+      name: "Product Leaders",
+      related_to_type: "candidate",
+      shared: 0,
+      created_by: 453,
+    });
+  });
+
+  it("maps createHotlist validation errors through the existing hotlist error handler", async () => {
+    const transport = vi.fn(async (_request: HttpRequestOptions): Promise<HttpResponse> => ({
+      statusCode: 422,
+      bodyText: JSON.stringify({ message: "created_by is required" }),
+    }));
+    const client = new RecruitCrmClient(baseConfig, transport);
+
+    await expect(
+      client.createHotlist({
+        name: "Product Leaders",
+        related_to_type: "candidate",
+        shared: 0,
+        created_by: 453,
+      }),
+    ).rejects.toMatchObject({
+      message: "Recruit CRM API validation error (422): created_by is required",
+    });
+  });
+
+  it("posts addRecordToHotlist requests without requiring a JSON success payload", async () => {
+    const transport = vi.fn(async (request: HttpRequestOptions): Promise<HttpResponse> => {
+      expect(request.url.pathname).toBe("/v1/hotlists/702/add-record");
+      expect(request.method).toBe("POST");
+      expect(request.jsonBody).toEqual({
+        related: "candidate-sample-001",
+      });
+
+      return {
+        statusCode: 204,
+        bodyText: "",
+      };
+    });
+    const client = new RecruitCrmClient(baseConfig, transport);
+
+    await expect(client.addRecordToHotlist(702, "candidate-sample-001")).resolves.toBeUndefined();
+  });
+
+  it("maps hotlist add-record 404s to hotlist not found", async () => {
+    const transport = vi.fn(async (_request: HttpRequestOptions): Promise<HttpResponse> => ({
+      statusCode: 404,
+      bodyText: JSON.stringify({ message: "Not found" }),
+    }));
+    const client = new RecruitCrmClient(baseConfig, transport);
+
+    await expect(client.addRecordToHotlist(999, "candidate-sample-001")).rejects.toMatchObject({
+      message: expect.stringMatching(/^Hotlist not found\./),
+    });
+  });
+
+  it("lists users without expanding teams by default", async () => {
+    const transport = vi.fn(async (request: HttpRequestOptions): Promise<HttpResponse> => {
+      expect(request.url.pathname).toBe("/v1/users");
+      expect(request.url.searchParams.get("expand")).toBeNull();
+
+      return {
+        statusCode: 200,
+        bodyText: JSON.stringify(sampleUserListResponse),
+      };
+    });
+    const client = new RecruitCrmClient(baseConfig, transport);
+
+    const result = await client.listUsers({});
+
+    expect(result).toHaveLength(3);
+    expect(result[0]).toMatchObject({
+      id: 453,
+      first_name: "Sean",
+      status: "Active",
+    });
+  });
+
+  it("sends expand=team when listing users with teams", async () => {
+    const transport = vi.fn(async (request: HttpRequestOptions): Promise<HttpResponse> => {
+      expect(request.url.pathname).toBe("/v1/users");
+      expect(request.url.searchParams.get("expand")).toBe("team");
+
+      return {
+        statusCode: 200,
+        bodyText: JSON.stringify(sampleUserListResponse),
+      };
+    });
+    const client = new RecruitCrmClient(baseConfig, transport);
+
+    const result = await client.listUsers({ include_teams: true });
+
+    expect(result[0]?.teams).toHaveLength(2);
   });
 
   it("normalizes empty task search arrays into an empty paginated response", async () => {
@@ -642,6 +913,60 @@ describe("RecruitCrmClient", () => {
     expect(result.resource_url).toBe("https://app.recruitcrm.io/job/job-detail-sample-001");
   });
 
+  it("parses direct company detail payloads", async () => {
+    const transport = vi.fn(async (request: HttpRequestOptions): Promise<HttpResponse> => {
+      expect(request.url.pathname).toBe("/v1/companies/company-detail-sample-001");
+
+      return {
+        statusCode: 200,
+        bodyText: JSON.stringify(sampleCompanyDetailResponse),
+      };
+    });
+    const client = new RecruitCrmClient(baseConfig, transport);
+
+    const result = await client.getCompanyDetails("company-detail-sample-001");
+
+    expect(result.slug).toBe("company-detail-sample-001");
+    expect(result.company_name).toBe("Example Holdings");
+    expect(result.contact_slug).toEqual(["contact-sample-001", "", null, "contact-sample-002"]);
+    expect(result.custom_fields).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          field_id: 1,
+          field_name: "Parent Organization",
+        }),
+      ]),
+    );
+    expect(result.resource_url).toBe("https://app.recruitcrm.io/company/company-detail-sample-001");
+  });
+
+  it("parses direct contact detail payloads", async () => {
+    const transport = vi.fn(async (request: HttpRequestOptions): Promise<HttpResponse> => {
+      expect(request.url.pathname).toBe("/v1/contacts/contact-detail-sample-001");
+
+      return {
+        statusCode: 200,
+        bodyText: JSON.stringify(sampleContactDetailResponse),
+      };
+    });
+    const client = new RecruitCrmClient(baseConfig, transport);
+
+    const result = await client.getContactDetails("contact-detail-sample-001");
+
+    expect(result.slug).toBe("contact-detail-sample-001");
+    expect(result.company_name).toBe("Example Holdings");
+    expect(result.additional_company_slugs).toEqual(["company-sample-aux-001", "", null]);
+    expect(result.custom_fields).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          field_id: 1,
+          field_name: "Department",
+        }),
+      ]),
+    );
+    expect(result.resource_url).toBe("https://app.recruitcrm.io/contact/contact-detail-sample-001");
+  });
+
   it("maps direct detail 404s to candidate not found", async () => {
     const transport = vi.fn(async (_request: HttpRequestOptions): Promise<HttpResponse> => ({
       statusCode: 404,
@@ -666,6 +991,30 @@ describe("RecruitCrmClient", () => {
     });
   });
 
+  it("maps direct company detail 404s to company not found", async () => {
+    const transport = vi.fn(async (_request: HttpRequestOptions): Promise<HttpResponse> => ({
+      statusCode: 404,
+      bodyText: JSON.stringify({ message: "Not found" }),
+    }));
+    const client = new RecruitCrmClient(baseConfig, transport);
+
+    await expect(client.getCompanyDetails("missing-company")).rejects.toMatchObject({
+      message: expect.stringMatching(/^Company not found\./),
+    });
+  });
+
+  it("maps direct contact detail 404s to contact not found", async () => {
+    const transport = vi.fn(async (_request: HttpRequestOptions): Promise<HttpResponse> => ({
+      statusCode: 404,
+      bodyText: JSON.stringify({ message: "Not found" }),
+    }));
+    const client = new RecruitCrmClient(baseConfig, transport);
+
+    await expect(client.getContactDetails("missing-contact")).rejects.toMatchObject({
+      message: expect.stringMatching(/^Contact not found\./),
+    });
+  });
+
   it("logs compact schema issues for direct detail payloads when debug logging is enabled", async () => {
     const consoleErrorSpy = vi.spyOn(console, "error").mockImplementation(() => undefined);
     const transport = vi.fn(async (_request: HttpRequestOptions): Promise<HttpResponse> => ({
@@ -681,5 +1030,436 @@ describe("RecruitCrmClient", () => {
     expect(consoleErrorSpy).toHaveBeenCalledWith(
       expect.stringContaining("Recruit CRM schema mismatch for /candidates/candidate-detail-sample-001: <root>:"),
     );
+  });
+
+  it("logs compact schema issues for direct company detail payloads when debug logging is enabled", async () => {
+    const consoleErrorSpy = vi.spyOn(console, "error").mockImplementation(() => undefined);
+    const transport = vi.fn(async (_request: HttpRequestOptions): Promise<HttpResponse> => ({
+      statusCode: 200,
+      bodyText: JSON.stringify(["not-an-object"]),
+    }));
+    const client = new RecruitCrmClient({ ...baseConfig, debugSchemaErrors: true }, transport);
+
+    await expect(client.getCompanyDetails("company-detail-sample-001")).rejects.toMatchObject({
+      message: expect.stringContaining("Recruit CRM API returned an unexpected response shape"),
+    });
+    expect(consoleErrorSpy).toHaveBeenCalledTimes(1);
+    expect(consoleErrorSpy).toHaveBeenCalledWith(
+      expect.stringContaining("Recruit CRM schema mismatch for /companies/company-detail-sample-001: <root>:"),
+    );
+  });
+
+  it("logs compact schema issues for direct contact detail payloads when debug logging is enabled", async () => {
+    const consoleErrorSpy = vi.spyOn(console, "error").mockImplementation(() => undefined);
+    const transport = vi.fn(async (_request: HttpRequestOptions): Promise<HttpResponse> => ({
+      statusCode: 200,
+      bodyText: JSON.stringify(["not-an-object"]),
+    }));
+    const client = new RecruitCrmClient({ ...baseConfig, debugSchemaErrors: true }, transport);
+
+    await expect(client.getContactDetails("contact-detail-sample-001")).rejects.toMatchObject({
+      message: expect.stringContaining("Recruit CRM API returned an unexpected response shape"),
+    });
+    expect(consoleErrorSpy).toHaveBeenCalledTimes(1);
+    expect(consoleErrorSpy).toHaveBeenCalledWith(
+      expect.stringContaining("Recruit CRM schema mismatch for /contacts/contact-detail-sample-001: <root>:"),
+    );
+  });
+});
+
+describe("executeGetCandidateDetails", () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it("returns a batch envelope for a single slug", async () => {
+    const transport = vi.fn(async (request: HttpRequestOptions): Promise<HttpResponse> => {
+      const slug = request.url.pathname.split("/").pop() ?? "";
+      return {
+        statusCode: 200,
+        bodyText: JSON.stringify({ slug, first_name: `name-${slug}` }),
+      };
+    });
+    const client = new RecruitCrmClient(baseConfig, transport);
+
+    const { executeGetCandidateDetails } = await import("../src/server.js");
+    const result = await executeGetCandidateDetails(client, {
+      candidate_slugs: ["slug-a"],
+    });
+
+    expect(result).toMatchObject({
+      requested_count: 1,
+      successful_count: 1,
+      failed_count: 0,
+      errors: [],
+      candidates: [expect.objectContaining({ slug: "slug-a" })],
+    });
+  });
+
+  it("returns a result entry for each unique slug on the success path", async () => {
+    const seen: string[] = [];
+    const transport = vi.fn(async (request: HttpRequestOptions): Promise<HttpResponse> => {
+      const slug = request.url.pathname.split("/").pop() ?? "";
+      seen.push(slug);
+      return {
+        statusCode: 200,
+        bodyText: JSON.stringify({ slug, first_name: `name-${slug}` }),
+      };
+    });
+    const client = new RecruitCrmClient(baseConfig, transport);
+
+    const { executeGetCandidateDetails } = await import("../src/server.js");
+    const result = await executeGetCandidateDetails(client, {
+      candidate_slugs: ["slug-a", "slug-b", "slug-c"],
+    });
+
+    expect(result).toMatchObject({
+      requested_count: 3,
+      successful_count: 3,
+      failed_count: 0,
+      errors: [],
+    });
+    expect(result.candidates).toHaveLength(3);
+    expect(seen.sort()).toEqual(["slug-a", "slug-b", "slug-c"]);
+  });
+
+  it("surfaces partial failures with status_code from the API error", async () => {
+    const transport = vi.fn(async (request: HttpRequestOptions): Promise<HttpResponse> => {
+      const slug = request.url.pathname.split("/").pop() ?? "";
+      if (slug === "bad-slug") {
+        return { statusCode: 404, bodyText: JSON.stringify({ message: "Not found" }) };
+      }
+      return {
+        statusCode: 200,
+        bodyText: JSON.stringify({ slug, first_name: `name-${slug}` }),
+      };
+    });
+    const client = new RecruitCrmClient(baseConfig, transport);
+
+    const { executeGetCandidateDetails } = await import("../src/server.js");
+    const result = await executeGetCandidateDetails(client, {
+      candidate_slugs: ["slug-a", "bad-slug", "slug-c"],
+    });
+
+    expect(result.requested_count).toBe(3);
+    expect(result.successful_count).toBe(2);
+    expect(result.failed_count).toBe(1);
+    expect(result.errors).toHaveLength(1);
+    expect(result.errors[0]).toMatchObject({
+      slug: "bad-slug",
+      status_code: 404,
+    });
+    expect(result.errors[0].error).toMatch(/Candidate not found/i);
+  });
+
+  it("deduplicates input slugs before fan-out", async () => {
+    const transport = vi.fn(async (request: HttpRequestOptions): Promise<HttpResponse> => {
+      const slug = request.url.pathname.split("/").pop() ?? "";
+      return {
+        statusCode: 200,
+        bodyText: JSON.stringify({ slug }),
+      };
+    });
+    const client = new RecruitCrmClient(baseConfig, transport);
+
+    const { executeGetCandidateDetails } = await import("../src/server.js");
+    const result = await executeGetCandidateDetails(client, {
+      candidate_slugs: ["slug-a", "slug-a", "slug-b"],
+    });
+
+    expect(transport).toHaveBeenCalledTimes(2);
+    expect(result.requested_count).toBe(2);
+    expect(result.successful_count).toBe(2);
+  });
+});
+
+describe("executeGetContactDetails", () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it("returns a result entry for each unique slug on the success path", async () => {
+    const seen: string[] = [];
+    const transport = vi.fn(async (request: HttpRequestOptions): Promise<HttpResponse> => {
+      const slug = request.url.pathname.split("/").pop() ?? "";
+      seen.push(slug);
+      return {
+        statusCode: 200,
+        bodyText: JSON.stringify({ slug, first_name: `name-${slug}` }),
+      };
+    });
+    const client = new RecruitCrmClient(baseConfig, transport);
+
+    const { executeGetContactDetails } = await import("../src/server.js");
+    const result = await executeGetContactDetails(client, {
+      contact_slugs: ["slug-a", "slug-b", "slug-c"],
+    });
+
+    expect(result).toMatchObject({
+      requested_count: 3,
+      successful_count: 3,
+      failed_count: 0,
+      errors: [],
+    });
+    expect(result.contacts).toHaveLength(3);
+    expect(seen.sort()).toEqual(["slug-a", "slug-b", "slug-c"]);
+  });
+
+  it("surfaces partial failures with status_code from the API error", async () => {
+    const transport = vi.fn(async (request: HttpRequestOptions): Promise<HttpResponse> => {
+      const slug = request.url.pathname.split("/").pop() ?? "";
+      if (slug === "bad-slug") {
+        return { statusCode: 404, bodyText: JSON.stringify({ message: "Not found" }) };
+      }
+      return {
+        statusCode: 200,
+        bodyText: JSON.stringify({ slug, first_name: `name-${slug}` }),
+      };
+    });
+    const client = new RecruitCrmClient(baseConfig, transport);
+
+    const { executeGetContactDetails } = await import("../src/server.js");
+    const result = await executeGetContactDetails(client, {
+      contact_slugs: ["slug-a", "bad-slug", "slug-c"],
+    });
+
+    expect(result.requested_count).toBe(3);
+    expect(result.successful_count).toBe(2);
+    expect(result.failed_count).toBe(1);
+    expect(result.errors).toHaveLength(1);
+    expect(result.errors[0]).toMatchObject({
+      slug: "bad-slug",
+      status_code: 404,
+    });
+    expect(result.errors[0].error).toMatch(/Contact not found/i);
+  });
+
+  it("deduplicates input slugs before fan-out", async () => {
+    const transport = vi.fn(async (request: HttpRequestOptions): Promise<HttpResponse> => {
+      const slug = request.url.pathname.split("/").pop() ?? "";
+      return {
+        statusCode: 200,
+        bodyText: JSON.stringify({ slug }),
+      };
+    });
+    const client = new RecruitCrmClient(baseConfig, transport);
+
+    const { executeGetContactDetails } = await import("../src/server.js");
+    const result = await executeGetContactDetails(client, {
+      contact_slugs: ["slug-a", "slug-a", "slug-b"],
+    });
+
+    expect(transport).toHaveBeenCalledTimes(2);
+    expect(result.requested_count).toBe(2);
+    expect(result.successful_count).toBe(2);
+  });
+});
+
+describe("executeGetCompanyDetails", () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it("returns a batch envelope for a single slug", async () => {
+    const transport = vi.fn(async (request: HttpRequestOptions): Promise<HttpResponse> => {
+      const slug = request.url.pathname.split("/").pop() ?? "";
+      return {
+        statusCode: 200,
+        bodyText: JSON.stringify({ slug, company_name: `name-${slug}` }),
+      };
+    });
+    const client = new RecruitCrmClient(baseConfig, transport);
+
+    const { executeGetCompanyDetails } = await import("../src/server.js");
+    const result = await executeGetCompanyDetails(client, {
+      company_slugs: ["slug-a"],
+    });
+
+    expect(result).toMatchObject({
+      requested_count: 1,
+      successful_count: 1,
+      failed_count: 0,
+      errors: [],
+      companies: [expect.objectContaining({ slug: "slug-a" })],
+    });
+  });
+
+  it("returns a result entry for each unique slug on the success path", async () => {
+    const seen: string[] = [];
+    const transport = vi.fn(async (request: HttpRequestOptions): Promise<HttpResponse> => {
+      const slug = request.url.pathname.split("/").pop() ?? "";
+      seen.push(slug);
+      return {
+        statusCode: 200,
+        bodyText: JSON.stringify({ slug, company_name: `name-${slug}` }),
+      };
+    });
+    const client = new RecruitCrmClient(baseConfig, transport);
+
+    const { executeGetCompanyDetails } = await import("../src/server.js");
+    const result = await executeGetCompanyDetails(client, {
+      company_slugs: ["slug-a", "slug-b", "slug-c"],
+    });
+
+    expect(result).toMatchObject({
+      requested_count: 3,
+      successful_count: 3,
+      failed_count: 0,
+      errors: [],
+    });
+    expect(result.companies).toHaveLength(3);
+    expect(seen.sort()).toEqual(["slug-a", "slug-b", "slug-c"]);
+  });
+
+  it("surfaces partial failures with status_code from the API error", async () => {
+    const transport = vi.fn(async (request: HttpRequestOptions): Promise<HttpResponse> => {
+      const slug = request.url.pathname.split("/").pop() ?? "";
+      if (slug === "bad-slug") {
+        return { statusCode: 404, bodyText: JSON.stringify({ message: "Not found" }) };
+      }
+      return {
+        statusCode: 200,
+        bodyText: JSON.stringify({ slug, company_name: `name-${slug}` }),
+      };
+    });
+    const client = new RecruitCrmClient(baseConfig, transport);
+
+    const { executeGetCompanyDetails } = await import("../src/server.js");
+    const result = await executeGetCompanyDetails(client, {
+      company_slugs: ["slug-a", "bad-slug", "slug-c"],
+    });
+
+    expect(result.requested_count).toBe(3);
+    expect(result.successful_count).toBe(2);
+    expect(result.failed_count).toBe(1);
+    expect(result.errors).toHaveLength(1);
+    expect(result.errors[0]).toMatchObject({
+      slug: "bad-slug",
+      status_code: 404,
+    });
+    expect(result.errors[0].error).toMatch(/Company not found/i);
+  });
+
+  it("deduplicates input slugs before fan-out", async () => {
+    const transport = vi.fn(async (request: HttpRequestOptions): Promise<HttpResponse> => {
+      const slug = request.url.pathname.split("/").pop() ?? "";
+      return {
+        statusCode: 200,
+        bodyText: JSON.stringify({ slug }),
+      };
+    });
+    const client = new RecruitCrmClient(baseConfig, transport);
+
+    const { executeGetCompanyDetails } = await import("../src/server.js");
+    const result = await executeGetCompanyDetails(client, {
+      company_slugs: ["slug-a", "slug-a", "slug-b"],
+    });
+
+    expect(transport).toHaveBeenCalledTimes(2);
+    expect(result.requested_count).toBe(2);
+    expect(result.successful_count).toBe(2);
+  });
+});
+
+describe("executeCreateHotlist", () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it("returns normalized create_hotlist output", async () => {
+    const transport = vi.fn(async (_request: HttpRequestOptions): Promise<HttpResponse> => ({
+      statusCode: 200,
+      bodyText: JSON.stringify(sampleCreatedHotlistResponse),
+    }));
+    const client = new RecruitCrmClient(baseConfig, transport);
+
+    const { executeCreateHotlist } = await import("../src/server.js");
+    const result = await executeCreateHotlist(client, {
+      name: "Product Leaders",
+      related_to_type: "candidate",
+      shared: 0,
+      created_by: 453,
+    });
+
+    expect(result).toEqual({
+      hotlist_id: 307309,
+      name: "Product Leaders",
+      related_to_type: "candidate",
+      shared: false,
+      created_by: 453,
+    });
+  });
+});
+
+describe("executeAddRecordsToHotlist", () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it("returns a stable batch envelope for a single slug", async () => {
+    const transport = vi.fn(async (_request: HttpRequestOptions): Promise<HttpResponse> => ({
+      statusCode: 204,
+      bodyText: "",
+    }));
+    const client = new RecruitCrmClient(baseConfig, transport);
+
+    const { executeAddRecordsToHotlist } = await import("../src/server.js");
+    const result = await executeAddRecordsToHotlist(client, {
+      hotlist_id: 702,
+      related_slugs: ["slug-a"],
+    });
+
+    expect(result).toEqual({
+      hotlist_id: 702,
+      requested_count: 1,
+      successful_count: 1,
+      failed_count: 0,
+      added_slugs: ["slug-a"],
+      errors: [],
+    });
+  });
+
+  it("executes sequentially, deduplicates input, and preserves partial failures", async () => {
+    const callOrder: string[] = [];
+    const transport = vi.fn(async (request: HttpRequestOptions): Promise<HttpResponse> => {
+      const slug = String((request.jsonBody as { related: string }).related);
+      callOrder.push(slug);
+
+      if (slug === "bad-slug") {
+        return {
+          statusCode: 422,
+          bodyText: JSON.stringify({ message: "Slug rejected" }),
+        };
+      }
+
+      return {
+        statusCode: 200,
+        bodyText: JSON.stringify({ ok: true }),
+      };
+    });
+    const client = new RecruitCrmClient(baseConfig, transport);
+
+    const { executeAddRecordsToHotlist } = await import("../src/server.js");
+    const result = await executeAddRecordsToHotlist(client, {
+      hotlist_id: 702,
+      related_slugs: ["slug-a", "slug-a", "bad-slug", "slug-b"],
+    });
+
+    expect(callOrder).toEqual(["slug-a", "bad-slug", "slug-b"]);
+    expect(result).toMatchObject({
+      hotlist_id: 702,
+      requested_count: 3,
+      successful_count: 2,
+      failed_count: 1,
+      added_slugs: ["slug-a", "slug-b"],
+      errors: [
+        {
+          slug: "bad-slug",
+          status_code: 422,
+          error: expect.stringContaining("validation error"),
+        },
+      ],
+    });
+    expect(transport).toHaveBeenCalledTimes(3);
   });
 });

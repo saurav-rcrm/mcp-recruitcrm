@@ -3,7 +3,7 @@ import { request as httpsRequest } from "node:https";
 
 export type HttpRequestOptions = {
   url: URL;
-  method: "GET";
+  method: "GET" | "POST";
   headers: Record<string, string>;
   jsonBody?: unknown;
   timeoutMs: number;

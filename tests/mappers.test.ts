@@ -7,32 +7,42 @@ import {
   mapCandidateJobAssignmentHiringStageHistoryResult,
   mapCandidateSummary,
   mapCompanySummary,
+  mapContactSummary,
+  mapCreateHotlistResult,
   mapHiringStageSummary,
   mapAssignedCandidateSummary,
   mapJobSummary,
   mapJobAssignedCandidatesResult,
+  mapListUsersResult,
   mapMeetingSummary,
   mapSearchMeetingsResult,
   mapSearchNotesResult,
   mapSearchCallLogsResult,
   mapSearchCandidatesResult,
   mapSearchCompaniesResult,
+  mapSearchContactsResult,
+  mapSearchHotlistsResult,
   mapSearchJobsResult,
   mapSearchTasksResult,
   mapNoteSummary,
   mapTaskSummary,
+  mapUserSummary,
 } from "../src/recruitcrm/mappers.js";
 import {
   sampleCallLogSearchResponse,
   sampleCandidateJobAssignmentHiringStageHistoryResponse,
   sampleCompanySearchResponse,
+  sampleContactSearchResponse,
+  sampleCreatedHotlistResponse,
   sampleHiringPipelineResponse,
+  sampleHotlistSearchResponse,
   sampleJobSearchResponse,
   sampleJobAssignedCandidatesResponse,
   sampleMeetingSearchResponse,
   sampleNoteSearchResponse,
   sampleSearchResponse,
   sampleTaskSearchResponse,
+  sampleUserListResponse,
 } from "./fixtures.js";
 
 describe("candidate mappers", () => {
@@ -338,6 +348,190 @@ describe("company mappers", () => {
     expect(summary.is_parent_company).toBe(false);
     expect(summary.marked_as_off_limit).toBe(false);
     expect(summary.off_limit).toBeNull();
+  });
+});
+
+describe("contact mappers", () => {
+  it("maps contact search results into compact structured output", () => {
+    const result = mapSearchContactsResult(sampleContactSearchResponse);
+
+    expect(result.page).toBe(1);
+    expect(result.returned_count).toBe(1);
+    expect(result.has_more).toBe(true);
+    expect(result.contacts).toHaveLength(1);
+    expect(result.contacts[0]).toEqual({
+      slug: "contact-sample-001",
+      first_name: "Pam",
+      last_name: "Beesly",
+      designation: "Office Manager",
+      company_slug: "company-sample-001",
+      additional_company_slugs: ["company-sample-aux-001"],
+      city: "Scranton",
+      locality: "Downtown",
+      updated_on: "2026-04-09T11:30:00.000000Z",
+    });
+  });
+
+  it("omits contact info from summaries by default", () => {
+    const summary = mapContactSummary(sampleContactSearchResponse.data[0]!);
+
+    expect("email" in summary).toBe(false);
+    expect("contact_number" in summary).toBe(false);
+    expect("linkedin" in summary).toBe(false);
+  });
+
+  it("includes contact info when explicitly requested", () => {
+    const summary = mapContactSummary(sampleContactSearchResponse.data[0]!, {
+      includeContactInfo: true,
+    });
+
+    expect(summary).toMatchObject({
+      email: "pam.beesly@example.com",
+      contact_number: "+1-555-0142",
+      linkedin: "https://www.linkedin.com/in/pam-beesly",
+    });
+  });
+
+  it("normalizes blank additional company slugs out of the summary", () => {
+    const summary = mapContactSummary({
+      ...sampleContactSearchResponse.data[0],
+      additional_company_slugs: ["company-sample-aux-001", "", null, 1234],
+    });
+
+    expect(summary.additional_company_slugs).toEqual(["company-sample-aux-001", "1234"]);
+  });
+});
+
+describe("hotlist mappers", () => {
+  it("maps created hotlists into stable output", () => {
+    expect(mapCreateHotlistResult(sampleCreatedHotlistResponse)).toEqual({
+      hotlist_id: 307309,
+      name: "Product Leaders",
+      related_to_type: "candidate",
+      shared: false,
+      created_by: 453,
+    });
+  });
+
+  it("maps hotlist search results into compact output by default", () => {
+    const result = mapSearchHotlistsResult(sampleHotlistSearchResponse);
+
+    expect(result).toEqual({
+      page: 1,
+      returned_count: 2,
+      has_more: true,
+      hotlists: [
+        {
+          id: 702,
+          name: "Product Leaders",
+          related_to_type: "candidate",
+          shared: true,
+          created_by: 66960,
+          related_count: 3,
+        },
+        {
+          id: 703,
+          name: "Private shortlist",
+          related_to_type: "candidate",
+          shared: false,
+          created_by: 68596,
+          related_count: 0,
+        },
+      ],
+    });
+  });
+
+  it("includes related slugs when explicitly requested", () => {
+    const result = mapSearchHotlistsResult(sampleHotlistSearchResponse, {
+      includeRelatedSlugs: true,
+    });
+
+    expect(result.hotlists).toEqual([
+      {
+        id: 702,
+        name: "Product Leaders",
+        related_to_type: "candidate",
+        shared: true,
+        created_by: 66960,
+        related_count: 3,
+        related_slugs: ["candidate-sample-001", "candidate-sample-002", "candidate-sample-003"],
+      },
+      {
+        id: 703,
+        name: "Private shortlist",
+        related_to_type: "candidate",
+        shared: false,
+        created_by: 68596,
+        related_count: 0,
+        related_slugs: [],
+      },
+    ]);
+  });
+});
+
+describe("user mappers", () => {
+  it("maps users into compact output by default", () => {
+    const result = mapListUsersResult(sampleUserListResponse);
+
+    expect(result).toEqual({
+      returned_count: 3,
+      users: [
+        {
+          id: 453,
+          first_name: "Sean",
+          last_name: "Mallapurkar",
+          status: "Active",
+        },
+        {
+          id: 999,
+          first_name: "Brandon",
+          last_name: "McArthur",
+          status: "Deactivated",
+        },
+        {
+          id: 3557,
+          first_name: "Sarvesh",
+          last_name: null,
+          status: "Deactivated",
+        },
+      ],
+    });
+  });
+
+  it("omits teams and contact info unless explicitly requested", () => {
+    const summary = mapUserSummary(sampleUserListResponse[0]!);
+
+    expect(summary).not.toHaveProperty("teams");
+    expect(summary).not.toHaveProperty("email");
+    expect(summary).not.toHaveProperty("contact_number");
+  });
+
+  it("includes normalized teams when requested", () => {
+    const summary = mapUserSummary(sampleUserListResponse[0]!, {
+      includeTeams: true,
+    });
+
+    expect(summary.teams).toEqual([
+      {
+        team_id: 1435,
+        team_name: "Legal Recruitment Team",
+      },
+      {
+        team_id: 2253,
+        team_name: "US Team",
+      },
+    ]);
+  });
+
+  it("includes contact info when explicitly requested", () => {
+    const summary = mapUserSummary(sampleUserListResponse[0]!, {
+      includeContactInfo: true,
+    });
+
+    expect(summary).toMatchObject({
+      email: "sean@example.com",
+      contact_number: "+1-555-0191",
+    });
   });
 });
 

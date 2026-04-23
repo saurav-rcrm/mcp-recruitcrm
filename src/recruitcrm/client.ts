@@ -10,20 +10,31 @@ import type {
   RecruitCrmJobAssignedCandidatesResponse,
   RecruitCrmCallLogSearchResponse,
   CandidateDetail,
+  CompanyDetail,
+  ContactDetail,
+  CreatedHotlist,
+  CreateHotlistInput,
   GetJobAssignedCandidatesInput,
   JobDetail,
   ListCandidatesInput,
   ListCompaniesInput,
+  ListContactsInput,
   ListJobsInput,
+  ListUsersInput,
+  RecruitCrmContactSearchResponse,
   RecruitCrmCompanySearchResponse,
+  RecruitCrmHotlistSearchResponse,
   RecruitCrmJobSearchResponse,
   RecruitCrmMeetingSearchResponse,
   RecruitCrmNoteSearchResponse,
   RecruitCrmSearchResponse,
   RecruitCrmTaskSearchResponse,
+  RecruitCrmUserListResponse,
   SearchCandidatesInput,
   SearchCallLogsInput,
   SearchCompaniesInput,
+  SearchContactsInput,
+  SearchHotlistsInput,
   SearchJobsInput,
   SearchMeetingsInput,
   SearchNotesInput,
@@ -216,6 +227,91 @@ const companySearchResponseSchema = z.union([
     }),
   ),
 ]);
+
+const contactSchema = z
+  .object({
+    id: nullableNumberOrStringSchema,
+    slug: z.union([z.string(), z.number()]).transform((value) => String(value)),
+    first_name: nullableStringLikeSchema,
+    last_name: nullableStringLikeSchema,
+    email: nullableStringLikeSchema,
+    contact_number: nullableStringLikeSchema,
+    linkedin: nullableStringLikeSchema,
+    company_slug: nullableStringLikeSchema,
+    additional_company_slugs: z.array(z.union([z.string(), z.number(), z.null()])).nullish(),
+    designation: nullableStringLikeSchema,
+    city: nullableStringLikeSchema,
+    locality: nullableStringLikeSchema,
+    created_on: nullableStringLikeSchema,
+    updated_on: nullableStringLikeSchema,
+  })
+  .passthrough();
+
+const contactSearchResponseSchema = z.union([
+  z
+    .object({
+      current_page: z.coerce.number().int().positive().optional(),
+      next_page_url: z.union([z.string(), z.null()]).optional(),
+      data: z.array(contactSchema),
+    })
+    .passthrough(),
+  z.array(z.unknown()).length(0).transform(
+    (): RecruitCrmContactSearchResponse => ({
+      current_page: 1,
+      next_page_url: null,
+      data: [],
+    }),
+  ),
+]);
+
+const hotlistSchema = z
+  .object({
+    id: nullableNumberOrStringSchema,
+    name: nullableStringLikeSchema,
+    related_to_type: nullableStringLikeSchema,
+    related: z.union([z.string(), z.number(), z.null()]).optional(),
+    shared: z.union([z.number(), z.string(), z.boolean(), z.null()]).optional(),
+    created_by: nullableNumberOrStringSchema,
+  })
+  .passthrough();
+
+const hotlistSearchResponseSchema = z.union([
+  z
+    .object({
+      current_page: z.coerce.number().int().positive().optional(),
+      next_page_url: z.union([z.string(), z.null()]).optional(),
+      data: z.array(hotlistSchema),
+    })
+    .passthrough(),
+  z.array(z.unknown()).length(0).transform(
+    (): RecruitCrmHotlistSearchResponse => ({
+      current_page: 1,
+      next_page_url: null,
+      data: [],
+    }),
+  ),
+]);
+
+const userTeamSchema = z
+  .object({
+    team_id: nullableNumberOrStringSchema,
+    team_name: nullableStringLikeSchema,
+  })
+  .passthrough();
+
+const userSchema = z
+  .object({
+    id: nullableNumberOrStringSchema,
+    first_name: nullableStringLikeSchema,
+    last_name: nullableStringLikeSchema,
+    email: nullableStringLikeSchema,
+    contact_number: nullableStringLikeSchema,
+    status: nullableStringLikeSchema,
+    teams: z.array(userTeamSchema).nullish(),
+  })
+  .passthrough();
+
+const userListResponseSchema = z.array(userSchema);
 
 const taskTypeSchema = z
   .object({
@@ -438,6 +534,8 @@ const candidateCustomFieldSchema = z
 
 const candidateCustomFieldsResponseSchema = z.array(candidateCustomFieldSchema);
 const candidateDetailSchema: z.ZodType<CandidateDetail> = z.object({}).passthrough();
+const companyDetailSchema: z.ZodType<CompanyDetail> = z.object({}).passthrough();
+const contactDetailSchema: z.ZodType<ContactDetail> = z.object({}).passthrough();
 const jobDetailSchema: z.ZodType<JobDetail> = z.object({}).passthrough();
 
 export class RecruitCrmClient {
@@ -505,6 +603,55 @@ export class RecruitCrmClient {
     return this.#requestJson("/companies", companySearchResponseSchema, request, "Company");
   }
 
+  async searchContacts(filters: SearchContactsInput): Promise<RecruitCrmContactSearchResponse> {
+    const request = buildSearchContactsRequest(filters);
+
+    return this.#requestJson("/contacts/search", contactSearchResponseSchema, request, "Contact");
+  }
+
+  async listContacts(filters: ListContactsInput): Promise<RecruitCrmContactSearchResponse> {
+    const request = buildListPaginationRequest(filters);
+
+    return this.#requestJson("/contacts", contactSearchResponseSchema, request, "Contact");
+  }
+
+  async searchHotlists(filters: SearchHotlistsInput): Promise<RecruitCrmHotlistSearchResponse> {
+    const request = buildSearchHotlistsRequest(filters);
+
+    return this.#requestJson("/hotlists/search", hotlistSearchResponseSchema, request, "Hotlist");
+  }
+
+  async createHotlist(input: CreateHotlistInput): Promise<CreatedHotlist> {
+    return this.#requestJson(
+      "/hotlists",
+      hotlistSchema,
+      {
+        method: "POST",
+        jsonBody: input,
+      },
+      "Hotlist",
+    );
+  }
+
+  async listUsers(filters: ListUsersInput): Promise<RecruitCrmUserListResponse> {
+    const request = buildListUsersRequest(filters);
+
+    return this.#requestJson("/users", userListResponseSchema, request, "User");
+  }
+
+  async addRecordToHotlist(hotlistId: number, relatedSlug: string): Promise<void> {
+    await this.#request(
+      `/hotlists/${encodeURIComponent(String(hotlistId))}/add-record`,
+      {
+        method: "POST",
+        jsonBody: {
+          related: relatedSlug,
+        },
+      },
+      "Hotlist",
+    );
+  }
+
   async searchTasks(filters: SearchTasksInput): Promise<RecruitCrmTaskSearchResponse> {
     const request = buildSearchTasksRequest(filters);
 
@@ -549,6 +696,24 @@ export class RecruitCrmClient {
     );
   }
 
+  async getCompanyDetails(companySlug: string): Promise<CompanyDetail> {
+    return this.#requestJson(
+      `/companies/${encodeURIComponent(companySlug)}`,
+      companyDetailSchema,
+      {},
+      "Company",
+    );
+  }
+
+  async getContactDetails(contactSlug: string): Promise<ContactDetail> {
+    return this.#requestJson(
+      `/contacts/${encodeURIComponent(contactSlug)}`,
+      contactDetailSchema,
+      {},
+      "Contact",
+    );
+  }
+
   async getJobDetails(jobSlug: string): Promise<JobDetail> {
     return this.#requestJson(`/jobs/${encodeURIComponent(jobSlug)}`, jobDetailSchema, {}, "Job");
   }
@@ -566,12 +731,7 @@ export class RecruitCrmClient {
     return this.#requestJson("/hiring-pipeline", hiringPipelineResponseSchema, {}, "Hiring pipeline");
   }
 
-  async #requestJson<T>(
-    path: string,
-    schema: z.ZodType<T>,
-    options: GetRequestOptions = {},
-    entity?: string,
-  ): Promise<T> {
+  async #request(path: string, options: RequestOptions = {}, entity?: string): Promise<{ bodyText: string }> {
     const url = new URL(`${this.#baseUrl}${path}`);
 
     if (options.query) {
@@ -583,7 +743,7 @@ export class RecruitCrmClient {
     try {
       response = await this.#transport({
         url,
-        method: "GET",
+        method: options.method ?? "GET",
         headers: {
           Accept: "application/json",
           Authorization: `Bearer ${this.#apiToken}`,
@@ -598,6 +758,17 @@ export class RecruitCrmClient {
     if (response.statusCode < 200 || response.statusCode >= 300) {
       throw mapHttpError(response.statusCode, response.bodyText, entity);
     }
+
+    return response;
+  }
+
+  async #requestJson<T>(
+    path: string,
+    schema: z.ZodType<T>,
+    options: RequestOptions = {},
+    entity?: string,
+  ): Promise<T> {
+    const response = await this.#request(path, options, entity);
 
     let payload: unknown;
 
@@ -632,12 +803,13 @@ export class RecruitCrmClient {
   }
 }
 
-export type GetRequestOptions = {
+export type RequestOptions = {
+  method?: "GET" | "POST";
   query?: URLSearchParams;
-  jsonBody?: {
-    custom_fields: SearchCandidatesCustomFieldsBody;
-  };
+  jsonBody?: unknown;
 };
+
+export type GetRequestOptions = RequestOptions;
 
 type SearchCandidatesCustomFieldsBody = Array<{
   field_id: number;
@@ -705,6 +877,30 @@ export function buildListPaginationRequest(
 }
 
 export const buildListCandidatesRequest = buildListPaginationRequest;
+export const buildListContactsRequest = buildListPaginationRequest;
+
+export function buildSearchHotlistsRequest(filters: SearchHotlistsInput): GetRequestOptions {
+  const query = new URLSearchParams();
+  const page = normalizePage(filters.page);
+
+  query.set("page", String(page));
+  query.set("related_to_type", filters.related_to_type);
+  setStringParam(query, "name", filters.name);
+  setNumberParam(query, "shared", filters.shared);
+
+  return { query };
+}
+
+export function buildListUsersRequest(filters: Pick<ListUsersInput, "include_teams">): GetRequestOptions {
+  if (!filters.include_teams) {
+    return {};
+  }
+
+  const query = new URLSearchParams();
+  query.set("expand", "team");
+
+  return { query };
+}
 
 export function buildSearchJobsRequest(filters: SearchJobsInput): GetRequestOptions {
   const query = new URLSearchParams();
@@ -786,6 +982,38 @@ export function buildSearchCompaniesRequest(filters: SearchCompaniesInput): GetR
   setStringParam(query, "owner_name", filters.owner_name);
   setStringParam(query, "updated_from", filters.updated_from);
   setStringParam(query, "updated_to", filters.updated_to);
+  setBooleanParam(query, "exact_search", filters.exact_search);
+  query.set("sort_by", filters.sort_by ?? "updatedon");
+  query.set("sort_order", filters.sort_order ?? "desc");
+
+  return { query };
+}
+
+export function buildSearchContactsRequest(filters: SearchContactsInput): GetRequestOptions {
+  const query = new URLSearchParams();
+  const page = normalizePage(filters.page);
+
+  query.set("page", String(page));
+
+  if (filters.contact_slug) {
+    query.set("contact_slug", filters.contact_slug);
+    return { query };
+  }
+
+  setStringParam(query, "created_from", filters.created_from);
+  setStringParam(query, "created_to", filters.created_to);
+  setStringParam(query, "email", filters.email);
+  setStringParam(query, "first_name", filters.first_name);
+  setStringParam(query, "last_name", filters.last_name);
+  setStringParam(query, "linkedin", filters.linkedin);
+  setBooleanParam(query, "marked_as_off_limit", filters.marked_as_off_limit);
+  setStringParam(query, "owner_email", filters.owner_email);
+  setStringParam(query, "owner_id", filters.owner_id);
+  setStringParam(query, "owner_name", filters.owner_name);
+  setStringParam(query, "updated_from", filters.updated_from);
+  setStringParam(query, "updated_to", filters.updated_to);
+  setStringParam(query, "company_slug", filters.company_slug);
+  setStringParam(query, "contact_number", filters.contact_number);
   setBooleanParam(query, "exact_search", filters.exact_search);
   query.set("sort_by", filters.sort_by ?? "updatedon");
   query.set("sort_order", filters.sort_order ?? "desc");

@@ -1,6 +1,6 @@
 # Recruit CRM MCP Server
 
-Local `stdio` MCP server for [Recruit CRM](https://recruitcrm.io)'s Public API. Access your candidates, jobs, companies, tasks, meetings, notes, and call logs directly from Claude.
+Local `stdio` MCP server for [Recruit CRM](https://recruitcrm.io)'s Public API. Access your candidates, jobs, companies, users, tasks, meetings, notes, and call logs directly from Claude.
 
 Repository: https://github.com/saurav-rcrm/mcp-recruitcrm
 
@@ -46,22 +46,30 @@ Once installed, try asking Claude:
 
 | Tool | Description |
 | --- | --- |
-| `search_candidates` | Search candidates and return compact summaries for large result sets. Returns `slug`, which can be used for candidate detail lookup or Recruit CRM app links. |
+| `search_candidates` | Search candidates and return compact summaries for large result sets. Returns `slug`, which can be used for candidate detail lookup or Recruit CRM app links. Set `include_contact_info: true` to also include `email`, `contact_number`, and `linkedin` on each result (opt-in; off by default). Same flag is available on `list_candidates`. |
 | `search_jobs` | Search jobs and return compact summaries for large result sets. Returns job, company, and contact slugs for Recruit CRM app links. |
 | `search_companies` | Search companies and return compact summaries for large result sets. Returns company slug and related contact slugs for Recruit CRM app links. |
+| `search_contacts` | Search contacts and return compact summaries for large result sets. Requires at least one real filter; `sort_by`, `sort_order`, `page`, `exact_search`, and `include_contact_info` do not count by themselves. Set `include_contact_info: true` to also include `email`, `contact_number`, and `linkedin` on each result (opt-in; off by default). |
+| `list_contacts` | List contacts with pagination and sorting only. Use this for unfiltered recent/all-contact requests. Supports the same opt-in `include_contact_info` flag as `search_contacts`. |
+| `list_users` | List Recruit CRM users with compact `id`, `first_name`, `last_name`, and `status` fields. Set `include_teams: true` only when team memberships are needed. Set `include_contact_info: true` to also include `email` and `contact_number`. |
+| `search_hotlists` | Search hotlists by required `related_to_type` and optional `name` / `shared` filters. Broad searches return compact rows with `related_count` only. When `name` is provided, results also include full `related_slugs`. |
+| `create_hotlist` | Create one Recruit CRM hotlist. Requires `created_by` as a Recruit CRM user id and `shared` as `0` or `1`. This is a mutating non-destructive tool; use `add_records_to_hotlist` to add records afterward. |
+| `add_records_to_hotlist` | Add up to 10 record slugs to an existing hotlist. This is an additive write tool. It runs sequentially, ignores duplicate input slugs, and returns `{ hotlist_id, requested_count, successful_count, failed_count, added_slugs, errors }` instead of failing the whole batch. |
 | `search_tasks` | Search tasks and return compact task summaries with related entity context. |
 | `search_meetings` | Search meetings and return compact meeting summaries with scheduling metadata. |
 | `search_notes` | Search notes and return compact note summaries with related entity context. |
 | `search_call_logs` | Search call logs and return compact call summaries with related entity context. |
-| `get_candidate_details` | Fetch one candidate by slug and return the raw Recruit CRM payload. |
+| `get_candidate_details` | Fetch full details for up to 10 candidates in parallel by slug. Duplicates are deduplicated. Returns `{ requested_count, successful_count, failed_count, candidates, errors }` and does not fail the whole call when one slug is bad. |
 | `get_job_details` | Fetch one job by slug and return the raw Recruit CRM payload. |
+| `get_company_details` | Fetch full details for up to 10 companies in parallel by slug. Returns `{ requested_count, successful_count, failed_count, companies, errors }` and does not fail the whole call when one slug is bad. |
+| `get_contact_details` | Fetch full details for up to 10 contacts in parallel by slug. Returns `{ requested_count, successful_count, failed_count, contacts, errors }` and does not fail the whole call when one slug is bad. |
 | `get_job_assigned_candidates` | Fetch assigned candidates for one job and return compact assignment summaries. |
 | `list_candidate_hiring_stages` | List compact candidate hiring stage rows to resolve labels such as `Placed` to ids. |
 | `get_candidate_job_assignment_hiring_stage_history` | Fetch one candidate's job assignment hiring stage history. |
 | `list_candidate_custom_fields` | List curated searchable candidate custom field metadata. |
 | `get_candidate_custom_field_details` | Fetch curated details for one candidate custom field, including full option values. |
 
-All tools are **read-only** (`readOnlyHint: true`). This extension does not modify any data in your Recruit CRM account.
+Most tools are **read-only** (`readOnlyHint: true`). `create_hotlist` and `add_records_to_hotlist` are mutating hotlist tools and should only be used when explicitly requested by the user.
 
 ## Open In Recruit CRM
 
@@ -92,7 +100,8 @@ Recruit CRM entities follow the app URL pattern `https://app.recruitcrm.io/<enti
 - Runs **locally** on your machine over `stdio` — no data sent to third parties
 - API tokens read from environment variables only; stored securely in OS keychain when using the `.mcpb` extension
 - Search results exclude emails, phone numbers, and other sensitive fields by default
-- All tools are read-only — no write, update, or delete operations
+- Search and detail tools are read-only by default
+- `create_hotlist` and `add_records_to_hotlist` are additive hotlist write tools; this extension still does not expose update or delete operations
 - See our full [Privacy Policy](https://recruitcrm.io/legal/privacy/)
 
 ## Troubleshooting

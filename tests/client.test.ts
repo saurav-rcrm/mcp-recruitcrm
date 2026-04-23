@@ -1,10 +1,14 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  buildListContactsRequest,
+  buildListUsersRequest,
   buildGetJobAssignedCandidatesRequest,
   buildSearchCandidatesRequest,
   buildSearchCallLogsRequest,
   buildSearchCompaniesRequest,
+  buildSearchContactsRequest,
+  buildSearchHotlistsRequest,
   buildSearchJobsRequest,
   buildSearchMeetingsRequest,
   buildSearchNotesRequest,
@@ -86,6 +90,20 @@ describe("buildSearchCandidatesRequest", () => {
         },
       ],
     });
+  });
+});
+
+describe("buildListUsersRequest", () => {
+  it("omits expand by default", () => {
+    const request = buildListUsersRequest({});
+
+    expect(request.query).toBeUndefined();
+  });
+
+  it("expands teams only when requested", () => {
+    const request = buildListUsersRequest({ include_teams: true });
+
+    expect(request.query?.get("expand")).toBe("team");
   });
 });
 
@@ -337,6 +355,121 @@ describe("buildSearchCompaniesRequest", () => {
     expect(request.query?.get("marked_as_off_limit")).toBeNull();
     expect(request.query?.get("sort_by")).toBeNull();
     expect(request.query?.get("sort_order")).toBeNull();
+    expect(request.jsonBody).toBeUndefined();
+  });
+});
+
+describe("buildSearchContactsRequest", () => {
+  it("defaults page and sort settings", () => {
+    const request = buildSearchContactsRequest({
+      first_name: "Pam",
+    });
+
+    expect(request.query?.get("page")).toBe("1");
+    expect(request.query?.get("first_name")).toBe("Pam");
+    expect(request.query?.get("sort_by")).toBe("updatedon");
+    expect(request.query?.get("sort_order")).toBe("desc");
+    expect(request.jsonBody).toBeUndefined();
+  });
+
+  it("serializes all supported contact query params", () => {
+    const request = buildSearchContactsRequest({
+      page: 3,
+      created_from: "2026-01-01",
+      created_to: "2026-01-31",
+      email: "pam.beesly@example.com",
+      first_name: "Pam",
+      last_name: "Beesly",
+      linkedin: "https://www.linkedin.com/in/pam-beesly",
+      marked_as_off_limit: false,
+      owner_email: "owner@example.com",
+      owner_id: "2890",
+      owner_name: "Sample Owner",
+      updated_from: "2026-03-01",
+      updated_to: "2026-03-31",
+      company_slug: "company-sample-001",
+      contact_number: "+1-555-0142",
+      exact_search: true,
+      sort_by: "createdon",
+      sort_order: "asc",
+    });
+
+    expect(request.query?.get("page")).toBe("3");
+    expect(request.query?.get("created_from")).toBe("2026-01-01");
+    expect(request.query?.get("created_to")).toBe("2026-01-31");
+    expect(request.query?.get("email")).toBe("pam.beesly@example.com");
+    expect(request.query?.get("first_name")).toBe("Pam");
+    expect(request.query?.get("last_name")).toBe("Beesly");
+    expect(request.query?.get("linkedin")).toBe("https://www.linkedin.com/in/pam-beesly");
+    expect(request.query?.get("marked_as_off_limit")).toBe("false");
+    expect(request.query?.get("owner_email")).toBe("owner@example.com");
+    expect(request.query?.get("owner_id")).toBe("2890");
+    expect(request.query?.get("owner_name")).toBe("Sample Owner");
+    expect(request.query?.get("updated_from")).toBe("2026-03-01");
+    expect(request.query?.get("updated_to")).toBe("2026-03-31");
+    expect(request.query?.get("company_slug")).toBe("company-sample-001");
+    expect(request.query?.get("contact_number")).toBe("+1-555-0142");
+    expect(request.query?.get("exact_search")).toBe("true");
+    expect(request.query?.get("sort_by")).toBe("createdon");
+    expect(request.query?.get("sort_order")).toBe("asc");
+  });
+
+  it("ignores other filters when contact_slug is present", () => {
+    const request = buildSearchContactsRequest({
+      page: 2,
+      contact_slug: "contact-sample-001",
+      first_name: "Pam",
+      company_slug: "company-sample-001",
+      sort_by: "createdon",
+      sort_order: "asc",
+    });
+
+    expect(request.query?.get("page")).toBe("2");
+    expect(request.query?.get("contact_slug")).toBe("contact-sample-001");
+    expect(request.query?.get("first_name")).toBeNull();
+    expect(request.query?.get("company_slug")).toBeNull();
+    expect(request.query?.get("sort_by")).toBeNull();
+    expect(request.query?.get("sort_order")).toBeNull();
+    expect(request.jsonBody).toBeUndefined();
+  });
+});
+
+describe("buildSearchHotlistsRequest", () => {
+  it("requires related_to_type and defaults page to 1", () => {
+    const request = buildSearchHotlistsRequest({
+      related_to_type: "candidate",
+    });
+
+    expect(request.query?.get("page")).toBe("1");
+    expect(request.query?.get("related_to_type")).toBe("candidate");
+    expect(request.query?.get("name")).toBeNull();
+    expect(request.query?.get("shared")).toBeNull();
+    expect(request.jsonBody).toBeUndefined();
+  });
+
+  it("serializes optional name and shared filters", () => {
+    const request = buildSearchHotlistsRequest({
+      page: 3,
+      related_to_type: "contact",
+      name: "Leadership",
+      shared: 1,
+    });
+
+    expect(request.query?.get("page")).toBe("3");
+    expect(request.query?.get("related_to_type")).toBe("contact");
+    expect(request.query?.get("name")).toBe("Leadership");
+    expect(request.query?.get("shared")).toBe("1");
+  });
+});
+
+describe("buildListContactsRequest", () => {
+  it("reuses pagination defaults for contact listing", () => {
+    const request = buildListContactsRequest({});
+
+    expect(request.query?.get("page")).toBe("1");
+    expect(request.query?.get("limit")).toBe("100");
+    expect(request.query?.get("sort_by")).toBe("updatedon");
+    expect(request.query?.get("sort_order")).toBe("desc");
     expect(request.jsonBody).toBeUndefined();
   });
 });

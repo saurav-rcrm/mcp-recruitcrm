@@ -2,6 +2,8 @@ node_modules
 dist
 coverage
 .codex/
+.claude/
+release/
 .DS_Store
 *.log
 .env

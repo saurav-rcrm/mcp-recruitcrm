@@ -14,33 +14,59 @@ import type { HttpTransport } from "./recruitcrm/http.js";
 import {
   mapCandidateHiringStagesResult,
   mapCandidateJobAssignmentHiringStageHistoryResult,
+  mapCreateHotlistResult,
   mapJobAssignedCandidatesResult,
+  mapListUsersResult,
   mapSearchCallLogsResult,
   mapSearchCandidatesResult,
   mapSearchCompaniesResult,
+  mapSearchContactsResult,
+  mapSearchHotlistsResult,
   mapSearchJobsResult,
   mapSearchMeetingsResult,
   mapSearchNotesResult,
   mapSearchTasksResult,
 } from "./recruitcrm/mappers.js";
 import {
+  type AddRecordsToHotlistInput,
+  type AddRecordsToHotlistResult,
   type CandidateHiringStagesResult,
   type SearchCallLogsInput,
   type SearchCallLogsResult,
   type CandidateJobAssignmentHiringStageHistoryResult,
+  type CreateHotlistInput,
+  type CreateHotlistResult,
   CUSTOM_FIELD_FILTER_TYPES,
   type CandidateCustomFieldDetail,
   type CandidateCustomFieldListResult,
   type CandidateDetail,
+  type CandidateDetailsError,
+  type CandidateDetailsResult,
+  type CompanyDetail,
+  type CompanyDetailsError,
+  type CompanyDetailsResult,
+  type ContactDetail,
+  type ContactDetailsError,
+  type ContactDetailsResult,
+  type GetCandidateDetailsInput,
+  type GetCompanyDetailsInput,
+  type GetContactDetailsInput,
   type GetJobAssignedCandidatesInput,
   type JobAssignedCandidatesResult,
   type JobDetail,
   type ListCandidatesInput,
   type ListCompaniesInput,
+  type ListContactsInput,
   type ListJobsInput,
+  type ListUsersInput,
+  type ListUsersResult,
   type SearchCandidatesInput,
   type SearchCompaniesInput,
   type SearchCompaniesResult,
+  type SearchContactsInput,
+  type SearchContactsResult,
+  type SearchHotlistsInput,
+  type SearchHotlistsResult,
   type SearchJobsInput,
   type SearchJobsResult,
   type SearchMeetingsInput,
@@ -100,6 +126,11 @@ const searchCandidatesInputSchema = {
     )
     .optional()
     .describe("Candidate custom field filters. Use field ids from the metadata tools."),
+  include_contact_info: booleanLikeSchema
+    .optional()
+    .describe(
+      "Opt-in flag (default false). When true, each result also includes email, contact_number, and linkedin. Leave off for most requests; enable only when the user explicitly needs contact details, because it increases response size and exposes PII.",
+    ),
 };
 
 const listCandidatesInputSchema = {
@@ -107,6 +138,11 @@ const listCandidatesInputSchema = {
   page: z.coerce.number().int().min(1).optional().describe("Page number (default 1)."),
   sort_by: z.enum(["createdon", "updatedon"]).optional().describe("Sort field (default updatedon)."),
   sort_order: z.enum(["asc", "desc"]).optional().describe("Sort order (default desc)."),
+  include_contact_info: booleanLikeSchema
+    .optional()
+    .describe(
+      "Opt-in flag (default false). When true, each result also includes email, contact_number, and linkedin. Leave off for most requests; enable only when the user explicitly needs contact details, because it increases response size and exposes PII.",
+    ),
 };
 
 const listJobsInputSchema = {
@@ -121,6 +157,29 @@ const listCompaniesInputSchema = {
   page: z.coerce.number().int().min(1).optional().describe("Page number (default 1)."),
   sort_by: z.enum(["createdon", "updatedon"]).optional().describe("Sort field (default updatedon)."),
   sort_order: z.enum(["asc", "desc"]).optional().describe("Sort order (default desc)."),
+};
+
+const listContactsInputSchema = {
+  limit: z.coerce.number().int().min(1).max(100).optional().describe("Records per page (max 100, default 100)."),
+  page: z.coerce.number().int().min(1).optional().describe("Page number (default 1)."),
+  sort_by: z.enum(["createdon", "updatedon"]).optional().describe("Sort field (default updatedon)."),
+  sort_order: z.enum(["asc", "desc"]).optional().describe("Sort order (default desc)."),
+  include_contact_info: booleanLikeSchema
+    .optional()
+    .describe(
+      "Opt-in flag (default false). When true, each result also includes email, contact_number, and linkedin. Leave off for most requests; enable only when the user explicitly needs contact details, because it increases response size and exposes PII.",
+    ),
+};
+
+const listUsersInputSchema = {
+  include_teams: booleanLikeSchema
+    .optional()
+    .describe("Opt-in flag (default false). When true, each user includes team memberships."),
+  include_contact_info: booleanLikeSchema
+    .optional()
+    .describe(
+      "Opt-in flag (default false). When true, each user also includes email and contact_number. Leave off unless the user explicitly needs contact details.",
+    ),
 };
 
 const searchTasksInputSchema = {
@@ -202,6 +261,51 @@ const searchCompaniesInputSchema = {
   sort_order: z.enum(["asc", "desc"]).optional().describe("Sort order."),
 };
 
+const searchContactsInputSchema = {
+  page: z.coerce.number().int().min(1).optional().describe("Page number."),
+  created_from: textFilterSchema.optional().describe("Created-on date range start."),
+  created_to: textFilterSchema.optional().describe("Created-on date range end."),
+  email: textFilterSchema.optional().describe("Contact email."),
+  first_name: textFilterSchema.optional().describe("Contact first name."),
+  last_name: textFilterSchema.optional().describe("Contact last name."),
+  linkedin: textFilterSchema.optional().describe("Contact LinkedIn URL."),
+  marked_as_off_limit: booleanLikeSchema.optional().describe("Filter contacts by off-limit status."),
+  owner_email: textFilterSchema.optional().describe("Contact owner email."),
+  owner_id: textFilterSchema.optional().describe("Contact owner id."),
+  owner_name: textFilterSchema.optional().describe("Contact owner name."),
+  updated_from: textFilterSchema.optional().describe("Updated-on date range start."),
+  updated_to: textFilterSchema.optional().describe("Updated-on date range end."),
+  company_slug: textFilterSchema.optional().describe("Company slug."),
+  contact_number: textFilterSchema.optional().describe("Contact number."),
+  contact_slug: textFilterSchema.optional().describe("Contact slug. Other filters are ignored when provided."),
+  exact_search: booleanLikeSchema.optional().describe("Use exact search instead of partial match."),
+  sort_by: z.enum(["createdon", "updatedon"]).optional().describe("Sort field."),
+  sort_order: z.enum(["asc", "desc"]).optional().describe("Sort order."),
+  include_contact_info: booleanLikeSchema
+    .optional()
+    .describe(
+      "Opt-in flag (default false). When true, each result also includes email, contact_number, and linkedin. Leave off for most requests; enable only when the user explicitly needs contact details, because it increases response size and exposes PII.",
+    ),
+};
+
+const searchHotlistsInputSchema = {
+  page: z.coerce.number().int().min(1).optional().describe("Page number."),
+  name: textFilterSchema.optional().describe("Hotlist name."),
+  shared: binaryNumberSchema.optional().describe("Shared with team flag. Use 1 for shared hotlists or 0 for private hotlists."),
+  related_to_type: z
+    .enum(["candidate", "company", "contact", "job"])
+    .describe("Associated entity type for the hotlist."),
+};
+
+const createHotlistInputSchema = {
+  name: textFilterSchema.describe("Hotlist name."),
+  related_to_type: z
+    .enum(["candidate", "company", "contact", "job"])
+    .describe("Associated entity type for the hotlist."),
+  shared: binaryNumberSchema.describe("Shared with team flag. Use 0 for private hotlists or 1 for shared hotlists."),
+  created_by: z.coerce.number().int().positive().describe("Recruit CRM user id creating the hotlist."),
+};
+
 const searchMeetingsInputSchema = {
   page: z.coerce.number().int().min(1).optional().describe("Page number."),
   created_from: textFilterSchema.optional().describe("Meeting created-on date range start."),
@@ -253,6 +357,9 @@ const candidateSummarySchema = z.object({
   current_status: nullableStringSchema,
   city: nullableStringSchema,
   updated_on: nullableStringSchema,
+  email: nullableStringSchema.optional(),
+  contact_number: nullableStringSchema.optional(),
+  linkedin: nullableStringSchema.optional(),
 });
 
 const searchCandidatesOutputSchema = {
@@ -340,6 +447,97 @@ const searchCompaniesOutputSchema = {
   returned_count: z.number().int().min(0),
   has_more: z.boolean(),
   companies: z.array(companySummarySchema),
+};
+
+const contactSummarySchema = z.object({
+  slug: z.string(),
+  first_name: nullableStringSchema,
+  last_name: nullableStringSchema,
+  designation: nullableStringSchema,
+  company_slug: nullableStringSchema,
+  additional_company_slugs: z.array(z.string()),
+  city: nullableStringSchema,
+  locality: nullableStringSchema,
+  updated_on: nullableStringSchema,
+  email: nullableStringSchema.optional(),
+  contact_number: nullableStringSchema.optional(),
+  linkedin: nullableStringSchema.optional(),
+});
+
+const searchContactsOutputSchema = {
+  page: z.number().int().min(1),
+  returned_count: z.number().int().min(0),
+  has_more: z.boolean(),
+  contacts: z.array(contactSummarySchema),
+};
+
+const hotlistSummarySchema = z.object({
+  id: nullableNumberSchema,
+  name: nullableStringSchema,
+  related_to_type: nullableStringSchema,
+  shared: nullableBooleanSchema,
+  created_by: nullableNumberSchema,
+  related_count: z.number().int().min(0),
+  related_slugs: z.array(z.string()).optional(),
+});
+
+const searchHotlistsOutputSchema = {
+  page: z.number().int().min(1),
+  returned_count: z.number().int().min(0),
+  has_more: z.boolean(),
+  hotlists: z.array(hotlistSummarySchema),
+};
+
+const userTeamSummarySchema = z.object({
+  team_id: nullableNumberSchema,
+  team_name: nullableStringSchema,
+});
+
+const userSummarySchema = z.object({
+  id: nullableNumberSchema,
+  first_name: nullableStringSchema,
+  last_name: nullableStringSchema,
+  status: nullableStringSchema,
+  teams: z.array(userTeamSummarySchema).optional(),
+  email: nullableStringSchema.optional(),
+  contact_number: nullableStringSchema.optional(),
+});
+
+const listUsersOutputSchema = {
+  returned_count: z.number().int().min(0),
+  users: z.array(userSummarySchema),
+};
+
+const createHotlistOutputSchema = {
+  hotlist_id: nullableNumberSchema,
+  name: nullableStringSchema,
+  related_to_type: nullableStringSchema,
+  shared: nullableBooleanSchema,
+  created_by: nullableNumberSchema,
+};
+
+const addRecordsToHotlistInputSchema = {
+  hotlist_id: z.coerce.number().int().positive().describe("Hotlist id to modify."),
+  related_slugs: z
+    .array(textFilterSchema)
+    .min(1)
+    .max(10)
+    .describe("Record slugs to add. Max 10 per call. Duplicates are ignored."),
+};
+
+const addRecordsToHotlistOutputSchema = {
+  hotlist_id: z.number().int().positive(),
+  requested_count: z.number().int().min(0),
+  successful_count: z.number().int().min(0),
+  failed_count: z.number().int().min(0),
+  added_slugs: z.array(z.string()),
+  errors: z.array(
+    z.object({
+      slug: z.string(),
+      error: z.string(),
+      status_code: z.union([z.number().int(), z.null()]),
+    }),
+  ),
 };
 
 const taskTypeSummarySchema = z.object({
@@ -524,7 +722,75 @@ const listCandidateHiringStagesOutputSchema = {
 };
 
 const candidateDetailOutputSchema = z.object({}).passthrough();
+const companyDetailOutputSchema = z.object({}).passthrough();
+const contactDetailOutputSchema = z.object({}).passthrough();
 const jobDetailOutputSchema = z.object({}).passthrough();
+
+const getCandidateDetailsInputSchema = {
+  candidate_slugs: z
+    .array(textFilterSchema)
+    .min(1)
+    .max(10)
+    .describe("Candidate slugs to fetch. Max 10 per call. Duplicates are ignored."),
+};
+
+const getCompanyDetailsInputSchema = {
+  company_slugs: z
+    .array(textFilterSchema)
+    .min(1)
+    .max(10)
+    .describe("Company slugs to fetch. Max 10 per call. Duplicates are ignored."),
+};
+
+const getContactDetailsInputSchema = {
+  contact_slugs: z
+    .array(textFilterSchema)
+    .min(1)
+    .max(10)
+    .describe("Contact slugs to fetch. Max 10 per call. Duplicates are ignored."),
+};
+
+const candidateDetailsOutputSchema = {
+  requested_count: z.number().int().min(0),
+  successful_count: z.number().int().min(0),
+  failed_count: z.number().int().min(0),
+  candidates: z.array(candidateDetailOutputSchema),
+  errors: z.array(
+    z.object({
+      slug: z.string(),
+      error: z.string(),
+      status_code: z.union([z.number().int(), z.null()]),
+    }),
+  ),
+};
+
+const companyDetailsOutputSchema = {
+  requested_count: z.number().int().min(0),
+  successful_count: z.number().int().min(0),
+  failed_count: z.number().int().min(0),
+  companies: z.array(companyDetailOutputSchema),
+  errors: z.array(
+    z.object({
+      slug: z.string(),
+      error: z.string(),
+      status_code: z.union([z.number().int(), z.null()]),
+    }),
+  ),
+};
+
+const contactDetailsOutputSchema = {
+  requested_count: z.number().int().min(0),
+  successful_count: z.number().int().min(0),
+  failed_count: z.number().int().min(0),
+  contacts: z.array(contactDetailOutputSchema),
+  errors: z.array(
+    z.object({
+      slug: z.string(),
+      error: z.string(),
+      status_code: z.union([z.number().int(), z.null()]),
+    }),
+  ),
+};
 
 const candidateCustomFieldSummarySchema = z.object({
   field_id: z.number().int().positive(),
@@ -562,7 +828,7 @@ export function createRecruitCrmServer(dependencies: ServerDependencies = {}): M
   const client = new RecruitCrmClient(config, dependencies.transport);
   const server = new McpServer({
     name: "Recruit CRM MCP Server",
-    version: "0.1.0",
+    version: "0.4.0",
   });
 
   server.registerTool(
@@ -650,6 +916,96 @@ export function createRecruitCrmServer(dependencies: ServerDependencies = {}): M
   );
 
   server.registerTool(
+    "search_contacts",
+    {
+      description:
+        "Search Recruit CRM contacts with filters and return compact summaries for large result sets. At least one real filter is required: sort_by, sort_order, page, exact_search, and include_contact_info do not count by themselves. Use list_contacts for unfiltered 'show recent contacts' or 'show all contacts' requests.",
+      inputSchema: searchContactsInputSchema,
+      outputSchema: searchContactsOutputSchema,
+      annotations: {
+        readOnlyHint: true,
+      },
+    },
+    async (args) => formatResult(await executeSearchContacts(client, args)),
+  );
+
+  server.registerTool(
+    "list_contacts",
+    {
+      description:
+        "List all contacts in the account, most-recently updated first. Use this for unfiltered 'show recent contacts' or 'show all contacts' requests; use search_contacts when you have filter criteria like name, company, owner, or date. Returns compact summaries with slug values for contact detail lookup or app links like https://app.recruitcrm.io/contact/{slug}.",
+      inputSchema: listContactsInputSchema,
+      outputSchema: searchContactsOutputSchema,
+      annotations: {
+        readOnlyHint: true,
+      },
+    },
+    async (args) => formatResult(await executeListContacts(client, args)),
+  );
+
+  server.registerTool(
+    "list_users",
+    {
+      description:
+        "List Recruit CRM users and return compact user summaries with id, first_name, last_name, and status. Enable include_teams only when the user asks for team membership. Enable include_contact_info only when the user explicitly needs email or phone.",
+      inputSchema: listUsersInputSchema,
+      outputSchema: listUsersOutputSchema,
+      annotations: {
+        readOnlyHint: true,
+      },
+    },
+    async (args) => formatResult(await executeListUsers(client, args)),
+  );
+
+  server.registerTool(
+    "search_hotlists",
+    {
+      description:
+        "Search Recruit CRM hotlists by related_to_type and optional name/shared filters. related_to_type is required. Broad searches return compact hotlist summaries with related_count only. When name is provided, results also include related_slugs for follow-up workflows.",
+      inputSchema: searchHotlistsInputSchema,
+      outputSchema: searchHotlistsOutputSchema,
+      annotations: {
+        readOnlyHint: true,
+      },
+    },
+    async (args) => formatResult(await executeSearchHotlists(client, args)),
+  );
+
+  server.registerTool(
+    "create_hotlist",
+    {
+      description:
+        "Create one Recruit CRM hotlist. This tool modifies data in Recruit CRM and should only be used when the user explicitly asks to create a hotlist. Requires created_by as a Recruit CRM user id; use list_users only when a user name must be resolved to an id. Use shared: 0 unless the user explicitly asks to share the hotlist with the team.",
+      inputSchema: createHotlistInputSchema,
+      outputSchema: createHotlistOutputSchema,
+      annotations: {
+        readOnlyHint: false,
+        destructiveHint: false,
+        idempotentHint: false,
+        openWorldHint: false,
+      },
+    },
+    async (args) => formatResult(await executeCreateHotlist(client, args)),
+  );
+
+  server.registerTool(
+    "add_records_to_hotlist",
+    {
+      description:
+        "Add up to 10 Recruit CRM record slugs to an existing hotlist. This tool modifies data in Recruit CRM and should only be used when the user explicitly asks to add records to a specific hotlist. Executes sequentially, ignores duplicate input slugs, and returns partial success details instead of failing the whole batch.",
+      inputSchema: addRecordsToHotlistInputSchema,
+      outputSchema: addRecordsToHotlistOutputSchema,
+      annotations: {
+        readOnlyHint: false,
+        destructiveHint: false,
+        idempotentHint: false,
+        openWorldHint: false,
+      },
+    },
+    async (args) => formatResult(await executeAddRecordsToHotlist(client, args)),
+  );
+
+  server.registerTool(
     "search_tasks",
     {
       description:
@@ -709,16 +1065,14 @@ export function createRecruitCrmServer(dependencies: ServerDependencies = {}): M
     "get_candidate_details",
     {
       description:
-        "Fetch one Recruit CRM candidate by slug and return the raw Recruit CRM payload. The raw payload may include resource_url for opening the candidate directly in Recruit CRM.",
-      inputSchema: {
-        candidate_slug: textFilterSchema.describe("Candidate slug."),
-      },
-      outputSchema: candidateDetailOutputSchema,
+        "Fetch full details for up to 10 candidates in parallel by slug. Use this when the user asks for details on a specific set of candidates (e.g. after they pick a shortlist from search_candidates). Do NOT use for bulk scans of the whole database — use search_candidates or list_candidates for that. Returns partial results: one bad slug will not fail the batch, failures are reported in the errors array with status_code.",
+      inputSchema: getCandidateDetailsInputSchema,
+      outputSchema: candidateDetailsOutputSchema,
       annotations: {
         readOnlyHint: true,
       },
     },
-    async ({ candidate_slug }) => formatResult(await executeGetCandidateDetails(client, candidate_slug)),
+    async (args) => formatResult(await executeGetCandidateDetails(client, args)),
   );
 
   server.registerTool(
@@ -735,6 +1089,34 @@ export function createRecruitCrmServer(dependencies: ServerDependencies = {}): M
       },
     },
     async ({ job_slug }) => formatResult(await executeGetJobDetails(client, job_slug)),
+  );
+
+  server.registerTool(
+    "get_company_details",
+    {
+      description:
+        "Fetch full details for up to 10 companies in parallel by slug. Use this when the user asks for details on a specific set of companies (e.g. after they pick results from search_companies). Do NOT use for bulk scans of the whole database — use search_companies or list_companies for that. Returns partial results: one bad slug will not fail the batch, failures are reported in the errors array with status_code.",
+      inputSchema: getCompanyDetailsInputSchema,
+      outputSchema: companyDetailsOutputSchema,
+      annotations: {
+        readOnlyHint: true,
+      },
+    },
+    async (args) => formatResult(await executeGetCompanyDetails(client, args)),
+  );
+
+  server.registerTool(
+    "get_contact_details",
+    {
+      description:
+        "Fetch full details for up to 10 contacts in parallel by slug. Use this when the user asks for details on a specific set of contacts (e.g. after they pick results from search_contacts). Do NOT use for full-database scans — use search_contacts or list_contacts for that. Returns partial results: one bad slug will not fail the batch, failures are reported in the errors array with status_code.",
+      inputSchema: getContactDetailsInputSchema,
+      outputSchema: contactDetailsOutputSchema,
+      annotations: {
+        readOnlyHint: true,
+      },
+    },
+    async (args) => formatResult(await executeGetContactDetails(client, args)),
   );
 
   server.registerTool(
@@ -852,7 +1234,9 @@ export async function executeSearchCandidates(
     custom_fields: args.custom_fields,
   });
 
-  return mapSearchCandidatesResult(result);
+  return mapSearchCandidatesResult(result, {
+    includeContactInfo: args.include_contact_info ?? false,
+  });
 }
 
 export async function executeListCandidates(
@@ -866,7 +1250,9 @@ export async function executeListCandidates(
     sort_order: args.sort_order ?? "desc",
   });
 
-  return mapSearchCandidatesResult(result);
+  return mapSearchCandidatesResult(result, {
+    includeContactInfo: args.include_contact_info ?? false,
+  });
 }
 
 export async function executeListJobs(client: RecruitCrmClient, args: ListJobsInput): Promise<SearchJobsResult> {
@@ -892,6 +1278,33 @@ export async function executeListCompanies(
   });
 
   return mapSearchCompaniesResult(result);
+}
+
+export async function executeListContacts(
+  client: RecruitCrmClient,
+  args: ListContactsInput,
+): Promise<SearchContactsResult> {
+  const result = await client.listContacts({
+    limit: args.limit ?? 100,
+    page: args.page ?? 1,
+    sort_by: args.sort_by ?? "updatedon",
+    sort_order: args.sort_order ?? "desc",
+  });
+
+  return mapSearchContactsResult(result, {
+    includeContactInfo: args.include_contact_info ?? false,
+  });
+}
+
+export async function executeListUsers(client: RecruitCrmClient, args: ListUsersInput): Promise<ListUsersResult> {
+  const result = await client.listUsers({
+    include_teams: args.include_teams ?? false,
+  });
+
+  return mapListUsersResult(result, {
+    includeTeams: args.include_teams ?? false,
+    includeContactInfo: args.include_contact_info ?? false,
+  });
 }
 
 export async function executeSearchJobs(client: RecruitCrmClient, args: SearchJobsInput): Promise<SearchJobsResult> {
@@ -957,6 +1370,63 @@ export async function executeSearchCompanies(
   });
 
   return mapSearchCompaniesResult(result);
+}
+
+export async function executeSearchContacts(
+  client: RecruitCrmClient,
+  args: SearchContactsInput,
+): Promise<SearchContactsResult> {
+  validateSearchContactsFilters(args);
+
+  const result = await client.searchContacts({
+    page: args.page ?? 1,
+    created_from: args.created_from,
+    created_to: args.created_to,
+    email: args.email,
+    first_name: args.first_name,
+    last_name: args.last_name,
+    linkedin: args.linkedin,
+    marked_as_off_limit: args.marked_as_off_limit,
+    owner_email: args.owner_email,
+    owner_id: args.owner_id,
+    owner_name: args.owner_name,
+    updated_from: args.updated_from,
+    updated_to: args.updated_to,
+    company_slug: args.company_slug,
+    contact_number: args.contact_number,
+    contact_slug: args.contact_slug,
+    exact_search: args.exact_search,
+    sort_by: args.sort_by ?? "updatedon",
+    sort_order: args.sort_order ?? "desc",
+  });
+
+  return mapSearchContactsResult(result, {
+    includeContactInfo: args.include_contact_info ?? false,
+  });
+}
+
+export async function executeSearchHotlists(
+  client: RecruitCrmClient,
+  args: SearchHotlistsInput,
+): Promise<SearchHotlistsResult> {
+  const result = await client.searchHotlists({
+    page: args.page ?? 1,
+    name: args.name,
+    shared: args.shared,
+    related_to_type: args.related_to_type,
+  });
+
+  return mapSearchHotlistsResult(result, {
+    includeRelatedSlugs: Boolean(args.name),
+  });
+}
+
+export async function executeCreateHotlist(
+  client: RecruitCrmClient,
+  args: CreateHotlistInput,
+): Promise<CreateHotlistResult> {
+  const result = await client.createHotlist(args);
+  return mapCreateHotlistResult(result);
 }
 
 export async function executeSearchTasks(client: RecruitCrmClient, args: SearchTasksInput): Promise<SearchTasksResult> {
@@ -1052,13 +1522,142 @@ export async function executeSearchCallLogs(
 
 export async function executeGetCandidateDetails(
   client: RecruitCrmClient,
-  candidateSlug: string,
-): Promise<CandidateDetail> {
-  return client.getCandidateDetails(candidateSlug);
+  args: GetCandidateDetailsInput,
+): Promise<CandidateDetailsResult> {
+  const uniqueSlugs = Array.from(new Set(args.candidate_slugs));
+  const settled = await Promise.allSettled(
+    uniqueSlugs.map((slug) => client.getCandidateDetails(slug)),
+  );
+
+  const candidates: CandidateDetail[] = [];
+  const errors: CandidateDetailsError[] = [];
+
+  settled.forEach((outcome, idx) => {
+    const slug = uniqueSlugs[idx];
+    if (outcome.status === "fulfilled") {
+      candidates.push(outcome.value);
+    } else {
+      const reason = outcome.reason;
+      errors.push({
+        slug,
+        error: reason instanceof Error ? reason.message : String(reason),
+        status_code: reason instanceof RecruitCrmApiError ? reason.statusCode ?? null : null,
+      });
+    }
+  });
+
+  return {
+    requested_count: uniqueSlugs.length,
+    successful_count: candidates.length,
+    failed_count: errors.length,
+    candidates,
+    errors,
+  };
 }
 
 export async function executeGetJobDetails(client: RecruitCrmClient, jobSlug: string): Promise<JobDetail> {
   return client.getJobDetails(jobSlug);
+}
+
+export async function executeGetCompanyDetails(
+  client: RecruitCrmClient,
+  args: GetCompanyDetailsInput,
+): Promise<CompanyDetailsResult> {
+  const uniqueSlugs = Array.from(new Set(args.company_slugs));
+  const settled = await Promise.allSettled(uniqueSlugs.map((slug) => client.getCompanyDetails(slug)));
+
+  const companies: CompanyDetail[] = [];
+  const errors: CompanyDetailsError[] = [];
+
+  settled.forEach((outcome, idx) => {
+    const slug = uniqueSlugs[idx];
+    if (outcome.status === "fulfilled") {
+      companies.push(outcome.value);
+    } else {
+      const reason = outcome.reason;
+      errors.push({
+        slug,
+        error: reason instanceof Error ? reason.message : String(reason),
+        status_code: reason instanceof RecruitCrmApiError ? reason.statusCode ?? null : null,
+      });
+    }
+  });
+
+  return {
+    requested_count: uniqueSlugs.length,
+    successful_count: companies.length,
+    failed_count: errors.length,
+    companies,
+    errors,
+  };
+}
+
+export async function executeGetContactDetails(
+  client: RecruitCrmClient,
+  args: GetContactDetailsInput,
+): Promise<ContactDetailsResult> {
+  const uniqueSlugs = Array.from(new Set(args.contact_slugs));
+  const settled = await Promise.allSettled(uniqueSlugs.map((slug) => client.getContactDetails(slug)));
+
+  const contacts: ContactDetail[] = [];
+  const errors: ContactDetailsError[] = [];
+
+  settled.forEach((outcome, idx) => {
+    const slug = uniqueSlugs[idx];
+    if (outcome.status === "fulfilled") {
+      contacts.push(outcome.value);
+    } else {
+      const reason = outcome.reason;
+      errors.push({
+        slug,
+        error: reason instanceof Error ? reason.message : String(reason),
+        status_code: reason instanceof RecruitCrmApiError ? reason.statusCode ?? null : null,
+      });
+    }
+  });
+
+  return {
+    requested_count: uniqueSlugs.length,
+    successful_count: contacts.length,
+    failed_count: errors.length,
+    contacts,
+    errors,
+  };
+}
+
+export async function executeAddRecordsToHotlist(
+  client: RecruitCrmClient,
+  args: AddRecordsToHotlistInput,
+): Promise<AddRecordsToHotlistResult> {
+  const uniqueSlugs = Array.from(new Set(args.related_slugs));
+  const addedSlugs: string[] = [];
+  const errors: Array<{
+    slug: string;
+    error: string;
+    status_code: number | null;
+  }> = [];
+
+  for (const slug of uniqueSlugs) {
+    try {
+      await client.addRecordToHotlist(args.hotlist_id, slug);
+      addedSlugs.push(slug);
+    } catch (error) {
+      errors.push({
+        slug,
+        error: error instanceof Error ? error.message : String(error),
+        status_code: error instanceof RecruitCrmApiError ? error.statusCode ?? null : null,
+      });
+    }
+  }
+
+  return {
+    hotlist_id: args.hotlist_id,
+    requested_count: uniqueSlugs.length,
+    successful_count: addedSlugs.length,
+    failed_count: errors.length,
+    added_slugs: addedSlugs,
+    errors,
+  };
 }
 
 export async function executeGetJobAssignedCandidates(
@@ -1125,6 +1724,34 @@ function validateRelatedFilters(args: { related_to?: string; related_to_type?: s
 
   if (hasRelatedTo !== hasRelatedToType) {
     throw new RecruitCrmApiError("related_to and related_to_type must be provided together.");
+  }
+}
+
+function validateSearchContactsFilters(args: SearchContactsInput): void {
+  const filterKeys: Array<keyof SearchContactsInput> = [
+    "created_from",
+    "created_to",
+    "email",
+    "first_name",
+    "last_name",
+    "linkedin",
+    "marked_as_off_limit",
+    "owner_email",
+    "owner_id",
+    "owner_name",
+    "updated_from",
+    "updated_to",
+    "company_slug",
+    "contact_number",
+    "contact_slug",
+  ];
+
+  const hasAtLeastOneFilter = filterKeys.some((key) => args[key] !== undefined);
+
+  if (!hasAtLeastOneFilter) {
+    throw new RecruitCrmApiError(
+      "search_contacts requires at least one filter. sort_by, sort_order, page, exact_search, and include_contact_info do not count by themselves.",
+    );
   }
 }
 
@@ -1196,13 +1823,22 @@ function formatResult(
   result:
     | SearchCandidatesResult
     | SearchCompaniesResult
+    | SearchContactsResult
+    | SearchHotlistsResult
     | SearchJobsResult
     | SearchMeetingsResult
     | SearchNotesResult
     | SearchCallLogsResult
     | SearchTasksResult
-    | CandidateDetail
+    | ListUsersResult
+    | CreateHotlistResult
+    | CandidateDetailsResult
+    | CompanyDetailsResult
+    | ContactDetailsResult
+    | AddRecordsToHotlistResult
     | JobDetail
+    | JobAssignedCandidatesResult
+    | CandidateHiringStagesResult
     | CandidateJobAssignmentHiringStageHistoryResult
     | CandidateCustomFieldListResult
     | CandidateCustomFieldDetail,
