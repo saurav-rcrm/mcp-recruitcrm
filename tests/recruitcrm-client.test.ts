@@ -21,6 +21,7 @@ import {
   sampleSearchResponse,
   sampleTaskSearchResponse,
   sampleUserListResponse,
+  sampleUserListResponseBareTeams,
 } from "./fixtures.js";
 
 const baseConfig = {
@@ -553,6 +554,19 @@ describe("RecruitCrmClient", () => {
     const result = await client.listUsers({ include_teams: true });
 
     expect(result[0]?.teams).toHaveLength(2);
+  });
+
+  it("parses user list response where teams is an array of bare numbers", async () => {
+    const transport = vi.fn(async (_request: HttpRequestOptions): Promise<HttpResponse> => ({
+      statusCode: 200,
+      bodyText: JSON.stringify(sampleUserListResponseBareTeams),
+    }));
+    const client = new RecruitCrmClient(baseConfig, transport);
+
+    const result = await client.listUsers({});
+
+    expect(result).toHaveLength(1);
+    expect(result[0]?.teams).toEqual([1435, 2253, 9871]);
   });
 
   it("normalizes empty task search arrays into an empty paginated response", async () => {

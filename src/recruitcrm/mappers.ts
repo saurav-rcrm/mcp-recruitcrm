@@ -597,15 +597,19 @@ function normalizeStringArray(values: Array<string | number | null> | null | und
     .filter((value): value is string => value !== null);
 }
 
-function normalizeUserTeams(teams: RecruitCrmUserTeam[] | null | undefined): UserTeamSummary[] {
+function normalizeUserTeams(
+  teams: Array<RecruitCrmUserTeam | number> | null | undefined,
+): UserTeamSummary[] {
   if (!teams || teams.length === 0) {
     return [];
   }
 
-  return teams.map((team) => ({
-    team_id: normalizeNumber(team.team_id),
-    team_name: normalizeString(team.team_name),
-  }));
+  return teams
+    .filter((team): team is RecruitCrmUserTeam => typeof team === "object" && team !== null)
+    .map((team) => ({
+      team_id: normalizeNumber(team.team_id),
+      team_name: normalizeString(team.team_name),
+    }));
 }
 
 function normalizeStringList(

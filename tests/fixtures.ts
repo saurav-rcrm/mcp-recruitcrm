@@ -453,6 +453,18 @@ export const sampleUserListResponse: RecruitCrmUserListResponse = [
   },
 ];
 
+export const sampleUserListResponseBareTeams: RecruitCrmUserListResponse = [
+  {
+    id: 101,
+    first_name: "Alex",
+    last_name: "Kim",
+    email: "alex@example.com",
+    contact_number: null,
+    status: "Active",
+    teams: [1435, 2253, 9871],
+  },
+];
+
 export const sampleJobDetailResponse: JobDetail = {
   id: 313,
   slug: "job-detail-sample-001",

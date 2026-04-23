@@ -2,10 +2,10 @@
   "manifest_version": "0.2",
   "name": "recruitcrm-mcp-server",
   "display_name": "Recruit CRM",
-  "version": "0.4.2",
+  "version": "0.4.3",
   "description": "Search candidates, track pipelines, & manage your recruiting workflow",
   "icon": "icon.png",
-  "long_description": "Connect Recruit CRM to Claude to quickly find candidates and stay on top of your hiring pipeline. Claude can search across your entire account, pull up job and company details, review notes and activity, and help you pick up where you left off. Perfect for finding a candidate you sourced last month, checking where an open role stands, or getting up to speed before a client call.",
+  "long_description": "Access candidates, jobs, companies, or contacts - dig into notes, tasks, meetings, call logs, and hiring stages. Build hotlists, track pipeline activity, and get up to speed before any candidate or client interaction.",
   "author": {
     "name": "Recruit CRM",
     "email": "saurav@recruitcrm.io",
@@ -34,7 +34,7 @@
     "api_token": {
       "type": "string",
       "title": "Recruit CRM API Token",
-      "description": "Your Recruit CRM API token (found in Settings → API & Integrations)",
+      "description": "Your Recruit CRM API token (found in Admin Settings → API)",
       "sensitive": true,
       "required": true
     }

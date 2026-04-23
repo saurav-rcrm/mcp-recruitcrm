@@ -9,7 +9,7 @@ Local `stdio` MCP server for [Recruit CRM](https://recruitcrm.io)'s Public API. 
 1. Download and install [Claude Desktop](https://claude.ai/download), then sign in
 2. Download the latest `recruitcrm-mcp-server.mcpb` from the [Releases](https://github.com/saurav-rcrm/mcp-recruitcrm/releases) page
 3. Double-click to install, or drag it into Claude Desktop
-4. Enter your Recruit CRM API token when prompted (found in Recruit CRM → Settings → API & Integrations)
+4. Enter your Recruit CRM API token when prompted (found in Recruit CRM → Admin Settings → API)
 
 ### Option 2: npm Package (for any MCP client)
 
@@ -137,7 +137,7 @@ Recruit CRM entities follow the app URL pattern `https://app.recruitcrm.io/<enti
 - Use the `.mcpb` install option instead — it doesn't need Node set up
 
 **"Authentication failed" / 401 errors**
-- Verify your API token at Recruit CRM → Settings → API & Integrations
+- Verify your API token at Recruit CRM → Admin Settings → API
 - Ensure the token has the required permissions for the tools you're using
 
 **Other issues**

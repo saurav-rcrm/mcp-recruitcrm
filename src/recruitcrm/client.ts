@@ -307,7 +307,7 @@ const userSchema = z
     email: nullableStringLikeSchema,
     contact_number: nullableStringLikeSchema,
     status: nullableStringLikeSchema,
-    teams: z.array(userTeamSchema).nullish(),
+    teams: z.array(z.union([userTeamSchema, z.number()])).nullish(),
   })
   .passthrough();
 

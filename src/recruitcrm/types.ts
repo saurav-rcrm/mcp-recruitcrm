@@ -438,7 +438,7 @@ export type RecruitCrmUser = {
   email?: string | number | null;
   contact_number?: string | number | null;
   status?: string | number | null;
-  teams?: RecruitCrmUserTeam[] | null;
+  teams?: Array<RecruitCrmUserTeam | number> | null;
   [key: string]: unknown;
 };
 
