@@ -1,10 +1,11 @@
 {
   "name": "recruitcrm-mcp-server",
-  "version": "0.4.0",
+  "version": "0.4.2",
   "description": "Recruit CRM MCP Server",
   "type": "module",
   "bin": {
-    "recruitcrm-mcp": "dist/index.js"
+    "recruitcrm-mcp": "dist/index.js",
+    "recruitcrm-mcp-server": "dist/index.js"
   },
   "files": [
     "dist",

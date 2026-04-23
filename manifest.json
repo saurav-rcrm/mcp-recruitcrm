@@ -2,10 +2,10 @@
   "manifest_version": "0.2",
   "name": "recruitcrm-mcp-server",
   "display_name": "Recruit CRM",
-  "version": "0.4.0",
-  "description": "Recruit CRM MCP Server - access candidates, jobs, companies, users, and more from Recruit CRM",
+  "version": "0.4.2",
+  "description": "Search candidates, track pipelines, & manage your recruiting workflow",
   "icon": "icon.png",
-  "long_description": "A Model Context Protocol server for Recruit CRM. Search and retrieve candidates, jobs, companies, users, call logs, meetings, tasks, notes, and hiring stage history from your Recruit CRM account.",
+  "long_description": "Connect Recruit CRM to Claude to quickly find candidates and stay on top of your hiring pipeline. Claude can search across your entire account, pull up job and company details, review notes and activity, and help you pick up where you left off. Perfect for finding a candidate you sourced last month, checking where an open role stands, or getting up to speed before a client call.",
   "author": {
     "name": "Recruit CRM",
     "email": "saurav@recruitcrm.io",

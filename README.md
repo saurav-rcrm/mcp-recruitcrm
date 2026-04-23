@@ -1,16 +1,15 @@
 # Recruit CRM MCP Server
 
-Local `stdio` MCP server for [Recruit CRM](https://recruitcrm.io)'s Public API. Access your candidates, jobs, companies, users, tasks, meetings, notes, and call logs directly from Claude.
-
-Repository: https://github.com/saurav-rcrm/mcp-recruitcrm
+Local `stdio` MCP server for [Recruit CRM](https://recruitcrm.io)'s Public API. Access your candidates, jobs, companies, tasks, meetings, notes, call logs, and more directly from AI tools like Claude and Codex.
 
 ## Install
 
 ### Option 1: Claude Desktop Extension (Recommended)
 
-1. Download the latest `recruitcrm-mcp-server.mcpb` from the [Releases](https://github.com/saurav-rcrm/mcp-recruitcrm/releases) page
-2. Double-click to install, or drag it into Claude Desktop
-3. Enter your Recruit CRM API token when prompted (found in Recruit CRM → Settings → API & Integrations)
+1. Download and install [Claude Desktop](https://claude.ai/download), then sign in
+2. Download the latest `recruitcrm-mcp-server.mcpb` from the [Releases](https://github.com/saurav-rcrm/mcp-recruitcrm/releases) page
+3. Double-click to install, or drag it into Claude Desktop
+4. Enter your Recruit CRM API token when prompted (found in Recruit CRM → Settings → API & Integrations)
 
 ### Option 2: npm Package (for any MCP client)
 
@@ -27,6 +26,32 @@ Repository: https://github.com/saurav-rcrm/mcp-recruitcrm
   }
 }
 ```
+
+#### Codex for Mac
+
+In the Codex Mac app:
+
+1. Open **Settings → MCP Servers → Add server**
+2. Enter name `recruit_crm`
+3. Select **STDIO**
+4. Set **Command to launch** to `npx`
+5. Add arguments `-y` and `recruitcrm-mcp-server`
+6. Add environment variable `RECRUITCRM_API_TOKEN` with your Recruit CRM API token
+7. Leave **Environment variable passthrough** empty
+8. Leave **Working directory** blank unless you need a custom launch directory, then save
+
+Manual Codex config fallback:
+
+```toml
+[mcp_servers.recruit_crm]
+command = "npx"
+args = ["-y", "recruitcrm-mcp-server"]
+
+[mcp_servers.recruit_crm.env]
+RECRUITCRM_API_TOKEN = "<your-api-token>"
+```
+
+Codex MCP stdio servers use `command`, `args`, and `env` fields as documented in the [Codex MCP docs](https://developers.openai.com/codex/mcp#stdio-servers).
 
 > **Mac users:** If you get "Failed to spawn process", use the full path to `npx` (e.g. `/usr/local/bin/npx`) as the `command`.
 

@@ -3,6 +3,7 @@ dist
 coverage
 .codex/
 .claude/
+CLAUDE.md
 release/
 .DS_Store
 *.log
