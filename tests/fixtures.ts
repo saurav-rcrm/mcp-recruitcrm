@@ -6,6 +6,8 @@ import type {
   CompanyDetail,
   ContactDetail,
   CreatedHotlist,
+  CreatedNote,
+  CreatedTask,
   JobDetail,
   RecruitCrmHiringPipelineResponse,
   RecruitCrmJobAssignedCandidatesResponse,
@@ -15,8 +17,10 @@ import type {
   RecruitCrmJobSearchResponse,
   RecruitCrmMeetingSearchResponse,
   RecruitCrmNoteSearchResponse,
+  RecruitCrmNoteTypeListResponse,
   RecruitCrmSearchResponse,
   RecruitCrmTaskSearchResponse,
+  RecruitCrmTaskTypeListResponse,
   RecruitCrmUserListResponse,
 } from "../src/recruitcrm/types.js";
 
@@ -590,6 +594,79 @@ export const sampleTaskSearchResponse: RecruitCrmTaskSearchResponse = {
   ],
 };
 
+export const sampleTaskTypeListResponse: RecruitCrmTaskTypeListResponse = [
+  {
+    id: 332,
+    label: "Follow up",
+  },
+  {
+    id: 53794,
+    label: "Interview scheduling",
+  },
+  {
+    id: 209961,
+    label: "Call Candidate",
+  },
+];
+
+export const sampleCreatedTaskResponse: CreatedTask = {
+  id: 66753909,
+  related_to: "candidate-related-sample-001",
+  task_type: {
+    id: 332,
+    label: "Follow up",
+  },
+  related_to_type: "candidate",
+  related_to_name: "Sample Candidate",
+  description: "<p><strong>Created by Codex</strong></p>",
+  title: "Codex API test task",
+  status: null,
+  start_date: "2026-04-28T04:30:00.000000Z",
+  reminder_date: "2026-04-28T04:00:00.000000Z",
+  reminder: 30,
+  owner: 453,
+  created_on: "2026-04-27T12:13:47.000000Z",
+  updated_on: "2026-04-27T12:13:47.000000Z",
+  created_by: 453,
+  updated_by: 453,
+  associated_candidates: ["candidate-related-sample-001"],
+  associated_companies: [],
+  associated_contacts: [],
+  associated_jobs: [],
+  associated_deals: [],
+  collaborators: [
+    {
+      attendee_type: "user",
+      attendee_id: "12654",
+      display_name: "Jane Scott",
+    },
+  ],
+  collaborator_users: [
+    {
+      id: 34,
+      first_name: "Jane",
+      last_name: "Scott",
+      email: "jane.scott@example.com",
+      contact_number: "+1-555-0200",
+      avatar: "https://example.com/avatar.png",
+    },
+  ],
+  collaborator_teams: [
+    1435,
+    {
+      team_id: 16,
+      team_name: "Delivery",
+    },
+  ],
+  related: {
+    slug: "candidate-related-sample-001",
+    email: "sample.related@example.com",
+    contact_number: "+1-555-0101",
+    first_name: "Sample",
+    last_name: "Candidate",
+  },
+};
+
 export const sampleMeetingSearchResponse: RecruitCrmMeetingSearchResponse = {
   current_page: 1,
   next_page_url: "https://api.recruitcrm.io/v1/meetings/search?page=2",
@@ -657,6 +734,7 @@ export const sampleNoteSearchResponse: RecruitCrmNoteSearchResponse = {
       updated_on: "2024-07-30T11:10:30.000000Z",
       created_by: 66960,
       updated_by: 66960,
+      resource_url: "https://app.recruitcrm.io/notes/24667666",
       related: {
         slug: "candidate-related-sample-001",
         first_name: "Sample",
@@ -671,6 +749,66 @@ export const sampleNoteSearchResponse: RecruitCrmNoteSearchResponse = {
       collaborator_teams: [null],
     },
   ],
+};
+
+export const sampleNoteTypeListResponse: RecruitCrmNoteTypeListResponse = [
+  {
+    id: 42,
+    label: "Internal Note",
+  },
+  {
+    id: 108871,
+    label: "General Note",
+  },
+  {
+    id: 205989,
+    label: "Candidate Interaction",
+  },
+];
+
+export const sampleCreatedNoteResponse: CreatedNote = {
+  id: 66752552,
+  note_type: {
+    id: 108871,
+    label: "General Note",
+  },
+  description:
+    "<p><strong>Codex rich text API test</strong></p><ul><li><em>Bold and italic formatting</em></li></ul>",
+  related_to: "candidate-related-sample-001",
+  related_to_type: "candidate",
+  created_on: "2026-04-27T11:15:46.000000Z",
+  updated_on: "2026-04-27T11:15:46.000000Z",
+  created_by: 453,
+  updated_by: 453,
+  associated_candidates: ["candidate-related-sample-001", "candidate-related-sample-002"],
+  associated_companies: [],
+  associated_contacts: [],
+  associated_jobs: [],
+  associated_deals: [],
+  collaborator_users: [
+    {
+      id: 34,
+      first_name: "Jane",
+      last_name: "Scott",
+      email: "jane.scott@example.com",
+      contact_number: "+1-555-0200",
+      avatar: "https://example.com/avatar.png",
+    },
+  ],
+  collaborator_teams: [
+    1435,
+    {
+      team_id: 16,
+      team_name: "Delivery",
+    },
+  ],
+  related: {
+    slug: "candidate-related-sample-001",
+    first_name: "Sample",
+    last_name: "Candidate",
+    email: "sample.related@example.com",
+    contact_number: "+1-555-0101",
+  },
 };
 
 export const sampleCallLogSearchResponse: RecruitCrmCallLogSearchResponse = {

@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  buildCreateNoteRequest,
+  buildCreateTaskRequest,
   buildListContactsRequest,
   buildListUsersRequest,
   buildGetJobAssignedCandidatesRequest,
@@ -474,6 +476,54 @@ describe("buildListContactsRequest", () => {
   });
 });
 
+describe("buildCreateTaskRequest", () => {
+  it("builds a POST body while preserving rich text descriptions", () => {
+    const request = buildCreateTaskRequest({
+      task_type_id: 332,
+      title: "Follow up call",
+      description: "<p><strong>Rich task</strong></p>",
+      reminder: 30,
+      start_date: "2026-04-28T04:30:00.000000Z",
+      owner_id: 453,
+      created_by: 453,
+      related_to: "candidate-related-sample-001",
+      related_to_type: "candidate",
+      updated_by: 453,
+      associated_candidates: ["candidate-related-sample-001", "candidate-related-sample-002"],
+      associated_companies: ["company-sample-001"],
+      associated_contacts: ["contact-sample-001"],
+      associated_jobs: ["job-sample-001"],
+      associated_deals: ["deal-sample-001"],
+      collaborator_user_ids: [12654, 12655],
+      collaborator_team_ids: [16, 17],
+      enable_auto_populate_teams: true,
+    });
+
+    expect(request.method).toBe("POST");
+    expect(request.query).toBeUndefined();
+    expect(request.jsonBody).toEqual({
+      task_type_id: 332,
+      title: "Follow up call",
+      description: "<p><strong>Rich task</strong></p>",
+      reminder: 30,
+      start_date: "2026-04-28T04:30:00.000000Z",
+      owner_id: 453,
+      created_by: 453,
+      related_to: "candidate-related-sample-001",
+      related_to_type: "candidate",
+      updated_by: 453,
+      associated_candidates: "candidate-related-sample-001,candidate-related-sample-002",
+      associated_companies: "company-sample-001",
+      associated_contacts: "contact-sample-001",
+      associated_jobs: "job-sample-001",
+      associated_deals: "deal-sample-001",
+      collaborators: "12654,12655",
+      collaborator_team_ids: "16,17",
+      enable_auto_populate_teams: 1,
+    });
+  });
+});
+
 describe("buildSearchMeetingsRequest", () => {
   it("defaults page to 1 and keeps the request query-only", () => {
     const request = buildSearchMeetingsRequest({
@@ -549,6 +599,46 @@ describe("buildSearchNotesRequest", () => {
     expect(request.query?.get("related_to_type")).toBe("candidate");
     expect(request.query?.get("updated_from")).toBe("2026-03-01");
     expect(request.query?.get("updated_to")).toBe("2026-03-31");
+  });
+});
+
+describe("buildCreateNoteRequest", () => {
+  it("builds a POST body while preserving rich text descriptions", () => {
+    const request = buildCreateNoteRequest({
+      note_type_id: 108871,
+      description: "<p><strong>Rich text</strong></p>",
+      related_to: "candidate-related-sample-001",
+      related_to_type: "candidate",
+      created_by: 453,
+      updated_by: 453,
+      associated_candidates: ["candidate-related-sample-001", "candidate-related-sample-002"],
+      associated_companies: ["company-sample-001"],
+      associated_contacts: ["contact-sample-001"],
+      associated_jobs: ["job-sample-001"],
+      associated_deals: ["deal-sample-001"],
+      collaborator_user_ids: [11496, 11497],
+      collaborator_team_ids: [16, 17],
+      enable_auto_populate_teams: true,
+    });
+
+    expect(request.method).toBe("POST");
+    expect(request.query).toBeUndefined();
+    expect(request.jsonBody).toEqual({
+      note_type_id: 108871,
+      description: "<p><strong>Rich text</strong></p>",
+      related_to: "candidate-related-sample-001",
+      related_to_type: "candidate",
+      created_by: 453,
+      updated_by: 453,
+      associated_candidates: "candidate-related-sample-001,candidate-related-sample-002",
+      associated_companies: "company-sample-001",
+      associated_contacts: "contact-sample-001",
+      associated_jobs: "job-sample-001",
+      associated_deals: "deal-sample-001",
+      collaborator_user_ids: "11496,11497",
+      collaborator_team_ids: "16,17",
+      enable_auto_populate_teams: 1,
+    });
   });
 });
 

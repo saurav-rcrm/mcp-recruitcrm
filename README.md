@@ -69,6 +69,8 @@ Once installed, try asking Claude:
 
 ## Tools
 
+Ownership prompts: when a user says "my", "mine", or "owned by me", treat that as an owner-scoped request where the API supports owner filters. Resolve the Recruit CRM user id via `list_users` when needed, then use `owner_id` on `search_candidates`, `search_jobs`, `search_companies`, `search_contacts`, `search_tasks`, or `search_meetings`. `search_notes`, `search_call_logs`, and `search_hotlists` do not support owner filters; use an owner-scoped upstream search when applicable or explain the limitation.
+
 | Tool | Description |
 | --- | --- |
 | `search_candidates` | Search candidates and return compact summaries for large result sets. Returns `slug`, which can be used for candidate detail lookup or Recruit CRM app links. Set `include_contact_info: true` to also include `email`, `contact_number`, and `linkedin` on each result (opt-in; off by default). Same flag is available on `list_candidates`. |
@@ -81,8 +83,12 @@ Once installed, try asking Claude:
 | `create_hotlist` | Create one Recruit CRM hotlist. Requires `created_by` as a Recruit CRM user id and `shared` as `0` or `1`. This is a mutating non-destructive tool; use `add_records_to_hotlist` to add records afterward. |
 | `add_records_to_hotlist` | Add up to 10 record slugs to an existing hotlist. This is an additive write tool. It runs sequentially, ignores duplicate input slugs, and returns `{ hotlist_id, requested_count, successful_count, failed_count, added_slugs, errors }` instead of failing the whole batch. |
 | `search_tasks` | Search tasks and return compact task summaries with related entity context. |
+| `list_task_types` | List compact task type rows with `id` and `label`. Use this before `create_task` to resolve the intended `task_type_id`. |
+| `create_task` | Create one Recruit CRM task. Requires `task_type_id`, `title`, `description`, `reminder`, `start_date`, `owner_id`, and `created_by`; supports basic HTML/rich text and returns compact output without the related entity payload. |
 | `search_meetings` | Search meetings and return compact meeting summaries with scheduling metadata. |
 | `search_notes` | Search notes and return compact note summaries with related entity context. |
+| `list_note_types` | List compact note type rows with `id` and `label`. Use this before `create_note` to resolve the intended `note_type_id`. |
+| `create_note` | Create one Recruit CRM note. Requires `note_type_id`, `created_by`, related entity slug/type, and `description`; supports basic HTML/rich text and returns compact output without the related entity payload. |
 | `search_call_logs` | Search call logs and return compact call summaries with related entity context. |
 | `get_candidate_details` | Fetch full details for up to 10 candidates in parallel by slug. Duplicates are deduplicated. Returns `{ requested_count, successful_count, failed_count, candidates, errors }` and does not fail the whole call when one slug is bad. |
 | `get_job_details` | Fetch one job by slug and return the raw Recruit CRM payload. |
@@ -94,7 +100,7 @@ Once installed, try asking Claude:
 | `list_candidate_custom_fields` | List curated searchable candidate custom field metadata. |
 | `get_candidate_custom_field_details` | Fetch curated details for one candidate custom field, including full option values. |
 
-Most tools are **read-only** (`readOnlyHint: true`). `create_hotlist` and `add_records_to_hotlist` are mutating hotlist tools and should only be used when explicitly requested by the user.
+Most tools are **read-only** (`readOnlyHint: true`). `create_hotlist`, `add_records_to_hotlist`, `create_task`, and `create_note` are mutating tools and should only be used when explicitly requested by the user.
 
 ## Open In Recruit CRM
 
@@ -126,7 +132,7 @@ Recruit CRM entities follow the app URL pattern `https://app.recruitcrm.io/<enti
 - API tokens read from environment variables only; stored securely in OS keychain when using the `.mcpb` extension
 - Search results exclude emails, phone numbers, and other sensitive fields by default
 - Search and detail tools are read-only by default
-- `create_hotlist` and `add_records_to_hotlist` are additive hotlist write tools; this extension still does not expose update or delete operations
+- `create_hotlist`, `add_records_to_hotlist`, `create_task`, and `create_note` are additive write tools; this extension still does not expose update or delete operations
 - See our full [Privacy Policy](https://recruitcrm.io/legal/privacy/)
 
 ## Troubleshooting

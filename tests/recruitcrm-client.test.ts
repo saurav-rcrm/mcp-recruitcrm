@@ -12,14 +12,18 @@ import {
   sampleContactDetailResponse,
   sampleContactSearchResponse,
   sampleCreatedHotlistResponse,
+  sampleCreatedNoteResponse,
+  sampleCreatedTaskResponse,
   sampleHotlistSearchResponse,
   sampleJobAssignedCandidatesResponse,
   sampleJobDetailResponse,
   sampleJobSearchResponse,
   sampleMeetingSearchResponse,
   sampleNoteSearchResponse,
+  sampleNoteTypeListResponse,
   sampleSearchResponse,
   sampleTaskSearchResponse,
+  sampleTaskTypeListResponse,
   sampleUserListResponse,
   sampleUserListResponseBareTeams,
 } from "./fixtures.js";
@@ -618,6 +622,64 @@ describe("RecruitCrmClient", () => {
     });
   });
 
+  it("parses task type list payloads", async () => {
+    const transport = vi.fn(async (request: HttpRequestOptions): Promise<HttpResponse> => {
+      expect(request.url.pathname).toBe("/v1/task-types");
+
+      return {
+        statusCode: 200,
+        bodyText: JSON.stringify(sampleTaskTypeListResponse),
+      };
+    });
+    const client = new RecruitCrmClient(baseConfig, transport);
+
+    const result = await client.listTaskTypes();
+
+    expect(result).toEqual(sampleTaskTypeListResponse);
+  });
+
+  it("creates tasks with rich text descriptions", async () => {
+    const transport = vi.fn(async (request: HttpRequestOptions): Promise<HttpResponse> => {
+      expect(request.url.pathname).toBe("/v1/tasks");
+      expect(request.method).toBe("POST");
+      expect(request.jsonBody).toEqual({
+        task_type_id: 332,
+        title: "Follow up call",
+        description: "<p><strong>Rich task</strong></p>",
+        reminder: 30,
+        start_date: "2026-04-28T04:30:00.000000Z",
+        owner_id: 453,
+        created_by: 453,
+        related_to: "candidate-related-sample-001",
+        related_to_type: "candidate",
+        associated_candidates: "candidate-related-sample-001,candidate-related-sample-002",
+        collaborators: "12654",
+      });
+
+      return {
+        statusCode: 200,
+        bodyText: JSON.stringify(sampleCreatedTaskResponse),
+      };
+    });
+    const client = new RecruitCrmClient(baseConfig, transport);
+
+    const result = await client.createTask({
+      task_type_id: 332,
+      title: "Follow up call",
+      description: "<p><strong>Rich task</strong></p>",
+      reminder: 30,
+      start_date: "2026-04-28T04:30:00.000000Z",
+      owner_id: 453,
+      created_by: 453,
+      related_to: "candidate-related-sample-001",
+      related_to_type: "candidate",
+      associated_candidates: ["candidate-related-sample-001", "candidate-related-sample-002"],
+      collaborator_user_ids: [12654],
+    });
+
+    expect(result).toEqual(sampleCreatedTaskResponse);
+  });
+
   it("parses meeting search payloads and tolerates large attendee payloads", async () => {
     const transport = vi.fn(async (_request: HttpRequestOptions): Promise<HttpResponse> => ({
       statusCode: 200,
@@ -705,6 +767,54 @@ describe("RecruitCrmClient", () => {
       next_page_url: null,
       data: [],
     });
+  });
+
+  it("parses note type list payloads", async () => {
+    const transport = vi.fn(async (request: HttpRequestOptions): Promise<HttpResponse> => {
+      expect(request.url.pathname).toBe("/v1/note-types");
+
+      return {
+        statusCode: 200,
+        bodyText: JSON.stringify(sampleNoteTypeListResponse),
+      };
+    });
+    const client = new RecruitCrmClient(baseConfig, transport);
+
+    const result = await client.listNoteTypes();
+
+    expect(result).toEqual(sampleNoteTypeListResponse);
+  });
+
+  it("creates notes with rich text descriptions", async () => {
+    const transport = vi.fn(async (request: HttpRequestOptions): Promise<HttpResponse> => {
+      expect(request.url.pathname).toBe("/v1/notes");
+      expect(request.method).toBe("POST");
+      expect(request.jsonBody).toEqual({
+        note_type_id: 108871,
+        description: "<p><strong>Rich text</strong></p>",
+        related_to: "candidate-related-sample-001",
+        related_to_type: "candidate",
+        created_by: 453,
+        associated_candidates: "candidate-related-sample-001,candidate-related-sample-002",
+      });
+
+      return {
+        statusCode: 200,
+        bodyText: JSON.stringify(sampleCreatedNoteResponse),
+      };
+    });
+    const client = new RecruitCrmClient(baseConfig, transport);
+
+    const result = await client.createNote({
+      note_type_id: 108871,
+      description: "<p><strong>Rich text</strong></p>",
+      related_to: "candidate-related-sample-001",
+      related_to_type: "candidate",
+      created_by: 453,
+      associated_candidates: ["candidate-related-sample-001", "candidate-related-sample-002"],
+    });
+
+    expect(result).toEqual(sampleCreatedNoteResponse);
   });
 
   it("parses call log search payloads and tolerates large related objects", async () => {
@@ -1402,6 +1512,143 @@ describe("executeCreateHotlist", () => {
       shared: false,
       created_by: 453,
     });
+  });
+});
+
+describe("executeCreateTask", () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it("validates the task type before creating and returns compact output", async () => {
+    const seenPaths: string[] = [];
+    const transport = vi.fn(async (request: HttpRequestOptions): Promise<HttpResponse> => {
+      seenPaths.push(request.url.pathname);
+
+      if (request.url.pathname.endsWith("/task-types")) {
+        return {
+          statusCode: 200,
+          bodyText: JSON.stringify(sampleTaskTypeListResponse),
+        };
+      }
+
+      if (request.url.pathname.endsWith("/tasks")) {
+        expect(request.method).toBe("POST");
+        expect(request.jsonBody).toMatchObject({
+          task_type_id: 332,
+          title: "Follow up call",
+          description: "<p><strong>Rich task</strong></p>",
+          reminder: 30,
+          start_date: "2026-04-28T04:30:00.000000Z",
+          owner_id: 453,
+          created_by: 453,
+          related_to: "candidate-related-sample-001",
+          related_to_type: "candidate",
+        });
+
+        return {
+          statusCode: 200,
+          bodyText: JSON.stringify(sampleCreatedTaskResponse),
+        };
+      }
+
+      throw new Error(`Unexpected request: ${request.url.toString()}`);
+    });
+    const client = new RecruitCrmClient(baseConfig, transport);
+
+    const { executeCreateTask } = await import("../src/server.js");
+    const result = await executeCreateTask(client, {
+      task_type_id: 332,
+      title: "Follow up call",
+      description: "<p><strong>Rich task</strong></p>",
+      reminder: 30,
+      start_date: "2026-04-28T04:30:00.000000Z",
+      owner_id: 453,
+      created_by: 453,
+      related_to: "candidate-related-sample-001",
+      related_to_type: "candidate",
+    });
+
+    expect(seenPaths).toEqual(["/v1/task-types", "/v1/tasks"]);
+    expect(result).toMatchObject({
+      task_id: 66753909,
+      task_type: {
+        id: 332,
+        label: "Follow up",
+      },
+      title: "Codex API test task",
+      description: sampleCreatedTaskResponse.description,
+      related_to: "candidate-related-sample-001",
+      related_to_type: "candidate",
+      related_to_view_url: "https://app.recruitcrm.io/candidate/candidate-related-sample-001",
+      owner: 453,
+      created_by: 453,
+      updated_by: 453,
+    });
+    expect(result).not.toHaveProperty("related");
+  });
+});
+
+describe("executeCreateNote", () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it("validates the note type before creating and returns compact output", async () => {
+    const seenPaths: string[] = [];
+    const transport = vi.fn(async (request: HttpRequestOptions): Promise<HttpResponse> => {
+      seenPaths.push(request.url.pathname);
+
+      if (request.url.pathname.endsWith("/note-types")) {
+        return {
+          statusCode: 200,
+          bodyText: JSON.stringify(sampleNoteTypeListResponse),
+        };
+      }
+
+      if (request.url.pathname.endsWith("/notes")) {
+        expect(request.method).toBe("POST");
+        expect(request.jsonBody).toMatchObject({
+          note_type_id: 108871,
+          description: "<p><strong>Rich text</strong></p>",
+          related_to: "candidate-related-sample-001",
+          related_to_type: "candidate",
+          created_by: 453,
+        });
+
+        return {
+          statusCode: 200,
+          bodyText: JSON.stringify(sampleCreatedNoteResponse),
+        };
+      }
+
+      throw new Error(`Unexpected request: ${request.url.toString()}`);
+    });
+    const client = new RecruitCrmClient(baseConfig, transport);
+
+    const { executeCreateNote } = await import("../src/server.js");
+    const result = await executeCreateNote(client, {
+      note_type_id: 108871,
+      description: "<p><strong>Rich text</strong></p>",
+      related_to: "candidate-related-sample-001",
+      related_to_type: "candidate",
+      created_by: 453,
+    });
+
+    expect(seenPaths).toEqual(["/v1/note-types", "/v1/notes"]);
+    expect(result).toMatchObject({
+      note_id: 66752552,
+      note_type: {
+        id: 108871,
+        label: "General Note",
+      },
+      description: sampleCreatedNoteResponse.description,
+      related_to: "candidate-related-sample-001",
+      related_to_type: "candidate",
+      created_by: 453,
+      updated_by: 453,
+    });
+    expect(result).not.toHaveProperty("related");
   });
 });
 

@@ -2,6 +2,8 @@ import type {
   ActivityRelatedSummary,
   AssignedCandidateSummary,
   CandidateHiringStagesResult,
+  JobStatusesResult,
+  RecruitCrmJobStatusListResponse,
   CallLogSummary,
   CallLogTypeSummary,
   CandidateJobAssignmentHiringStageHistoryItem,
@@ -9,14 +11,22 @@ import type {
   CandidateSummary,
   ContactSummary,
   CreatedHotlist,
+  CreatedNote,
+  CreatedTask,
   CreateHotlistResult,
+  CreateNoteResult,
+  CreateTaskResult,
   HotlistSummary,
   CompanyOffLimitSummary,
   CompanySummary,
   JobStatusSummary,
   JobSummary,
+  ListNoteTypesResult,
+  ListTaskTypesResult,
   MeetingSummary,
   MeetingTypeSummary,
+  NoteCollaboratorTeamSummary,
+  NoteCollaboratorUserSummary,
   RecruitCrmActivityRelated,
   RecruitCrmCandidate,
   RecruitCrmCandidateJobAssignmentHiringStageHistoryItem,
@@ -43,11 +53,18 @@ import type {
   HiringStageSummary,
   JobAssignedCandidatesResult,
   RecruitCrmNote,
+  RecruitCrmNoteCollaboratorTeam,
+  RecruitCrmNoteCollaboratorUser,
   RecruitCrmNoteSearchResponse,
   RecruitCrmNoteType,
+  RecruitCrmNoteTypeListResponse,
   RecruitCrmTask,
+  RecruitCrmTaskCollaborator,
+  RecruitCrmTaskCollaboratorTeam,
+  RecruitCrmTaskCollaboratorUser,
   RecruitCrmTaskSearchResponse,
   RecruitCrmTaskType,
+  RecruitCrmTaskTypeListResponse,
   RecruitCrmUser,
   RecruitCrmUserListResponse,
   RecruitCrmUserTeam,
@@ -62,6 +79,9 @@ import type {
   SearchHotlistsResult,
   SearchJobsResult,
   SearchTasksResult,
+  TaskCollaboratorSummary,
+  TaskCollaboratorTeamSummary,
+  TaskCollaboratorUserSummary,
   NoteSummary,
   NoteTypeSummary,
   TaskSummary,
@@ -309,6 +329,46 @@ export function mapSearchTasksResult(response: RecruitCrmTaskSearchResponse): Se
   };
 }
 
+export function mapListTaskTypesResult(response: RecruitCrmTaskTypeListResponse): ListTaskTypesResult {
+  return {
+    returned_count: response.length,
+    task_types: response.map(mapTaskTypeSummary),
+  };
+}
+
+export function mapCreateTaskResult(task: CreatedTask): CreateTaskResult {
+  const relatedTo = normalizeString(task.related_to);
+  const relatedToType = normalizeString(task.related_to_type);
+
+  return {
+    task_id: normalizeNumber(task.id),
+    title: normalizeString(task.title),
+    task_type: normalizeSingleTaskType(task.task_type),
+    description: normalizeStringPreserveWhitespace(task.description),
+    reminder: normalizeNumber(task.reminder),
+    start_date: normalizeString(task.start_date),
+    reminder_date: normalizeString(task.reminder_date),
+    related_to: relatedTo,
+    related_to_type: relatedToType,
+    related_to_name: normalizeString(task.related_to_name),
+    related_to_view_url: buildRecruitCrmEntityViewUrl(relatedToType, relatedTo),
+    status: normalizeScalar(task.status),
+    owner: normalizeNumber(task.owner),
+    associated_candidates: normalizeNoteStringCollection(task.associated_candidates),
+    associated_companies: normalizeNoteStringCollection(task.associated_companies),
+    associated_contacts: normalizeNoteStringCollection(task.associated_contacts),
+    associated_jobs: normalizeNoteStringCollection(task.associated_jobs),
+    associated_deals: normalizeNoteStringCollection(task.associated_deals),
+    created_on: normalizeString(task.created_on),
+    updated_on: normalizeString(task.updated_on),
+    created_by: normalizeNumber(task.created_by),
+    updated_by: normalizeNumber(task.updated_by),
+    collaborators: normalizeTaskCollaborators(task.collaborators),
+    collaborator_users: normalizeTaskCollaboratorUsers(task.collaborator_users),
+    collaborator_teams: normalizeTaskCollaboratorTeams(task.collaborator_teams),
+  };
+}
+
 export function mapSearchMeetingsResult(response: RecruitCrmMeetingSearchResponse): SearchMeetingsResult {
   return {
     page: response.current_page ?? 1,
@@ -324,6 +384,38 @@ export function mapSearchNotesResult(response: RecruitCrmNoteSearchResponse): Se
     returned_count: response.data.length,
     has_more: hasNextPage(response.next_page_url),
     notes: response.data.map(mapNoteSummary),
+  };
+}
+
+export function mapListNoteTypesResult(response: RecruitCrmNoteTypeListResponse): ListNoteTypesResult {
+  return {
+    returned_count: response.length,
+    note_types: response.map(mapNoteTypeSummary),
+  };
+}
+
+export function mapCreateNoteResult(note: CreatedNote): CreateNoteResult {
+  const relatedTo = normalizeString(note.related_to);
+  const relatedToType = normalizeString(note.related_to_type);
+
+  return {
+    note_id: normalizeNumber(note.id),
+    note_type: normalizeSingleNoteType(note.note_type),
+    description: normalizeStringPreserveWhitespace(note.description),
+    related_to: relatedTo,
+    related_to_type: relatedToType,
+    related_to_view_url: buildRecruitCrmEntityViewUrl(relatedToType, relatedTo),
+    associated_candidates: normalizeNoteStringCollection(note.associated_candidates),
+    associated_companies: normalizeNoteStringCollection(note.associated_companies),
+    associated_contacts: normalizeNoteStringCollection(note.associated_contacts),
+    associated_jobs: normalizeNoteStringCollection(note.associated_jobs),
+    associated_deals: normalizeNoteStringCollection(note.associated_deals),
+    created_on: normalizeString(note.created_on),
+    updated_on: normalizeString(note.updated_on),
+    created_by: normalizeNumber(note.created_by),
+    updated_by: normalizeNumber(note.updated_by),
+    collaborator_users: normalizeNoteCollaboratorUsers(note.collaborator_users),
+    collaborator_teams: normalizeNoteCollaboratorTeams(note.collaborator_teams),
   };
 }
 
@@ -355,6 +447,18 @@ export function mapCandidateHiringStagesResult(
   return {
     returned_count: response.length,
     stages: response.map(mapHiringStageSummary),
+  };
+}
+
+export function mapJobStatusesResult(
+  response: RecruitCrmJobStatusListResponse,
+): JobStatusesResult {
+  return {
+    returned_count: response.length,
+    statuses: response.map((status) => ({
+      id: normalizeNumber(status.id),
+      label: normalizeString(status.label),
+    })),
   };
 }
 
@@ -424,6 +528,7 @@ export function mapNoteSummary(note: RecruitCrmNote): NoteSummary {
     related_to: normalizeString(note.related_to),
     related_to_type: normalizeString(note.related_to_type),
     related: mapActivityRelated(note.related),
+    resource_url: normalizeString(note.resource_url),
     created_on: normalizeString(note.created_on),
     updated_on: normalizeString(note.updated_on),
     created_by: normalizeNumber(note.created_by),
@@ -518,6 +623,28 @@ function normalizeString(value: string | number | null | undefined): string | nu
 
   const trimmed = value.trim();
   return trimmed === "" ? null : trimmed;
+}
+
+function normalizeStringPreserveWhitespace(value: string | number | null | undefined): string | null {
+  if (value === undefined || value === null) {
+    return null;
+  }
+
+  return typeof value === "number" ? String(value) : value;
+}
+
+function buildRecruitCrmEntityViewUrl(relatedToType: string | null, relatedTo: string | null): string | null {
+  if (relatedToType === null || relatedTo === null) {
+    return null;
+  }
+
+  const normalizedType = relatedToType.trim().toLowerCase();
+
+  if (!["candidate", "company", "contact", "job", "deal"].includes(normalizedType)) {
+    return null;
+  }
+
+  return `https://app.recruitcrm.io/${normalizedType}/${relatedTo}`;
 }
 
 function normalizeNumber(value: number | string | null | undefined): number | null {
@@ -668,10 +795,78 @@ function normalizeTaskTypes(
 
   const normalizedTaskTypes = Array.isArray(taskTypes) ? taskTypes : [taskTypes];
 
-  return normalizedTaskTypes.map((taskType) => ({
+  return normalizedTaskTypes.map(mapTaskTypeSummary);
+}
+
+function normalizeSingleTaskType(
+  taskTypes: RecruitCrmTaskType | RecruitCrmTaskType[] | null | undefined,
+): TaskTypeSummary | null {
+  if (taskTypes === undefined || taskTypes === null) {
+    return null;
+  }
+
+  const taskType = Array.isArray(taskTypes) ? taskTypes[0] : taskTypes;
+
+  return taskType === undefined ? null : mapTaskTypeSummary(taskType);
+}
+
+function mapTaskTypeSummary(taskType: RecruitCrmTaskType): TaskTypeSummary {
+  return {
     id: normalizeIdentifier(taskType.id),
     label: normalizeString(taskType.label),
+  };
+}
+
+function normalizeTaskCollaborators(
+  collaborators: RecruitCrmTaskCollaborator[] | null | undefined,
+): TaskCollaboratorSummary[] {
+  if (!collaborators || collaborators.length === 0) {
+    return [];
+  }
+
+  return collaborators.map((collaborator) => ({
+    attendee_type: normalizeString(collaborator.attendee_type),
+    attendee_id: normalizeString(collaborator.attendee_id),
+    display_name: normalizeString(collaborator.display_name),
   }));
+}
+
+function normalizeTaskCollaboratorUsers(
+  users: RecruitCrmTaskCollaboratorUser[] | null | undefined,
+): TaskCollaboratorUserSummary[] {
+  if (!users || users.length === 0) {
+    return [];
+  }
+
+  return users.map((user) => ({
+    id: normalizeNumber(user.id),
+    first_name: normalizeString(user.first_name),
+    last_name: normalizeString(user.last_name),
+  }));
+}
+
+function normalizeTaskCollaboratorTeams(
+  teams: Array<RecruitCrmTaskCollaboratorTeam | number | string | null> | null | undefined,
+): TaskCollaboratorTeamSummary[] {
+  if (!teams || teams.length === 0) {
+    return [];
+  }
+
+  return teams
+    .filter((team): team is RecruitCrmTaskCollaboratorTeam | number | string => team !== null)
+    .map((team) => {
+      if (typeof team === "number" || typeof team === "string") {
+        return {
+          team_id: normalizeNumber(team),
+          team_name: null,
+        };
+      }
+
+      return {
+        team_id: normalizeNumber(team.team_id ?? team.id),
+        team_name: normalizeString(team.team_name),
+      };
+    });
 }
 
 function normalizeIdentifier(value: number | string | null | undefined): number | string | null {
@@ -773,10 +968,74 @@ function normalizeNoteTypes(
 
   const normalizedNoteTypes = Array.isArray(noteTypes) ? noteTypes : [noteTypes];
 
-  return normalizedNoteTypes.map((noteType) => ({
+  return normalizedNoteTypes.map(mapNoteTypeSummary);
+}
+
+function normalizeSingleNoteType(
+  noteTypes: RecruitCrmNoteType | RecruitCrmNoteType[] | null | undefined,
+): NoteTypeSummary | null {
+  if (noteTypes === undefined || noteTypes === null) {
+    return null;
+  }
+
+  const noteType = Array.isArray(noteTypes) ? noteTypes[0] : noteTypes;
+
+  return noteType === undefined ? null : mapNoteTypeSummary(noteType);
+}
+
+function mapNoteTypeSummary(noteType: RecruitCrmNoteType): NoteTypeSummary {
+  return {
     id: normalizeIdentifier(noteType.id),
     label: normalizeString(noteType.label),
+  };
+}
+
+function normalizeNoteStringCollection(
+  values: Array<string | number | null> | string | number | null | undefined,
+): string[] {
+  if (Array.isArray(values)) {
+    return normalizeStringArray(values);
+  }
+
+  return normalizeCommaSeparatedStringList(values);
+}
+
+function normalizeNoteCollaboratorUsers(
+  users: RecruitCrmNoteCollaboratorUser[] | null | undefined,
+): NoteCollaboratorUserSummary[] {
+  if (!users || users.length === 0) {
+    return [];
+  }
+
+  return users.map((user) => ({
+    id: normalizeNumber(user.id),
+    first_name: normalizeString(user.first_name),
+    last_name: normalizeString(user.last_name),
   }));
+}
+
+function normalizeNoteCollaboratorTeams(
+  teams: Array<RecruitCrmNoteCollaboratorTeam | number | string | null> | null | undefined,
+): NoteCollaboratorTeamSummary[] {
+  if (!teams || teams.length === 0) {
+    return [];
+  }
+
+  return teams
+    .filter((team): team is RecruitCrmNoteCollaboratorTeam | number | string => team !== null)
+    .map((team) => {
+      if (typeof team === "number" || typeof team === "string") {
+        return {
+          team_id: normalizeNumber(team),
+          team_name: null,
+        };
+      }
+
+      return {
+        team_id: normalizeNumber(team.team_id ?? team.id),
+        team_name: normalizeString(team.team_name),
+      };
+    });
 }
 
 function normalizeCallLogTypes(

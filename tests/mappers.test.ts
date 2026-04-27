@@ -9,10 +9,14 @@ import {
   mapCompanySummary,
   mapContactSummary,
   mapCreateHotlistResult,
+  mapCreateNoteResult,
+  mapCreateTaskResult,
   mapHiringStageSummary,
   mapAssignedCandidateSummary,
   mapJobSummary,
   mapJobAssignedCandidatesResult,
+  mapListNoteTypesResult,
+  mapListTaskTypesResult,
   mapListUsersResult,
   mapMeetingSummary,
   mapSearchMeetingsResult,
@@ -34,14 +38,18 @@ import {
   sampleCompanySearchResponse,
   sampleContactSearchResponse,
   sampleCreatedHotlistResponse,
+  sampleCreatedNoteResponse,
+  sampleCreatedTaskResponse,
   sampleHiringPipelineResponse,
   sampleHotlistSearchResponse,
   sampleJobSearchResponse,
   sampleJobAssignedCandidatesResponse,
   sampleMeetingSearchResponse,
   sampleNoteSearchResponse,
+  sampleNoteTypeListResponse,
   sampleSearchResponse,
   sampleTaskSearchResponse,
+  sampleTaskTypeListResponse,
   sampleUserListResponse,
 } from "./fixtures.js";
 
@@ -148,6 +156,99 @@ describe("candidate hiring stage mappers", () => {
 });
 
 describe("task mappers", () => {
+  it("maps task types into compact structured output", () => {
+    expect(mapListTaskTypesResult(sampleTaskTypeListResponse)).toEqual({
+      returned_count: 3,
+      task_types: [
+        {
+          id: 332,
+          label: "Follow up",
+        },
+        {
+          id: 53794,
+          label: "Interview scheduling",
+        },
+        {
+          id: 209961,
+          label: "Call Candidate",
+        },
+      ],
+    });
+  });
+
+  it("maps created tasks without exposing the related entity payload", () => {
+    const result = mapCreateTaskResult(sampleCreatedTaskResponse);
+
+    expect(result).toEqual({
+      task_id: 66753909,
+      title: "Codex API test task",
+      task_type: {
+        id: 332,
+        label: "Follow up",
+      },
+      description: "<p><strong>Created by Codex</strong></p>",
+      reminder: 30,
+      start_date: "2026-04-28T04:30:00.000000Z",
+      reminder_date: "2026-04-28T04:00:00.000000Z",
+      related_to: "candidate-related-sample-001",
+      related_to_type: "candidate",
+      related_to_name: "Sample Candidate",
+      related_to_view_url: "https://app.recruitcrm.io/candidate/candidate-related-sample-001",
+      status: null,
+      owner: 453,
+      associated_candidates: ["candidate-related-sample-001"],
+      associated_companies: [],
+      associated_contacts: [],
+      associated_jobs: [],
+      associated_deals: [],
+      created_on: "2026-04-27T12:13:47.000000Z",
+      updated_on: "2026-04-27T12:13:47.000000Z",
+      created_by: 453,
+      updated_by: 453,
+      collaborators: [
+        {
+          attendee_type: "user",
+          attendee_id: "12654",
+          display_name: "Jane Scott",
+        },
+      ],
+      collaborator_users: [
+        {
+          id: 34,
+          first_name: "Jane",
+          last_name: "Scott",
+        },
+      ],
+      collaborator_teams: [
+        {
+          team_id: 1435,
+          team_name: null,
+        },
+        {
+          team_id: 16,
+          team_name: "Delivery",
+        },
+      ],
+    });
+    expect(result).not.toHaveProperty("related");
+  });
+
+  it("returns null related_to_view_url for created tasks with unsupported or missing related context", () => {
+    expect(
+      mapCreateTaskResult({
+        ...sampleCreatedTaskResponse,
+        related_to_type: "unsupported",
+      }).related_to_view_url,
+    ).toBeNull();
+
+    expect(
+      mapCreateTaskResult({
+        ...sampleCreatedTaskResponse,
+        related_to: null,
+      }).related_to_view_url,
+    ).toBeNull();
+  });
+
   it("maps task search results into compact structured output", () => {
     const result = mapSearchTasksResult(sampleTaskSearchResponse);
 
@@ -601,6 +702,86 @@ describe("meeting mappers", () => {
 });
 
 describe("note mappers", () => {
+  it("maps note types into compact structured output", () => {
+    expect(mapListNoteTypesResult(sampleNoteTypeListResponse)).toEqual({
+      returned_count: 3,
+      note_types: [
+        {
+          id: 42,
+          label: "Internal Note",
+        },
+        {
+          id: 108871,
+          label: "General Note",
+        },
+        {
+          id: 205989,
+          label: "Candidate Interaction",
+        },
+      ],
+    });
+  });
+
+  it("maps created notes without exposing the related entity payload", () => {
+    const result = mapCreateNoteResult(sampleCreatedNoteResponse);
+
+    expect(result).toEqual({
+      note_id: 66752552,
+      note_type: {
+        id: 108871,
+        label: "General Note",
+      },
+      description:
+        "<p><strong>Codex rich text API test</strong></p><ul><li><em>Bold and italic formatting</em></li></ul>",
+      related_to: "candidate-related-sample-001",
+      related_to_type: "candidate",
+      related_to_view_url: "https://app.recruitcrm.io/candidate/candidate-related-sample-001",
+      associated_candidates: ["candidate-related-sample-001", "candidate-related-sample-002"],
+      associated_companies: [],
+      associated_contacts: [],
+      associated_jobs: [],
+      associated_deals: [],
+      created_on: "2026-04-27T11:15:46.000000Z",
+      updated_on: "2026-04-27T11:15:46.000000Z",
+      created_by: 453,
+      updated_by: 453,
+      collaborator_users: [
+        {
+          id: 34,
+          first_name: "Jane",
+          last_name: "Scott",
+        },
+      ],
+      collaborator_teams: [
+        {
+          team_id: 1435,
+          team_name: null,
+        },
+        {
+          team_id: 16,
+          team_name: "Delivery",
+        },
+      ],
+    });
+    expect(result).not.toHaveProperty("related");
+  });
+
+  it("returns null related_to_view_url for created notes with unsupported or missing related context", () => {
+    expect(
+      mapCreateNoteResult({
+        ...sampleCreatedNoteResponse,
+        related_to_type: "unsupported",
+      }).related_to_view_url,
+    ).toBeNull();
+
+    expect(
+      mapCreateNoteResult({
+        ...sampleCreatedNoteResponse,
+        related_to: null,
+      }).related_to_view_url,
+    ).toBeNull();
+  });
+
   it("maps note search results into compact structured output", () => {
     const result = mapSearchNotesResult(sampleNoteSearchResponse);
 
@@ -623,6 +804,7 @@ describe("note mappers", () => {
         first_name: "Sample",
         last_name: "Candidate",
       },
+      resource_url: "https://app.recruitcrm.io/notes/24667666",
       created_on: "2024-07-30T11:10:30.000000Z",
       updated_on: "2024-07-30T11:10:30.000000Z",
       created_by: 66960,

@@ -1,6 +1,6 @@
 {
   "name": "recruitcrm-mcp-server",
-  "version": "0.4.3",
+  "version": "0.5.3",
   "description": "Recruit CRM MCP Server",
   "type": "module",
   "bin": {

@@ -44,8 +44,12 @@ describe("stdio smoke test", () => {
       "create_hotlist",
       "add_records_to_hotlist",
       "search_tasks",
+      "list_task_types",
+      "create_task",
       "search_meetings",
       "search_notes",
+      "list_note_types",
+      "create_note",
       "search_call_logs",
       "get_candidate_details",
       "get_job_details",
@@ -53,9 +57,11 @@ describe("stdio smoke test", () => {
       "get_contact_details",
       "get_job_assigned_candidates",
       "list_candidate_hiring_stages",
+      "list_job_statuses",
       "get_candidate_job_assignment_hiring_stage_history",
       "list_candidate_custom_fields",
       "get_candidate_custom_field_details",
+      "analyze_job_pipeline",
     ]);
 
     await client.close();

@@ -6,6 +6,7 @@ import { nodeHttpTransport, type HttpTransport } from "./http.js";
 import type {
   RecruitCrmCandidateCustomField,
   RecruitCrmHiringPipelineResponse,
+  RecruitCrmJobStatusListResponse,
   RecruitCrmCandidateJobAssignmentHiringStageHistoryResponse,
   RecruitCrmJobAssignedCandidatesResponse,
   RecruitCrmCallLogSearchResponse,
@@ -13,7 +14,11 @@ import type {
   CompanyDetail,
   ContactDetail,
   CreatedHotlist,
+  CreatedNote,
+  CreatedTask,
   CreateHotlistInput,
+  CreateNoteInput,
+  CreateTaskInput,
   GetJobAssignedCandidatesInput,
   JobDetail,
   ListCandidatesInput,
@@ -27,8 +32,10 @@ import type {
   RecruitCrmJobSearchResponse,
   RecruitCrmMeetingSearchResponse,
   RecruitCrmNoteSearchResponse,
+  RecruitCrmNoteTypeListResponse,
   RecruitCrmSearchResponse,
   RecruitCrmTaskSearchResponse,
+  RecruitCrmTaskTypeListResponse,
   RecruitCrmUserListResponse,
   SearchCandidatesInput,
   SearchCallLogsInput,
@@ -124,6 +131,8 @@ const jobStatusSchema = z
     label: nullableStringLikeSchema,
   })
   .passthrough();
+
+const jobStatusListResponseSchema = z.array(jobStatusSchema);
 
 const salaryTypeSchema = z
   .object({
@@ -320,6 +329,8 @@ const taskTypeSchema = z
   })
   .passthrough();
 
+const taskTypeListResponseSchema = z.array(taskTypeSchema);
+
 const activityRelatedSchema = z
   .object({
     first_name: nullableStringLikeSchema,
@@ -328,6 +339,38 @@ const activityRelatedSchema = z
     name: nullableStringLikeSchema,
   })
   .passthrough();
+
+const taskCollaboratorSchema = z
+  .object({
+    attendee_type: nullableStringLikeSchema,
+    attendee_id: nullableStringLikeSchema,
+    display_name: nullableStringLikeSchema,
+    attendee: z.unknown().optional(),
+  })
+  .passthrough();
+
+const taskCollaboratorUserSchema = z
+  .object({
+    id: nullableNumberOrStringSchema,
+    first_name: nullableStringLikeSchema,
+    last_name: nullableStringLikeSchema,
+    email: nullableStringLikeSchema,
+    contact_number: nullableStringLikeSchema,
+    avatar: nullableStringLikeSchema,
+  })
+  .passthrough();
+
+const taskCollaboratorTeamSchema = z
+  .object({
+    id: nullableNumberOrStringSchema,
+    team_id: nullableNumberOrStringSchema,
+    team_name: nullableStringLikeSchema,
+  })
+  .passthrough();
+
+const taskAssociatedSlugsSchema = z
+  .union([z.array(z.union([z.string(), z.number(), z.null()])), z.string(), z.number(), z.null()])
+  .optional();
 
 const taskSchema = z
   .object({
@@ -348,6 +391,19 @@ const taskSchema = z
     updated_on: nullableStringLikeSchema,
     created_by: nullableNumberOrStringSchema,
     updated_by: nullableNumberOrStringSchema,
+    associated_candidates: taskAssociatedSlugsSchema,
+    associated_contacts: taskAssociatedSlugsSchema,
+    associated_companies: taskAssociatedSlugsSchema,
+    associated_jobs: taskAssociatedSlugsSchema,
+    associated_deals: taskAssociatedSlugsSchema,
+    collaborators: z.union([z.array(taskCollaboratorSchema), z.null()]).optional(),
+    collaborator_users: z.union([z.array(taskCollaboratorUserSchema), z.null()]).optional(),
+    collaborator_teams: z
+      .union([
+        z.array(z.union([taskCollaboratorTeamSchema, z.number(), z.string(), z.null()])),
+        z.null(),
+      ])
+      .optional(),
   })
   .passthrough();
 
@@ -426,6 +482,31 @@ const noteTypeSchema = z
   })
   .passthrough();
 
+const noteTypeListResponseSchema = z.array(noteTypeSchema);
+
+const noteCollaboratorUserSchema = z
+  .object({
+    id: nullableNumberOrStringSchema,
+    first_name: nullableStringLikeSchema,
+    last_name: nullableStringLikeSchema,
+    email: nullableStringLikeSchema,
+    contact_number: nullableStringLikeSchema,
+    avatar: nullableStringLikeSchema,
+  })
+  .passthrough();
+
+const noteCollaboratorTeamSchema = z
+  .object({
+    id: nullableNumberOrStringSchema,
+    team_id: nullableNumberOrStringSchema,
+    team_name: nullableStringLikeSchema,
+  })
+  .passthrough();
+
+const noteAssociatedSlugsSchema = z
+  .union([z.array(z.union([z.string(), z.number(), z.null()])), z.string(), z.number(), z.null()])
+  .optional();
+
 const noteSchema = z
   .object({
     id: nullableNumberOrStringSchema,
@@ -438,6 +519,19 @@ const noteSchema = z
     updated_on: nullableStringLikeSchema,
     created_by: nullableNumberOrStringSchema,
     updated_by: nullableNumberOrStringSchema,
+    resource_url: nullableStringLikeSchema,
+    associated_candidates: noteAssociatedSlugsSchema,
+    associated_contacts: noteAssociatedSlugsSchema,
+    associated_companies: noteAssociatedSlugsSchema,
+    associated_jobs: noteAssociatedSlugsSchema,
+    associated_deals: noteAssociatedSlugsSchema,
+    collaborator_users: z.union([z.array(noteCollaboratorUserSchema), z.null()]).optional(),
+    collaborator_teams: z
+      .union([
+        z.array(z.union([noteCollaboratorTeamSchema, z.number(), z.string(), z.null()])),
+        z.null(),
+      ])
+      .optional(),
   })
   .passthrough();
 
@@ -658,6 +752,16 @@ export class RecruitCrmClient {
     return this.#requestJson("/tasks/search", taskSearchResponseSchema, request, "Task");
   }
 
+  async listTaskTypes(): Promise<RecruitCrmTaskTypeListResponse> {
+    return this.#requestJson("/task-types", taskTypeListResponseSchema, {}, "Task type");
+  }
+
+  async createTask(input: CreateTaskInput): Promise<CreatedTask> {
+    const request = buildCreateTaskRequest(input);
+
+    return this.#requestJson("/tasks", taskSchema, request, "Task");
+  }
+
   async searchMeetings(filters: SearchMeetingsInput): Promise<RecruitCrmMeetingSearchResponse> {
     const request = buildSearchMeetingsRequest(filters);
 
@@ -668,6 +772,16 @@ export class RecruitCrmClient {
     const request = buildSearchNotesRequest(filters);
 
     return this.#requestJson("/notes/search", noteSearchResponseSchema, request, "Note");
+  }
+
+  async listNoteTypes(): Promise<RecruitCrmNoteTypeListResponse> {
+    return this.#requestJson("/note-types", noteTypeListResponseSchema, {}, "Note type");
+  }
+
+  async createNote(input: CreateNoteInput): Promise<CreatedNote> {
+    const request = buildCreateNoteRequest(input);
+
+    return this.#requestJson("/notes", noteSchema, request, "Note");
   }
 
   async searchCallLogs(filters: SearchCallLogsInput): Promise<RecruitCrmCallLogSearchResponse> {
@@ -729,6 +843,10 @@ export class RecruitCrmClient {
 
   async listCandidateHiringStages(): Promise<RecruitCrmHiringPipelineResponse> {
     return this.#requestJson("/hiring-pipeline", hiringPipelineResponseSchema, {}, "Hiring pipeline");
+  }
+
+  async listJobStatuses(): Promise<RecruitCrmJobStatusListResponse> {
+    return this.#requestJson("/jobs-pipeline", jobStatusListResponseSchema, {}, "Job pipeline");
   }
 
   async #request(path: string, options: RequestOptions = {}, entity?: string): Promise<{ bodyText: string }> {
@@ -1042,6 +1160,38 @@ export function buildSearchTasksRequest(filters: SearchTasksInput): GetRequestOp
   return { query };
 }
 
+export function buildCreateTaskRequest(input: CreateTaskInput): RequestOptions {
+  const body: Record<string, unknown> = {
+    task_type_id: input.task_type_id,
+    title: input.title,
+    description: input.description,
+    reminder: input.reminder,
+    start_date: input.start_date,
+    owner_id: input.owner_id,
+    created_by: input.created_by,
+  };
+
+  setOptionalStringBody(body, "related_to", input.related_to);
+  setOptionalStringBody(body, "related_to_type", input.related_to_type);
+  setOptionalNumberBody(body, "updated_by", input.updated_by);
+  setOptionalCsvBody(body, "associated_candidates", input.associated_candidates);
+  setOptionalCsvBody(body, "associated_companies", input.associated_companies);
+  setOptionalCsvBody(body, "associated_contacts", input.associated_contacts);
+  setOptionalCsvBody(body, "associated_jobs", input.associated_jobs);
+  setOptionalCsvBody(body, "associated_deals", input.associated_deals);
+  setOptionalCsvBody(body, "collaborators", input.collaborator_user_ids);
+  setOptionalCsvBody(body, "collaborator_team_ids", input.collaborator_team_ids);
+
+  if (input.enable_auto_populate_teams !== undefined) {
+    body.enable_auto_populate_teams = input.enable_auto_populate_teams ? 1 : 0;
+  }
+
+  return {
+    method: "POST",
+    jsonBody: body,
+  };
+}
+
 export function buildSearchMeetingsRequest(filters: SearchMeetingsInput): GetRequestOptions {
   const query = new URLSearchParams();
   const page = normalizePage(filters.page);
@@ -1078,6 +1228,34 @@ export function buildSearchNotesRequest(filters: SearchNotesInput): GetRequestOp
   return { query };
 }
 
+export function buildCreateNoteRequest(input: CreateNoteInput): RequestOptions {
+  const body: Record<string, unknown> = {
+    note_type_id: input.note_type_id,
+    description: input.description,
+    related_to: input.related_to,
+    related_to_type: input.related_to_type,
+    created_by: input.created_by,
+  };
+
+  setOptionalNumberBody(body, "updated_by", input.updated_by);
+  setOptionalCsvBody(body, "associated_candidates", input.associated_candidates);
+  setOptionalCsvBody(body, "associated_companies", input.associated_companies);
+  setOptionalCsvBody(body, "associated_contacts", input.associated_contacts);
+  setOptionalCsvBody(body, "associated_jobs", input.associated_jobs);
+  setOptionalCsvBody(body, "associated_deals", input.associated_deals);
+  setOptionalCsvBody(body, "collaborator_user_ids", input.collaborator_user_ids);
+  setOptionalCsvBody(body, "collaborator_team_ids", input.collaborator_team_ids);
+
+  if (input.enable_auto_populate_teams !== undefined) {
+    body.enable_auto_populate_teams = input.enable_auto_populate_teams ? 1 : 0;
+  }
+
+  return {
+    method: "POST",
+    jsonBody: body,
+  };
+}
+
 export function buildSearchCallLogsRequest(filters: SearchCallLogsInput): GetRequestOptions {
   const query = new URLSearchParams();
   const page = normalizePage(filters.page);
@@ -1109,6 +1287,28 @@ function setNumberParam(params: URLSearchParams, key: string, value: number | un
 function setBooleanParam(params: URLSearchParams, key: string, value: boolean | undefined): void {
   if (value !== undefined) {
     params.set(key, String(value));
+  }
+}
+
+function setOptionalNumberBody(body: Record<string, unknown>, key: string, value: number | undefined): void {
+  if (value !== undefined) {
+    body[key] = value;
+  }
+}
+
+function setOptionalStringBody(body: Record<string, unknown>, key: string, value: string | undefined): void {
+  if (value !== undefined) {
+    body[key] = value;
+  }
+}
+
+function setOptionalCsvBody(
+  body: Record<string, unknown>,
+  key: string,
+  values: Array<string | number> | undefined,
+): void {
+  if (values !== undefined && values.length > 0) {
+    body[key] = values.map((value) => String(value)).join(",");
   }
 }
 

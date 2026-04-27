@@ -14,6 +14,8 @@ import {
   sampleContactDetailResponse,
   sampleContactSearchResponse,
   sampleCreatedHotlistResponse,
+  sampleCreatedNoteResponse,
+  sampleCreatedTaskResponse,
   sampleHiringPipelineResponse,
   sampleHotlistSearchResponse,
   sampleJobAssignedCandidatesResponse,
@@ -21,8 +23,10 @@ import {
   sampleJobSearchResponse,
   sampleMeetingSearchResponse,
   sampleNoteSearchResponse,
+  sampleNoteTypeListResponse,
   sampleSearchResponse,
   sampleTaskSearchResponse,
+  sampleTaskTypeListResponse,
   sampleUserListResponse,
 } from "./fixtures.js";
 
@@ -217,6 +221,34 @@ describe("Recruit CRM MCP tools", () => {
         };
       }
 
+      if (request.url.pathname.endsWith("/task-types")) {
+        return {
+          statusCode: 200,
+          bodyText: JSON.stringify(sampleTaskTypeListResponse),
+        };
+      }
+
+      if (request.url.pathname.endsWith("/tasks")) {
+        expect(request.method).toBe("POST");
+        expect(request.jsonBody).toEqual({
+          task_type_id: 332,
+          title: "Follow up call",
+          description: "<p><strong>Rich task</strong></p>",
+          reminder: 30,
+          start_date: "2026-04-28T04:30:00.000000Z",
+          owner_id: 453,
+          created_by: 453,
+          related_to: "candidate-related-sample-001",
+          related_to_type: "candidate",
+          associated_candidates: "candidate-related-sample-001",
+        });
+
+        return {
+          statusCode: 200,
+          bodyText: JSON.stringify(sampleCreatedTaskResponse),
+        };
+      }
+
       if (request.url.pathname.endsWith("/meetings/search")) {
         expect(request.url.searchParams.get("related_to")).toBe("candidate-related-sample-001");
         expect(request.url.searchParams.get("related_to_type")).toBe("candidate");
@@ -234,6 +266,30 @@ describe("Recruit CRM MCP tools", () => {
         return {
           statusCode: 200,
           bodyText: JSON.stringify(sampleNoteSearchResponse),
+        };
+      }
+
+      if (request.url.pathname.endsWith("/note-types")) {
+        return {
+          statusCode: 200,
+          bodyText: JSON.stringify(sampleNoteTypeListResponse),
+        };
+      }
+
+      if (request.url.pathname.endsWith("/notes")) {
+        expect(request.method).toBe("POST");
+        expect(request.jsonBody).toEqual({
+          note_type_id: 108871,
+          description: "<p><strong>Rich text</strong></p>",
+          related_to: "candidate-related-sample-001",
+          related_to_type: "candidate",
+          created_by: 453,
+          associated_candidates: "candidate-related-sample-001",
+        });
+
+        return {
+          statusCode: 200,
+          bodyText: JSON.stringify(sampleCreatedNoteResponse),
         };
       }
 
@@ -284,8 +340,12 @@ describe("Recruit CRM MCP tools", () => {
       "create_hotlist",
       "add_records_to_hotlist",
       "search_tasks",
+      "list_task_types",
+      "create_task",
       "search_meetings",
       "search_notes",
+      "list_note_types",
+      "create_note",
       "search_call_logs",
       "get_candidate_details",
       "get_job_details",
@@ -293,10 +353,19 @@ describe("Recruit CRM MCP tools", () => {
       "get_contact_details",
       "get_job_assigned_candidates",
       "list_candidate_hiring_stages",
+      "list_job_statuses",
       "get_candidate_job_assignment_hiring_stage_history",
       "list_candidate_custom_fields",
       "get_candidate_custom_field_details",
+      "analyze_job_pipeline",
     ]);
+    const toolDescription = (name: string) => tools.tools.find((tool) => tool.name === name)?.description ?? "";
+    expect(toolDescription("search_jobs")).toContain("'my'");
+    expect(toolDescription("search_jobs")).toContain("owner_id");
+    expect(toolDescription("list_jobs")).toContain("'my jobs'");
+    expect(toolDescription("list_jobs")).toContain("search_jobs");
+    expect(toolDescription("search_notes")).toContain("does not support owner filters");
+    expect(toolDescription("search_call_logs")).toContain("does not support owner filters");
     expect(tools.tools.find((tool) => tool.name === "create_hotlist")).toMatchObject({
       annotations: {
         readOnlyHint: false,
@@ -306,6 +375,37 @@ describe("Recruit CRM MCP tools", () => {
       },
     });
     expect(tools.tools.find((tool) => tool.name === "add_records_to_hotlist")).toMatchObject({
+      annotations: {
+        readOnlyHint: false,
+        destructiveHint: false,
+        idempotentHint: false,
+        openWorldHint: false,
+      },
+    });
+    expect(toolDescription("create_task")).toContain("list_task_types");
+    expect(toolDescription("create_task")).toContain("owner_id");
+    expect(toolDescription("create_task")).toContain("created_by");
+    expect(tools.tools.find((tool) => tool.name === "list_task_types")).toMatchObject({
+      annotations: {
+        readOnlyHint: true,
+      },
+    });
+    expect(tools.tools.find((tool) => tool.name === "create_task")).toMatchObject({
+      annotations: {
+        readOnlyHint: false,
+        destructiveHint: false,
+        idempotentHint: false,
+        openWorldHint: false,
+      },
+    });
+    expect(toolDescription("create_note")).toContain("list_note_types");
+    expect(toolDescription("create_note")).toContain("created_by");
+    expect(tools.tools.find((tool) => tool.name === "list_note_types")).toMatchObject({
+      annotations: {
+        readOnlyHint: true,
+      },
+    });
+    expect(tools.tools.find((tool) => tool.name === "create_note")).toMatchObject({
       annotations: {
         readOnlyHint: false,
         destructiveHint: false,
@@ -511,6 +611,27 @@ describe("Recruit CRM MCP tools", () => {
       },
     });
 
+    const taskTypesResult = await client.callTool({
+      name: "list_task_types",
+      arguments: {},
+    });
+
+    const createTaskResult = await client.callTool({
+      name: "create_task",
+      arguments: {
+        task_type_id: 332,
+        title: "Follow up call",
+        description: "<p><strong>Rich task</strong></p>",
+        reminder: 30,
+        start_date: "2026-04-28T04:30:00.000000Z",
+        owner_id: 453,
+        created_by: 453,
+        related_to: "candidate-related-sample-001",
+        related_to_type: "candidate",
+        associated_candidates: ["candidate-related-sample-001"],
+      },
+    });
+
     const meetingResult = await client.callTool({
       name: "search_meetings",
       arguments: {
@@ -524,6 +645,23 @@ describe("Recruit CRM MCP tools", () => {
       arguments: {
         related_to: "candidate-related-sample-001",
         related_to_type: "candidate",
+      },
+    });
+
+    const noteTypesResult = await client.callTool({
+      name: "list_note_types",
+      arguments: {},
+    });
+
+    const createNoteResult = await client.callTool({
+      name: "create_note",
+      arguments: {
+        note_type_id: 108871,
+        description: "<p><strong>Rich text</strong></p>",
+        related_to: "candidate-related-sample-001",
+        related_to_type: "candidate",
+        created_by: 453,
+        associated_candidates: ["candidate-related-sample-001"],
       },
     });
 
@@ -1015,6 +1153,42 @@ describe("Recruit CRM MCP tools", () => {
     expect((taskResult.structuredContent as { tasks: Array<Record<string, unknown>> }).tasks[0]).not.toHaveProperty(
       "collaborators",
     );
+    expect(taskTypesResult.structuredContent).toEqual({
+      returned_count: 3,
+      task_types: [
+        {
+          id: 332,
+          label: "Follow up",
+        },
+        {
+          id: 53794,
+          label: "Interview scheduling",
+        },
+        {
+          id: 209961,
+          label: "Call Candidate",
+        },
+      ],
+    });
+    expect(createTaskResult.structuredContent).toMatchObject({
+      task_id: 66753909,
+      title: "Codex API test task",
+      task_type: {
+        id: 332,
+        label: "Follow up",
+      },
+      description: "<p><strong>Created by Codex</strong></p>",
+      reminder: 30,
+      start_date: "2026-04-28T04:30:00.000000Z",
+      related_to: "candidate-related-sample-001",
+      related_to_type: "candidate",
+      related_to_view_url: "https://app.recruitcrm.io/candidate/candidate-related-sample-001",
+      owner: 453,
+      associated_candidates: ["candidate-related-sample-001"],
+      created_by: 453,
+      updated_by: 453,
+    });
+    expect(createTaskResult.structuredContent as Record<string, unknown>).not.toHaveProperty("related");
     expect(meetingResult.structuredContent).toMatchObject({
       page: 1,
       returned_count: 1,
@@ -1078,6 +1252,7 @@ describe("Recruit CRM MCP tools", () => {
             first_name: "Sample",
             last_name: "Candidate",
           },
+          resource_url: "https://app.recruitcrm.io/notes/24667666",
           created_on: "2024-07-30T11:10:30.000000Z",
           updated_on: "2024-07-30T11:10:30.000000Z",
           created_by: 66960,
@@ -1088,6 +1263,39 @@ describe("Recruit CRM MCP tools", () => {
     expect((noteResult.structuredContent as { notes: Array<Record<string, unknown>> }).notes[0]).not.toHaveProperty(
       "associated_candidates",
     );
+    expect(noteTypesResult.structuredContent).toEqual({
+      returned_count: 3,
+      note_types: [
+        {
+          id: 42,
+          label: "Internal Note",
+        },
+        {
+          id: 108871,
+          label: "General Note",
+        },
+        {
+          id: 205989,
+          label: "Candidate Interaction",
+        },
+      ],
+    });
+    expect(createNoteResult.structuredContent).toMatchObject({
+      note_id: 66752552,
+      note_type: {
+        id: 108871,
+        label: "General Note",
+      },
+      description:
+        "<p><strong>Codex rich text API test</strong></p><ul><li><em>Bold and italic formatting</em></li></ul>",
+      related_to: "candidate-related-sample-001",
+      related_to_type: "candidate",
+      related_to_view_url: "https://app.recruitcrm.io/candidate/candidate-related-sample-001",
+      associated_candidates: ["candidate-related-sample-001", "candidate-related-sample-002"],
+      created_by: 453,
+      updated_by: 453,
+    });
+    expect(createNoteResult.structuredContent as Record<string, unknown>).not.toHaveProperty("related");
     expect(callLogResult.structuredContent).toMatchObject({
       page: 1,
       returned_count: 1,
@@ -1123,7 +1331,7 @@ describe("Recruit CRM MCP tools", () => {
       (callLogResult.structuredContent as { call_logs: Array<Record<string, unknown>> }).call_logs[0],
     ).not.toHaveProperty("associated_candidates");
 
-    expect(transportMock).toHaveBeenCalledTimes(25);
+    expect(transportMock).toHaveBeenCalledTimes(31);
 
     await client.close();
     await server.close();
@@ -1909,6 +2117,304 @@ describe("Recruit CRM MCP tools", () => {
     });
 
     expect(transportMock).not.toHaveBeenCalled();
+
+    await client.close();
+    await server.close();
+  });
+
+  it("rejects create_note when created_by is missing before making an API request", async () => {
+    const transportMock = vi.fn(async (_request: HttpRequestOptions): Promise<HttpResponse> => {
+      throw new Error("Note creation should fail before making an API request.");
+    });
+
+    const server = createRecruitCrmServer({
+      config: {
+        apiToken: "test-token",
+        baseUrl: "https://api.recruitcrm.io/v1",
+        timeoutMs: 10_000,
+        debugSchemaErrors: false,
+      },
+      transport: transportMock,
+    });
+
+    const client = new Client({
+      name: "test-client",
+      version: "1.0.0",
+    });
+
+    const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
+    await server.connect(serverTransport);
+    await client.connect(clientTransport);
+
+    await expect(
+      client.callTool({
+        name: "create_note",
+        arguments: {
+          note_type_id: 108871,
+          description: "<p>Missing creator</p>",
+          related_to: "candidate-related-sample-001",
+          related_to_type: "candidate",
+        },
+      }),
+    ).resolves.toMatchObject({
+      isError: true,
+      content: [
+        {
+          text: expect.stringContaining("created_by"),
+        },
+      ],
+    });
+
+    expect(transportMock).not.toHaveBeenCalled();
+
+    await client.close();
+    await server.close();
+  });
+
+  it.each([
+    [
+      "description",
+      {
+        task_type_id: 332,
+        title: "Follow up call",
+        reminder: 30,
+        start_date: "2026-04-28T04:30:00.000000Z",
+        owner_id: 453,
+        created_by: 453,
+      },
+    ],
+    [
+      "owner_id",
+      {
+        task_type_id: 332,
+        title: "Follow up call",
+        description: "<p>Missing owner</p>",
+        reminder: 30,
+        start_date: "2026-04-28T04:30:00.000000Z",
+        created_by: 453,
+      },
+    ],
+    [
+      "created_by",
+      {
+        task_type_id: 332,
+        title: "Follow up call",
+        description: "<p>Missing creator</p>",
+        reminder: 30,
+        start_date: "2026-04-28T04:30:00.000000Z",
+        owner_id: 453,
+      },
+    ],
+  ])("rejects create_task when %s is missing before making an API request", async (fieldName, args) => {
+    const transportMock = vi.fn(async (_request: HttpRequestOptions): Promise<HttpResponse> => {
+      throw new Error("Task creation should fail before making an API request.");
+    });
+
+    const server = createRecruitCrmServer({
+      config: {
+        apiToken: "test-token",
+        baseUrl: "https://api.recruitcrm.io/v1",
+        timeoutMs: 10_000,
+        debugSchemaErrors: false,
+      },
+      transport: transportMock,
+    });
+
+    const client = new Client({
+      name: "test-client",
+      version: "1.0.0",
+    });
+
+    const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
+    await server.connect(serverTransport);
+    await client.connect(clientTransport);
+
+    await expect(
+      client.callTool({
+        name: "create_task",
+        arguments: args,
+      }),
+    ).resolves.toMatchObject({
+      isError: true,
+      content: [
+        {
+          text: expect.stringContaining(fieldName),
+        },
+      ],
+    });
+
+    expect(transportMock).not.toHaveBeenCalled();
+
+    await client.close();
+    await server.close();
+  });
+
+  it("rejects create_task when related_to is not paired with related_to_type before making an API request", async () => {
+    const transportMock = vi.fn(async (_request: HttpRequestOptions): Promise<HttpResponse> => {
+      throw new Error("Task creation should fail before making an API request.");
+    });
+
+    const server = createRecruitCrmServer({
+      config: {
+        apiToken: "test-token",
+        baseUrl: "https://api.recruitcrm.io/v1",
+        timeoutMs: 10_000,
+        debugSchemaErrors: false,
+      },
+      transport: transportMock,
+    });
+
+    const client = new Client({
+      name: "test-client",
+      version: "1.0.0",
+    });
+
+    const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
+    await server.connect(serverTransport);
+    await client.connect(clientTransport);
+
+    await expect(
+      client.callTool({
+        name: "create_task",
+        arguments: {
+          task_type_id: 332,
+          title: "Follow up call",
+          description: "<p>Missing related type</p>",
+          reminder: 30,
+          start_date: "2026-04-28T04:30:00.000000Z",
+          owner_id: 453,
+          created_by: 453,
+          related_to: "candidate-related-sample-001",
+        },
+      }),
+    ).resolves.toMatchObject({
+      isError: true,
+      content: [
+        {
+          text: "related_to and related_to_type must be provided together.",
+        },
+      ],
+    });
+
+    expect(transportMock).not.toHaveBeenCalled();
+
+    await client.close();
+    await server.close();
+  });
+
+  it("validates create_task task_type_id against task types before posting", async () => {
+    const transportMock = vi.fn(async (request: HttpRequestOptions): Promise<HttpResponse> => {
+      if (request.url.pathname.endsWith("/task-types")) {
+        return {
+          statusCode: 200,
+          bodyText: JSON.stringify(sampleTaskTypeListResponse),
+        };
+      }
+
+      throw new Error("Task creation should not post with an unknown task_type_id.");
+    });
+
+    const server = createRecruitCrmServer({
+      config: {
+        apiToken: "test-token",
+        baseUrl: "https://api.recruitcrm.io/v1",
+        timeoutMs: 10_000,
+        debugSchemaErrors: false,
+      },
+      transport: transportMock,
+    });
+
+    const client = new Client({
+      name: "test-client",
+      version: "1.0.0",
+    });
+
+    const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
+    await server.connect(serverTransport);
+    await client.connect(clientTransport);
+
+    await expect(
+      client.callTool({
+        name: "create_task",
+        arguments: {
+          task_type_id: 999999,
+          title: "Follow up call",
+          description: "<p>Unknown type</p>",
+          reminder: 30,
+          start_date: "2026-04-28T04:30:00.000000Z",
+          owner_id: 453,
+          created_by: 453,
+        },
+      }),
+    ).resolves.toMatchObject({
+      isError: true,
+      content: [
+        {
+          text: expect.stringContaining("Unknown task_type_id 999999"),
+        },
+      ],
+    });
+
+    expect(transportMock).toHaveBeenCalledTimes(1);
+    expect(transportMock.mock.calls[0]?.[0].url.pathname).toBe("/v1/task-types");
+
+    await client.close();
+    await server.close();
+  });
+
+  it("validates create_note note_type_id against note types before posting", async () => {
+    const transportMock = vi.fn(async (request: HttpRequestOptions): Promise<HttpResponse> => {
+      if (request.url.pathname.endsWith("/note-types")) {
+        return {
+          statusCode: 200,
+          bodyText: JSON.stringify(sampleNoteTypeListResponse),
+        };
+      }
+
+      throw new Error("Note creation should not post with an unknown note_type_id.");
+    });
+
+    const server = createRecruitCrmServer({
+      config: {
+        apiToken: "test-token",
+        baseUrl: "https://api.recruitcrm.io/v1",
+        timeoutMs: 10_000,
+        debugSchemaErrors: false,
+      },
+      transport: transportMock,
+    });
+
+    const client = new Client({
+      name: "test-client",
+      version: "1.0.0",
+    });
+
+    const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
+    await server.connect(serverTransport);
+    await client.connect(clientTransport);
+
+    await expect(
+      client.callTool({
+        name: "create_note",
+        arguments: {
+          note_type_id: 999999,
+          description: "<p>Unknown type</p>",
+          related_to: "candidate-related-sample-001",
+          related_to_type: "candidate",
+          created_by: 453,
+        },
+      }),
+    ).resolves.toMatchObject({
+      isError: true,
+      content: [
+        {
+          text: expect.stringContaining("Unknown note_type_id 999999"),
+        },
+      ],
+    });
+
+    expect(transportMock).toHaveBeenCalledTimes(1);
+    expect(transportMock.mock.calls[0]?.[0].url.pathname).toBe("/v1/note-types");
 
     await client.close();
     await server.close();

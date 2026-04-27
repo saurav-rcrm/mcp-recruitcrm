@@ -132,6 +132,30 @@ export type SearchTasksInput = {
   updated_to?: string;
 };
 
+export type TaskRelatedToType = "candidate" | "company" | "contact" | "job" | "deal";
+export type TaskReminderValue = -1 | 0 | 15 | 30 | 60 | 1440;
+
+export type CreateTaskInput = {
+  task_type_id: number;
+  title: string;
+  description: string;
+  reminder: TaskReminderValue;
+  start_date: string;
+  owner_id: number;
+  created_by: number;
+  related_to?: string;
+  related_to_type?: TaskRelatedToType;
+  updated_by?: number;
+  associated_candidates?: string[];
+  associated_companies?: string[];
+  associated_contacts?: string[];
+  associated_jobs?: string[];
+  associated_deals?: string[];
+  collaborator_user_ids?: number[];
+  collaborator_team_ids?: number[];
+  enable_auto_populate_teams?: boolean;
+};
+
 export type SearchMeetingsInput = {
   page?: number;
   created_from?: string;
@@ -156,6 +180,25 @@ export type SearchNotesInput = {
   related_to_type?: string;
   updated_from?: string;
   updated_to?: string;
+};
+
+export type NoteRelatedToType = "candidate" | "company" | "contact" | "job" | "deal";
+
+export type CreateNoteInput = {
+  note_type_id: number;
+  description: string;
+  related_to: string;
+  related_to_type: NoteRelatedToType;
+  created_by: number;
+  updated_by?: number;
+  associated_candidates?: string[];
+  associated_companies?: string[];
+  associated_contacts?: string[];
+  associated_jobs?: string[];
+  associated_deals?: string[];
+  collaborator_user_ids?: number[];
+  collaborator_team_ids?: number[];
+  enable_auto_populate_teams?: boolean;
 };
 
 export type SearchCallLogsInput = {
@@ -306,6 +349,8 @@ export type RecruitCrmJobStatus = {
   [key: string]: unknown;
 };
 
+export type RecruitCrmJobStatusListResponse = RecruitCrmJobStatus[];
+
 export type RecruitCrmJob = {
   id?: number | string | null;
   slug?: string | number | null;
@@ -450,11 +495,38 @@ export type RecruitCrmTaskType = {
   [key: string]: unknown;
 };
 
+export type RecruitCrmTaskTypeListResponse = RecruitCrmTaskType[];
+
 export type RecruitCrmActivityRelated = {
   first_name?: string | number | null;
   last_name?: string | number | null;
   company_name?: string | number | null;
   name?: string | number | null;
+  [key: string]: unknown;
+};
+
+export type RecruitCrmTaskCollaborator = {
+  attendee_type?: string | number | null;
+  attendee_id?: string | number | null;
+  display_name?: string | number | null;
+  attendee?: unknown;
+  [key: string]: unknown;
+};
+
+export type RecruitCrmTaskCollaboratorUser = {
+  id?: number | string | null;
+  first_name?: string | number | null;
+  last_name?: string | number | null;
+  email?: string | number | null;
+  contact_number?: string | number | null;
+  avatar?: string | number | null;
+  [key: string]: unknown;
+};
+
+export type RecruitCrmTaskCollaboratorTeam = {
+  id?: number | string | null;
+  team_id?: number | string | null;
+  team_name?: string | number | null;
   [key: string]: unknown;
 };
 
@@ -476,8 +548,18 @@ export type RecruitCrmTask = {
   updated_on?: string | number | null;
   created_by?: number | string | null;
   updated_by?: number | string | null;
+  associated_candidates?: Array<string | number | null> | string | number | null;
+  associated_contacts?: Array<string | number | null> | string | number | null;
+  associated_companies?: Array<string | number | null> | string | number | null;
+  associated_jobs?: Array<string | number | null> | string | number | null;
+  associated_deals?: Array<string | number | null> | string | number | null;
+  collaborators?: RecruitCrmTaskCollaborator[] | null;
+  collaborator_users?: RecruitCrmTaskCollaboratorUser[] | null;
+  collaborator_teams?: Array<RecruitCrmTaskCollaboratorTeam | number | string | null> | null;
   [key: string]: unknown;
 };
+
+export type CreatedTask = RecruitCrmTask;
 
 export type RecruitCrmTaskSearchResponse = {
   current_page?: number;
@@ -527,6 +609,25 @@ export type RecruitCrmNoteType = {
   [key: string]: unknown;
 };
 
+export type RecruitCrmNoteTypeListResponse = RecruitCrmNoteType[];
+
+export type RecruitCrmNoteCollaboratorUser = {
+  id?: number | string | null;
+  first_name?: string | number | null;
+  last_name?: string | number | null;
+  email?: string | number | null;
+  contact_number?: string | number | null;
+  avatar?: string | number | null;
+  [key: string]: unknown;
+};
+
+export type RecruitCrmNoteCollaboratorTeam = {
+  id?: number | string | null;
+  team_id?: number | string | null;
+  team_name?: string | number | null;
+  [key: string]: unknown;
+};
+
 export type RecruitCrmNote = {
   id?: number | string | null;
   note_type?: RecruitCrmNoteType | RecruitCrmNoteType[] | null;
@@ -538,8 +639,18 @@ export type RecruitCrmNote = {
   updated_on?: string | number | null;
   created_by?: number | string | null;
   updated_by?: number | string | null;
+  resource_url?: string | number | null;
+  associated_candidates?: Array<string | number | null> | string | number | null;
+  associated_contacts?: Array<string | number | null> | string | number | null;
+  associated_companies?: Array<string | number | null> | string | number | null;
+  associated_jobs?: Array<string | number | null> | string | number | null;
+  associated_deals?: Array<string | number | null> | string | number | null;
+  collaborator_users?: RecruitCrmNoteCollaboratorUser[] | null;
+  collaborator_teams?: Array<RecruitCrmNoteCollaboratorTeam | number | string | null> | null;
   [key: string]: unknown;
 };
+
+export type CreatedNote = RecruitCrmNote;
 
 export type RecruitCrmNoteSearchResponse = {
   current_page?: number;
@@ -665,6 +776,28 @@ export type TaskTypeSummary = {
   label: string | null;
 };
 
+export type ListTaskTypesResult = {
+  returned_count: number;
+  task_types: TaskTypeSummary[];
+};
+
+export type TaskCollaboratorSummary = {
+  attendee_type: string | null;
+  attendee_id: string | null;
+  display_name: string | null;
+};
+
+export type TaskCollaboratorUserSummary = {
+  id: number | null;
+  first_name: string | null;
+  last_name: string | null;
+};
+
+export type TaskCollaboratorTeamSummary = {
+  team_id: number | null;
+  team_name: string | null;
+};
+
 export type ActivityRelatedSummary = {
   first_name?: string;
   last_name?: string;
@@ -697,6 +830,34 @@ export type SearchTasksResult = {
   returned_count: number;
   has_more: boolean;
   tasks: TaskSummary[];
+};
+
+export type CreateTaskResult = {
+  task_id: number | null;
+  title: string | null;
+  task_type: TaskTypeSummary | null;
+  description: string | null;
+  reminder: number | null;
+  start_date: string | null;
+  reminder_date: string | null;
+  related_to: string | null;
+  related_to_type: string | null;
+  related_to_name: string | null;
+  related_to_view_url: string | null;
+  status: string | number | null;
+  owner: number | null;
+  associated_candidates: string[];
+  associated_companies: string[];
+  associated_contacts: string[];
+  associated_jobs: string[];
+  associated_deals: string[];
+  created_on: string | null;
+  updated_on: string | null;
+  created_by: number | null;
+  updated_by: number | null;
+  collaborators: TaskCollaboratorSummary[];
+  collaborator_users: TaskCollaboratorUserSummary[];
+  collaborator_teams: TaskCollaboratorTeamSummary[];
 };
 
 export type MeetingTypeSummary = {
@@ -739,6 +900,22 @@ export type NoteTypeSummary = {
   label: string | null;
 };
 
+export type ListNoteTypesResult = {
+  returned_count: number;
+  note_types: NoteTypeSummary[];
+};
+
+export type NoteCollaboratorUserSummary = {
+  id: number | null;
+  first_name: string | null;
+  last_name: string | null;
+};
+
+export type NoteCollaboratorTeamSummary = {
+  team_id: number | null;
+  team_name: string | null;
+};
+
 export type NoteSummary = {
   id: number | null;
   note_type: NoteTypeSummary[] | null;
@@ -746,6 +923,7 @@ export type NoteSummary = {
   related_to: string | null;
   related_to_type: string | null;
   related: ActivityRelatedSummary | null;
+  resource_url: string | null;
   created_on: string | null;
   updated_on: string | null;
   created_by: number | null;
@@ -757,6 +935,26 @@ export type SearchNotesResult = {
   returned_count: number;
   has_more: boolean;
   notes: NoteSummary[];
+};
+
+export type CreateNoteResult = {
+  note_id: number | null;
+  note_type: NoteTypeSummary | null;
+  description: string | null;
+  related_to: string | null;
+  related_to_type: string | null;
+  related_to_view_url: string | null;
+  associated_candidates: string[];
+  associated_companies: string[];
+  associated_contacts: string[];
+  associated_jobs: string[];
+  associated_deals: string[];
+  created_on: string | null;
+  updated_on: string | null;
+  created_by: number | null;
+  updated_by: number | null;
+  collaborator_users: NoteCollaboratorUserSummary[];
+  collaborator_teams: NoteCollaboratorTeamSummary[];
 };
 
 export type CallLogTypeSummary = {
@@ -963,6 +1161,11 @@ export type HiringStageSummary = {
   label: string | null;
 };
 
+export type JobStatusesResult = {
+  returned_count: number;
+  statuses: JobStatusSummary[];
+};
+
 export type CandidateHiringStagesResult = {
   returned_count: number;
   stages: HiringStageSummary[];
@@ -1126,4 +1329,134 @@ export type JobDetail = {
   collaborator_teams?: unknown[];
   xml_feeds?: unknown[];
   [key: string]: unknown;
+};
+
+export type AnalyzeJobPipelineInput = {
+  job_slug: string;
+  start_page?: number;
+  idle_days_threshold?: number;
+  max_active_candidates?: number;
+  max_placed_candidates?: number;
+  terminal_stage_labels?: string[];
+  include_activity?: boolean;
+  include_time_metrics?: boolean;
+};
+
+export type AnalyzeJobPipelineStageCandidate = {
+  candidate_slug: string;
+  name: string | null;
+  days_in_current_stage: number | null;
+};
+
+export type AnalyzeJobPipelineStageGroup = {
+  stage_id: number | null;
+  label: string;
+  count: number;
+  candidates: AnalyzeJobPipelineStageCandidate[];
+};
+
+export type AnalyzeJobPipelineIdleCandidate = {
+  candidate_slug: string;
+  name: string | null;
+  current_stage: string | null;
+  days_in_current_stage: number;
+};
+
+export type AnalyzeJobPipelineTimeToHirePlacement = {
+  candidate_slug: string;
+  name: string | null;
+  days_to_hire: number;
+};
+
+export type AnalyzeJobPipelineTimeToHire = {
+  first_days: number;
+  avg_days: number;
+  sample_size: number;
+  placements: AnalyzeJobPipelineTimeToHirePlacement[];
+};
+
+export type AnalyzeJobPipelineTimeToStageEntry = {
+  first_days: number;
+  avg_days: number;
+  sample_size: number;
+};
+
+export type AnalyzeJobPipelineTimeToFirstAction = {
+  avg_days: number | null;
+  stuck_in_intake: number;
+  sample_size: number;
+};
+
+export type AnalyzeJobPipelineTimeMetrics = {
+  time_to_hire: AnalyzeJobPipelineTimeToHire | null;
+  time_to_stage: Record<string, AnalyzeJobPipelineTimeToStageEntry>;
+  time_to_first_action: AnalyzeJobPipelineTimeToFirstAction | null;
+  coverage: {
+    active_history_fetched: number;
+    active_total: number;
+    placed_history_fetched: number;
+    placed_total: number;
+  };
+};
+
+export type AnalyzeJobPipelineBottleneck = {
+  stage_label: string;
+  count: number;
+  median_days_in_stage: number;
+  reason: string;
+};
+
+export type AnalyzeJobPipelineActivity = {
+  notes_30d: number;
+  meetings_30d: number;
+  tasks_total: number;
+  next_task_due_at: string | null;
+  last_note_at: string | null;
+  last_meeting_at: string | null;
+};
+
+export type AnalyzeJobPipelineError = {
+  source: "stage_history" | "placed_history" | "activity" | "assignments";
+  slug?: string;
+  message: string;
+  status_code: number | null;
+};
+
+export type AnalyzeJobPipelineResult = {
+  job: {
+    slug: string;
+    name: string | null;
+    status_label: string | null;
+    owner: number | null;
+    owner_name: string | null;
+    company_slug: string | null;
+    created_on: string | null;
+    days_open: number | null;
+    number_of_openings: number | null;
+    view_url: string;
+  };
+  pipeline: {
+    window: {
+      start_page: number;
+      end_page: number;
+      analyzed_count: number;
+    };
+    next_window: { start_page: number } | null;
+    total_assigned_in_window: number;
+    active_count: number;
+    terminal_count: number;
+    terminal_stages_summary: Record<string, number>;
+    stages: AnalyzeJobPipelineStageGroup[];
+  };
+  bottleneck: AnalyzeJobPipelineBottleneck | null;
+  idle_candidates: AnalyzeJobPipelineIdleCandidate[];
+  activity: AnalyzeJobPipelineActivity | null;
+  time_metrics: AnalyzeJobPipelineTimeMetrics | null;
+  truncated: {
+    assignments?: true;
+    active_candidates?: true;
+    placed_candidates?: true;
+  };
+  errors: AnalyzeJobPipelineError[];
+  suggested_actions: string[];
 };
